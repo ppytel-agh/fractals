@@ -27,9 +27,15 @@
     <ClInclude Include="Fraktale.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Fractals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fraktale.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Fractals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
