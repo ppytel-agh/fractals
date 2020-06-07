@@ -20,6 +20,24 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+class FractalDrawing
+{
+private:
+	unsigned short clientWidth;
+	unsigned short clientHeight;
+public:
+	FractalDrawing(
+		unsigned short clientWidth,
+		unsigned short clientHeight
+	);
+	void drawFractal(
+		Fractal* fractal,
+		HDC clientHdc
+	);
+};
+
+FractalDrawing fractalDrawing = FractalDrawing(800, 600);
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -200,44 +218,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				)
 			)
 		};
-		FractalClipping choinkaClipping = FractalClipping(
-			-30.0f,
-			30.0f,
-			-10.0f,
-			60.0f
-		);
 		Fractal choinka = Fractal(
 			transformationRows,
 			noRows,
-			&choinkaClipping
+			&FractalClipping(
+				-30.0f,
+				30.0f,
+				-10.0f,
+				60.0f
+			)
 		);
-		if (choinka.isValid())
-		{
-			PixelCalculator kalkulatorPikseli = PixelCalculator(
-				800,
-				600,
-				&choinkaClipping
-			);
-			Point* currentPoint = new Point(0, 0);
-			Point* pointPrim = nullptr;
-			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-			for (int i = 0; i < 100000; i++)
-			{
-				RECT drawingPoint;
-				drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint->GetX());
-				drawingPoint.right = drawingPoint.left + 1;
-				drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint->GetY());
-				drawingPoint.bottom = drawingPoint.top + 1;
-				pointPrim = choinka.getAffineTransformation(rand())->calculatePrim(currentPoint);
-				delete currentPoint;
-				currentPoint = pointPrim;
-				FillRect(
-					hdc,
-					&drawingPoint,
-					blackBrush
-				);
-			}
-		}		
+		fractalDrawing.drawFractal(
+			&choinka,
+			hdc
+		);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -268,4 +262,41 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)
+{
+	this->clientWidth = clientWidth;
+	this->clientHeight = clientHeight;
+}
+
+void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
+{
+	if (fractal->isValid())
+	{
+		PixelCalculator kalkulatorPikseli = PixelCalculator(
+			800,
+			600,
+			fractal->getClipping()
+		);
+		Point* currentPoint = new Point(0, 0);
+		Point* pointPrim = nullptr;
+		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+		for (int i = 0; i < 100000; i++)
+		{
+			RECT drawingPoint;
+			drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint->GetX());
+			drawingPoint.right = drawingPoint.left + 1;
+			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint->GetY());
+			drawingPoint.bottom = drawingPoint.top + 1;
+			pointPrim = fractal->getAffineTransformation(rand())->calculatePrim(currentPoint);
+			delete currentPoint;
+			currentPoint = pointPrim;
+			FillRect(
+				clientHdc,
+				&drawingPoint,
+				blackBrush
+			);
+		}
+	}
 }

@@ -86,6 +86,7 @@ public:
 	~Fractal();
 	bool isValid(void);
 	AffineTransformation* getAffineTransformation(int randomValue);
+	FractalClipping* getClipping(void);
 };
 
 class PixelCalculator

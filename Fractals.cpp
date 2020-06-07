@@ -130,6 +130,11 @@ AffineTransformation* Fractal::getAffineTransformation(int randomValue)
 	return this->transformationRows[this->numberOfProbabilities]->getTransformation();
 }
 
+FractalClipping* Fractal::getClipping(void)
+{
+	return this->clipping;
+}
+
 PixelCalculator::PixelCalculator(unsigned short gxMax, unsigned short gyMax, FractalClipping* fractal)
 {
 	this->gxMax = gxMax;
