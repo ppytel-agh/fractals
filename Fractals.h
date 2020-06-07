@@ -73,9 +73,9 @@ class Fractal
 {
 private:
 	AffineTransformationRow** transformationRows;
-	unsigned char numberOfRows;
 	FractalClipping* clipping;
 	//internal
+	unsigned char numberOfProbabilities;
 	unsigned char* probabilityAssociations;
 public:
 	Fractal(
@@ -84,6 +84,8 @@ public:
 		FractalClipping* clipping
 	);
 	~Fractal();
+	bool isValid(void);
+	AffineTransformation* getAffineTransformation(int randomValue);
 };
 
 class PixelCalculator

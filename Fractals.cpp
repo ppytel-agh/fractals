@@ -87,13 +87,17 @@ Fractal::Fractal(AffineTransformationRow** transformationRows, unsigned char num
 	}
 	if (probabilitiesSum == 100) {
 		this->transformationRows = transformationRows;
-		this->numberOfRows = numberOfRows;
 		this->clipping = clipping;
-		this->probabilityAssociations = new unsigned char[numberOfRows - 1];
-
+		this->numberOfProbabilities = numberOfRows - 1;
+		this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
+		unsigned char maxProbabilityValue = 0;
+		for (i = 0; i < this->numberOfProbabilities; i++)
+		{
+			maxProbabilityValue += this->transformationRows[i]->getProbability();
+			this->probabilityAssociations[i] = maxProbabilityValue;
+		}
 	} else {
 		this->transformationRows = nullptr;
-		this->numberOfRows = 0;
 		this->clipping = nullptr;
 		this->probabilityAssociations = nullptr;
 	}
@@ -105,6 +109,25 @@ Fractal::~Fractal()
 	{
 		delete[] probabilityAssociations;
 	}
+}
+
+bool Fractal::isValid(void)
+{
+	return this->transformationRows != nullptr;
+}
+
+AffineTransformation* Fractal::getAffineTransformation(int randomValue)
+{
+	unsigned char percentageValue = randomValue % 100;
+	int i = 0;
+	for (;i < this->numberOfProbabilities; i++)
+	{
+		if (percentageValue < this->probabilityAssociations[i])
+		{
+			return this->transformationRows[i]->getTransformation();
+		}
+	}
+	return this->transformationRows[this->numberOfProbabilities]->getTransformation();
 }
 
 PixelCalculator::PixelCalculator(unsigned short gxMax, unsigned short gyMax, FractalClipping* fractal)

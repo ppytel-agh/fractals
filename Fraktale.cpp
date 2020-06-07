@@ -4,6 +4,8 @@
 #include "framework.h"
 #include "Fraktale.h"
 #include "Fractals.h"
+#include <cstdlib>
+#include <ctime>
 
 #define MAX_LOADSTRING 100
 
@@ -23,6 +25,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
+	//zainicjuj generator liczb
+	srand(time(NULL));
+
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
@@ -99,7 +104,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	hInst = hInstance; // Store instance handle in our global variable
 
 	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+		CW_USEDEFAULT, 0, 800, 600, nullptr, nullptr, hInstance, nullptr);
 
 	if (!hWnd)
 	{
@@ -147,7 +152,92 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
+		// TODO: Add any drawing code that uses hdc here...		
+		const unsigned char noRows = 4;
+		AffineTransformationRow* transformationRows[noRows] = {
+			&AffineTransformationRow(
+				54,
+				&AffineTransformation(
+					-0.67f,
+					-0.02f,
+					0.0f,
+					-0.18f,
+					0.81f,
+					10.0f
+				)
+			),
+			&AffineTransformationRow(
+				20,
+				&AffineTransformation(
+					0.4f,
+					0.4f,
+					0.0f,
+					-0.1f,
+					0.4f,
+					0.0f
+				)
+			),
+			&AffineTransformationRow(
+				20,
+				&AffineTransformation(
+					-0.4f,
+					-0.4f,
+					0.0f,
+					-0.1f,
+					0.4f,
+					0.0f
+				)
+			),
+			&AffineTransformationRow(
+				6,
+				&AffineTransformation(
+					-0.1f,
+					0.0f,
+					0.0f,
+					0.44f,
+					0.44f,
+					-2.0f
+				)
+			)
+		};
+		FractalClipping choinkaClipping = FractalClipping(
+			-30.0f,
+			30.0f,
+			-10.0f,
+			60.0f
+		);
+		Fractal choinka = Fractal(
+			transformationRows,
+			noRows,
+			&choinkaClipping
+		);
+		if (choinka.isValid())
+		{
+			PixelCalculator kalkulatorPikseli = PixelCalculator(
+				800,
+				600,
+				&choinkaClipping
+			);
+			Point* currentPoint = new Point(0, 0);
+			Point* pointPrim = nullptr;
+			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+			for (int i = 0; i < 100000; i++)
+			{
+				RECT drawingPoint;
+				drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint->GetX());
+				drawingPoint.right = drawingPoint.left + 1;
+				drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint->GetY());
+				drawingPoint.bottom = drawingPoint.top + 1;
+				pointPrim = choinka.getAffineTransformation(rand())->calculatePrim(currentPoint);
+				delete currentPoint;
+				currentPoint = pointPrim;
+				FillRect(
+					hdc,
+					&drawingPoint,
+					blackBrush
+				);
+			}
+		}		
 		EndPaint(hWnd, &ps);
 	}
 	break;
