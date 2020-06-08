@@ -6,6 +6,7 @@
 #include "Fractals.h"
 #include <cstdlib>
 #include <ctime>
+#include "FractalsGUI.h"
 
 #define MAX_LOADSTRING 100
 
@@ -37,6 +38,7 @@ public:
 };
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
+AffineTransformationForm* pAffineTransformationForm;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -228,33 +230,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				60.0f
 			)
 		);
-		fractalDrawing.drawFractal(
+		/*fractalDrawing.drawFractal(
 			&choinka,
 			hdc
-		);
+		);*/
 		EndPaint(hWnd, &ps);
 	}
 	break;
 	case WM_DESTROY:
+		delete pAffineTransformationForm;
 		PostQuitMessage(0);
 		break;
 	case WM_CREATE:
-		{
-			CreateWindowExW(
-				WS_EX_CLIENTEDGE,
-				L"Edit",
-				NULL,
-				WS_CHILD | WS_VISIBLE, 
-				20,
-				20,
-				30,
-				20,
-				hWnd,
-				NULL,
-				(HINSTANCE) GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
-				NULL
-			);
-		}		
+		pAffineTransformationForm = new AffineTransformationForm(
+			hWnd,
+			50,
+			50
+		);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
