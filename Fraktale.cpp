@@ -38,7 +38,7 @@ public:
 };
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
-AffineTransformationForm* pAffineTransformationForm;
+FractalDefinitionForm* formTest;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -238,11 +238,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_DESTROY:
-		delete pAffineTransformationForm;
+		delete formTest;
 		PostQuitMessage(0);
 		break;
 	case WM_CREATE:
-		pAffineTransformationForm = new AffineTransformationForm(
+		/*pAffineTransformationForm = new AffineTransformationForm(
+			hWnd,
+			50,
+			50
+		);*/
+		formTest = new FractalDefinitionForm(
 			hWnd,
 			50,
 			50
