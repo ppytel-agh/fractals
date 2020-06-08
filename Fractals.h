@@ -6,6 +6,7 @@ private:
 	float x;
 	float y;
 public:
+	Point();
 	Point(
 		float x,
 		float y
@@ -32,7 +33,7 @@ public:
 		float e,
 		float f
 	);
-	Point* calculatePrim(Point* originalPoint);
+	Point calculatePrim(Point originalPoint);
 };
 
 class AffineTransformationRow

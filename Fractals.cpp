@@ -1,5 +1,11 @@
 #include "Fractals.h"
 
+Point::Point()
+{
+	this->x = 0;
+	this->y = 0;
+}
+
 Point::Point(float x, float y)
 {
 	this->x = x;
@@ -26,11 +32,11 @@ AffineTransformation::AffineTransformation(float a, float b, float c, float d, f
 	this->f = f;
 }
 
-Point* AffineTransformation::calculatePrim(Point* originalPoint)
+Point AffineTransformation::calculatePrim(Point originalPoint)
 {
-	float xPrim = this->a * originalPoint->GetX() + this->b * originalPoint->GetY() + this->c;
-	float yPrim = this->d * originalPoint->GetX() + this->e * originalPoint->GetY() + this->f;
-	return new Point(xPrim, yPrim);
+	float xPrim = this->a * originalPoint.GetX() + this->b * originalPoint.GetY() + this->c;
+	float yPrim = this->d * originalPoint.GetX() + this->e * originalPoint.GetY() + this->f;
+	return Point(xPrim, yPrim);
 }
 
 AffineTransformationRow::AffineTransformationRow(unsigned char probability, AffineTransformation* transformation)

@@ -147,6 +147,10 @@ FractalTransformationsRowForm::~FractalTransformationsRowForm()
 	delete affineTransformationForm;
 }
 
-AffineTransformationRow FractalTransformationsRowForm::getValue(void)
-{
-}
+//AffineTransformationRow FractalTransformationsRowForm::getValue(void)
+//{
+//	return AffineTransformationRow(
+//		probability->getValue(),
+//		&affineTransformationForm->GetValue()
+//	);
+//}

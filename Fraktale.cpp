@@ -289,18 +289,17 @@ void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
 			600,
 			fractal->getClipping()
 		);
-		Point* currentPoint = new Point(0, 0);
-		Point* pointPrim = nullptr;
+		Point currentPoint;
+		Point pointPrim;
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		for (int i = 0; i < 100000; i++)
 		{
 			RECT drawingPoint;
-			drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint->GetX());
+			drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint.GetX());
 			drawingPoint.right = drawingPoint.left + 1;
-			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint->GetY());
+			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint.GetY());
 			drawingPoint.bottom = drawingPoint.top + 1;
 			pointPrim = fractal->getAffineTransformation(rand())->calculatePrim(currentPoint);
-			delete currentPoint;
 			currentPoint = pointPrim;
 			FillRect(
 				clientHdc,
