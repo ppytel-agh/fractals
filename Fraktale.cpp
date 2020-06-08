@@ -238,6 +238,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case WM_CREATE:
+		{
+			CreateWindowExW(
+				WS_EX_CLIENTEDGE,
+				L"Edit",
+				NULL,
+				WS_CHILD | WS_VISIBLE, 
+				20,
+				20,
+				30,
+				20,
+				hWnd,
+				NULL,
+				(HINSTANCE) GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+				NULL
+			);
+		}		
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
