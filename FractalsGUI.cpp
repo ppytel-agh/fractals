@@ -1,14 +1,18 @@
 #include "FractalsGUI.h"
 
-FloatInput::FloatInput(
-	HWND parent,
-	unsigned short offsetX,
-	unsigned short offsetY,
-	unsigned char width,
-	unsigned char height
-)
+void InputWrapper::putValueIntoBuffer(const char* buffer, unsigned char bufferSize)
 {
-	this->hWnd = CreateWindowExW(
+	Edit_GetLine(
+		this->windowHandle,
+		NULL,
+		buffer,
+		bufferSize
+	);
+}
+
+InputWrapper::InputWrapper(HWND parent, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
+{
+	this->windowHandle = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
 		L"Edit",
 		NULL,
@@ -24,21 +28,20 @@ FloatInput::FloatInput(
 	);
 }
 
-FloatInput::~FloatInput()
+InputWrapper::~InputWrapper()
 {
-	DestroyWindow(this->hWnd);
+	DestroyWindow(this->windowHandle);
 }
 
 float FloatInput::GetValue(void)
 {
-	TCHAR buffer[16];
-	Edit_GetLine(
-		this->hWnd,
-		NULL,
+	const unsigned char bufferSize = 16;
+	char buffer[bufferSize];
+	putValueIntoBuffer(
 		buffer,
-		16
+		bufferSize
 	);
-	return (float)atof((const char*)buffer);
+	return (float)atof(buffer);
 }
 
 AffineTransformationForm::AffineTransformationForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
@@ -99,9 +102,9 @@ AffineTransformationForm::~AffineTransformationForm()
 	delete f;
 }
 
-void AffineTransformationForm::GetValue(AffineTransformation& output)
+AffineTransformation AffineTransformationForm::GetValue(void)
 {
-	output = AffineTransformation(
+	return AffineTransformation(
 		a->GetValue(),
 		b->GetValue(),
 		c->GetValue(),
@@ -109,4 +112,41 @@ void AffineTransformationForm::GetValue(AffineTransformation& output)
 		e->GetValue(),
 		f->GetValue()
 	);
+}
+
+unsigned int NaturalInput::getValue(void)
+{
+	const unsigned char bufferSize = 16;
+	char buffer[bufferSize];
+	putValueIntoBuffer(
+		buffer,
+		bufferSize
+	);
+	return atoi(buffer);
+}
+
+FractalTransformationsRowForm::FractalTransformationsRowForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
+{
+	probability = new NaturalInput(
+		parent,
+		offsetX,
+		offsetY,
+		40,
+		20
+	);
+	affineTransformationForm = new AffineTransformationForm(
+		parent,
+		offsetX + 50,
+		offsetY
+	);
+}
+
+FractalTransformationsRowForm::~FractalTransformationsRowForm()
+{
+	delete probability;
+	delete affineTransformationForm;
+}
+
+AffineTransformationRow FractalTransformationsRowForm::getValue(void)
+{
 }
