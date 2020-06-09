@@ -256,7 +256,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 	case WM_COMMAND:
 		if (lParam == 0)
 		{
-			return (INT_PTR)TRUE;
+			WORD commandId = LOWORD(wParam);
+			switch (commandId)
+			{
+			case IDOK:
+			case IDCANCEL:
+				return (INT_PTR)TRUE;
+			}			
 		}
 		else
 		{
