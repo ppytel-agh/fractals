@@ -20,6 +20,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
 
 class FractalDrawing
 {
@@ -74,7 +75,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
 		bool isDialog = IsDialogMessage(msg.hwnd, &msg);
-		if (!isTranslated && !isDialog)
+		if (!isTranslated || !isDialog)
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -156,43 +157,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_COMMAND:
 	{
-		if (lParam == 0)
+		int wmId = LOWORD(wParam);
+		// Parse the menu selections:
+		switch (wmId)
 		{
-			int wmId = LOWORD(wParam);
-			// Parse the menu selections:
-			switch (wmId)
-			{
-			case IDM_ABOUT:
-				DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-				break;
-			case IDM_EXIT:
-				DestroyWindow(hWnd);
-				break;
-			default:
-				return DefWindowProc(hWnd, message, wParam, lParam);
-			}
-		}
-		else
-		{
-			//controls have lParam value other than 0
-			if (formTest->getRenderButton()->isCommandFromControl(lParam))
-			{
-				WORD notificationCode = HIWORD(wParam);
-				if (notificationCode == BN_CLICKED)
-				{
-					formTest->getFractalDefinitionForm()->UpdateFractal();
-					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
-					if (definedFractalPointer != NULL)
-					{
-						HDC hdc = GetDC(hWnd);
-						fractalDrawing.drawFractal(
-							definedFractalPointer,
-							hdc
-						);
-						ReleaseDC(hWnd, hdc);
-					}
-				}
-			}
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
@@ -222,12 +197,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			50,
 			50
 		);*/
-		formTest = new FractalDrawingUI(
-			hWnd,
-			20,
-			20
-		);
-		break;
+		{
+			HWND dialogHandle = CreateDialog(
+				hInst,
+				MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
+				hWnd,
+				(DLGPROC)FractalFormDialogProc
+			);
+			ShowWindow(dialogHandle, SW_SHOW);
+		}
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -248,6 +226,57 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		formTest = new FractalDrawingUI(
+			hDlg,
+			20,
+			20
+		);
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		if (lParam == 0)
+		{
+			if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+		}
+		else
+		{
+			//controls have lParam value other than 0
+			if (formTest->getRenderButton()->isCommandFromControl(lParam))
+			{
+				WORD notificationCode = HIWORD(wParam);
+				if (notificationCode == BN_CLICKED)
+				{
+					formTest->getFractalDefinitionForm()->UpdateFractal();
+					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
+					if (definedFractalPointer != NULL)
+					{
+						HWND parentWindow = GetParent(hDlg);
+						HDC hdc = GetDC(parentWindow);
+						fractalDrawing.drawFractal(
+							definedFractalPointer,
+							hdc
+						);
+						ReleaseDC(parentWindow, hdc);
+					}
+					return (INT_PTR)TRUE;
+				}
+			}
 		}
 		break;
 	}
