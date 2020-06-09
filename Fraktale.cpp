@@ -38,7 +38,8 @@ public:
 };
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
-FractalDefinitionForm* formTest;
+FractalDrawingUI* formTest;
+LabelWrapper* testLabel;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -247,10 +248,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			50,
 			50
 		);*/
-		formTest = new FractalDefinitionForm(
+		formTest = new FractalDrawingUI(
 			hWnd,
-			50,
-			50
+			20,
+			20
+		);
+		testLabel = new LabelWrapper(
+			hWnd,
+			L"xDDDDDDDDDDDDDDDDDDDDD",
+			20,
+			20 + 2 + formTest->getHeight(),
+			200,
+			30
 		);
 		break;
 	default:

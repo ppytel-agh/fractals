@@ -365,6 +365,7 @@ FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, un
 		offsetY,
 		labelsWidth
 	);
+	width = elementOffsetX + maxY->getWidth();
 }
 
 FractalClippingForm::~FractalClippingForm()
@@ -375,9 +376,13 @@ FractalClippingForm::~FractalClippingForm()
 	delete maxY;
 }
 
-FloatInputWithLeftLabel::FloatInputWithLeftLabel(HWND parent, LPCTSTR text, unsigned short offsetX, unsigned short offsetY, unsigned char labelWidth)
+unsigned short FractalClippingForm::getWidth(void)
 {
-	const unsigned char height = 25;
+	return width;
+}
+
+FloatInputWithLeftLabel::FloatInputWithLeftLabel(HWND parent, LPCTSTR text, unsigned short offsetX, unsigned short offsetY, unsigned char labelWidth)
+{	
 	label = new LabelWrapper(
 		parent,
 		text,
@@ -415,16 +420,86 @@ FractalDefinitionForm::FractalDefinitionForm(HWND parent, unsigned short offsetX
 		offsetX,
 		offsetY
 	);
-	unsigned short clippingFormOffsetY = offsetY + transformations->getHeight() + 5;
+	unsigned short clippingFormOffsetY = offsetY + transformations->getHeight() + transformationsAndClippingOffsetY;
 	clipping = new FractalClippingForm(
 		parent,
 		offsetX,
 		clippingFormOffsetY
 	);
+	height = transformations->getHeight() + transformationsAndClippingOffsetY + FloatInputWithLeftLabel::height;
 }
 
 FractalDefinitionForm::~FractalDefinitionForm()
 {
 	delete transformations;
 	delete clipping;
+}
+
+FractalTransformationsForm* FractalDefinitionForm::getTransformationsForm()
+{
+	return this->transformations;
+}
+
+FractalClippingForm* FractalDefinitionForm::getClippingForm()
+{
+	return this->clipping;
+}
+
+unsigned short FractalDefinitionForm::getHeight(void)
+{
+	return height;
+}
+
+FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
+{
+	this->fractalDefinition = new FractalDefinitionForm(
+		parent,
+		offsetX,
+		offsetY
+	);
+	unsigned short buttonOffsetX = offsetX + this->fractalDefinition->getClippingForm()->getWidth() + 2;
+	unsigned short buttonOffsetY = offsetY + this->fractalDefinition->getTransformationsForm()->getHeight() + 2;
+	this->renderFractalButton = new ButtonWrapper(
+		parent,
+		L"Renderuj",
+		buttonOffsetX,
+		buttonOffsetY,
+		buttonWidth,
+		buttonHeight
+	);
+	height = this->fractalDefinition->getHeight() + 2;
+}
+
+FractalDrawingUI::~FractalDrawingUI()
+{
+	delete fractalDefinition;
+	delete renderFractalButton;
+}
+
+unsigned short FractalDrawingUI::getHeight(void)
+{
+	return height;
+}
+
+ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
+{
+	this->buttonWindow = CreateWindowExW(
+		NULL,
+		L"Button",
+		label,
+		WS_CHILD | WS_VISIBLE,
+		offsetX,
+		offsetY,
+		width,
+		height,
+		parent,
+		NULL,
+		(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
+		NULL
+	);
+}
+
+ButtonWrapper::~ButtonWrapper()
+{
+	DestroyWindow(buttonWindow);
 }

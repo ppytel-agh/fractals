@@ -137,6 +137,7 @@ private:
 	unsigned char width;
 public:
 	static const unsigned char inputWidth = 50;
+	static const unsigned char height = 25;
 	FloatInputWithLeftLabel(
 		HWND parent,
 		LPCTSTR text,
@@ -156,6 +157,7 @@ private:
 	FloatInputWithLeftLabel* maxX;
 	FloatInputWithLeftLabel* minY;
 	FloatInputWithLeftLabel* maxY;
+	unsigned short width;
 public:
 	FractalClippingForm(
 		HWND parent,
@@ -163,13 +165,16 @@ public:
 		unsigned short offsetY
 	);
 	~FractalClippingForm();
+	unsigned short getWidth(void);
 };
 
 class FractalDefinitionForm
 {
 private:
+	static const unsigned char transformationsAndClippingOffsetY = 5;
 	FractalTransformationsForm* transformations;
 	FractalClippingForm* clipping;
+	unsigned short height;
 public:
 	FractalDefinitionForm(
 		HWND parent,
@@ -177,10 +182,47 @@ public:
 		unsigned short offsetY
 	);
 	~FractalDefinitionForm();
+	FractalTransformationsForm* getTransformationsForm();
+	FractalClippingForm* getClippingForm();
+	unsigned short getHeight(void);
+};
+
+//class RenderingFrameSizeForm
+//{
+//private:
+//
+//};
+//
+class ButtonWrapper
+{
+private:
+	HWND buttonWindow;
+public:
+	ButtonWrapper(
+		HWND parent,
+		LPCTSTR label,
+		unsigned short offsetX,
+		unsigned short offsetY,
+		unsigned char width,
+		unsigned char height
+	);
+	~ButtonWrapper();
 };
 
 class FractalDrawingUI
 {
 private:
+	const unsigned char buttonWidth = 100;
+	const unsigned char buttonHeight = 27;
 	FractalDefinitionForm* fractalDefinition;
+	ButtonWrapper* renderFractalButton;
+	unsigned short height;
+public:
+	FractalDrawingUI(
+		HWND parent,
+		unsigned short offsetX,
+		unsigned short offsetY
+	);
+	~FractalDrawingUI();
+	unsigned short getHeight(void);
 };
