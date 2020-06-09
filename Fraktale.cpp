@@ -199,15 +199,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			50,
 			50
 		);*/
-		{
-			dialogHandle = CreateDialog(
-				hInst,
-				MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
-				hWnd,
-				(DLGPROC)FractalFormDialogProc
-			);
-			ShowWindow(dialogHandle, SW_SHOW);
-		}
+	{
+		dialogHandle = CreateDialog(
+			hInst,
+			MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
+			hWnd,
+			(DLGPROC)FractalFormDialogProc
+		);
+		ShowWindow(dialogHandle, SW_SHOW);
+	}
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE || wParam == VK_RETURN)
 		{
@@ -262,7 +262,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 			case IDOK:
 			case IDCANCEL:
 				return (INT_PTR)TRUE;
-			}			
+			}
 		}
 		else
 		{
@@ -276,19 +276,22 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
 					if (definedFractalPointer != NULL)
 					{
-						HWND parentWindow = GetParent(hDlg);
-						HDC hdc = GetDC(parentWindow);
-						fractalDrawing.drawFractal(
-							definedFractalPointer,
-							hdc
-						);
-						ReleaseDC(parentWindow, hdc);
+						if (definedFractalPointer->isValid())\
+						{
+							HWND parentWindow = GetParent(hDlg);
+							HDC hdc = GetDC(parentWindow);
+							fractalDrawing.drawFractal(
+								definedFractalPointer,
+								hdc
+							);
+							ReleaseDC(parentWindow, hdc);
+						}
 					}
 					return (INT_PTR)TRUE;
 				}
 			}
 		}
-		break;	
+		break;
 	}
 	return (INT_PTR)FALSE;
 }

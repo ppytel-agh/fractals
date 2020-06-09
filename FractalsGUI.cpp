@@ -223,6 +223,7 @@ bool FractalTransformationsRowForm::isFilled(void)
 void FractalTransformationsRowForm::updateAffineTransformationRow(void)
 {
 	ResetAffineTransformationRow();
+	affineTransformationForm->updateTransformation();
 	affineTransformationRow = new AffineTransformationRow(
 		probability->getValue(),
 		affineTransformationForm->getAffineTransformation()
@@ -380,6 +381,7 @@ void FractalTransformationsForm::updateTransformationRows(void)
 	{
 		if (filledRows[i])
 		{
+			transformationRowForms[i]->updateAffineTransformationRow();
 			transformationRows[transformationRowIndex] = transformationRowForms[i]->getAffineTranformationRow();
 			transformationRowIndex++;
 		}
