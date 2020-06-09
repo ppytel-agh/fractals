@@ -1,6 +1,9 @@
 #include "FractalsGUI.h"
 
-void InputWrapper::putValueIntoBuffer(const char* buffer, unsigned char bufferSize)
+void InputWrapper::putValueIntoBuffer(
+	const TCHAR* buffer,
+	unsigned char bufferSize
+)
 {
 	Edit_GetLine(
 		this->windowHandle,
@@ -48,12 +51,12 @@ InputWrapper::~InputWrapper()
 float FloatInput::GetValue(void)
 {
 	const unsigned char bufferSize = 16;
-	char buffer[bufferSize];
+	TCHAR buffer[bufferSize];
 	putValueIntoBuffer(
 		buffer,
 		bufferSize
 	);
-	return (float)atof(buffer);
+	return _wtof(buffer);
 }
 
 bool FloatInput::isValid(void)
@@ -166,12 +169,12 @@ AffineTransformation* AffineTransformationForm::getAffineTransformation(void)
 unsigned int NaturalInput::getValue(void)
 {
 	const unsigned char bufferSize = 16;
-	char buffer[bufferSize];
+	TCHAR buffer[bufferSize];
 	putValueIntoBuffer(
 		buffer,
 		bufferSize
 	);
-	return atoi(buffer);
+	return _wtoi(buffer);
 }
 
 void FractalTransformationsRowForm::ResetAffineTransformationRow(void)

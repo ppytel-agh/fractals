@@ -10,7 +10,7 @@ private:
 	HWND windowHandle;
 protected:
 	void putValueIntoBuffer(
-		const char* buffer,
+		const TCHAR* buffer,
 		unsigned char bufferSize
 	);
 public:
