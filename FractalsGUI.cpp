@@ -44,6 +44,20 @@ float FloatInput::GetValue(void)
 	return (float)atof(buffer);
 }
 
+bool FloatInput::isValid(void)
+{
+	return GetValue();
+}
+
+void AffineTransformationForm::ResetTransformation(void)
+{
+	if (transformation != NULL)
+	{
+		delete transformation;
+		transformation = NULL;
+	}
+}
+
 AffineTransformationForm::AffineTransformationForm(
 	HWND parent,
 	unsigned short offsetX,
@@ -105,6 +119,7 @@ AffineTransformationForm::AffineTransformationForm(
 		elementWidth,
 		elementHeight
 	);
+	transformation = NULL;
 }
 
 AffineTransformationForm::~AffineTransformationForm()
@@ -115,11 +130,13 @@ AffineTransformationForm::~AffineTransformationForm()
 	delete d;
 	delete e;
 	delete f;
+	ResetTransformation();
 }
 
-AffineTransformation AffineTransformationForm::GetValue(void)
+void AffineTransformationForm::updateTransformation(void)
 {
-	return AffineTransformation(
+	ResetTransformation();
+	transformation = new AffineTransformation(
 		a->GetValue(),
 		b->GetValue(),
 		c->GetValue(),
@@ -127,6 +144,11 @@ AffineTransformation AffineTransformationForm::GetValue(void)
 		e->GetValue(),
 		f->GetValue()
 	);
+}
+
+AffineTransformation* AffineTransformationForm::getAffineTransformation(void)
+{
+	return transformation;
 }
 
 unsigned int NaturalInput::getValue(void)
@@ -138,6 +160,15 @@ unsigned int NaturalInput::getValue(void)
 		bufferSize
 	);
 	return atoi(buffer);
+}
+
+void FractalTransformationsRowForm::ResetAffineTransformationRow(void)
+{
+	if (affineTransformationRow != NULL)
+	{
+		delete affineTransformationRow;
+		affineTransformationRow = NULL;
+	}
 }
 
 FractalTransformationsRowForm::FractalTransformationsRowForm(
@@ -161,12 +192,33 @@ FractalTransformationsRowForm::FractalTransformationsRowForm(
 		offsetY,
 		factorCellWidth
 	);
+	affineTransformationRow = NULL;
 }
 
 FractalTransformationsRowForm::~FractalTransformationsRowForm()
 {
 	delete probability;
 	delete affineTransformationForm;
+	ResetAffineTransformationRow();
+}
+
+bool FractalTransformationsRowForm::isFilled(void)
+{
+	return probability->getValue() != 0;
+}
+
+void FractalTransformationsRowForm::updateAffineTransformationRow(void)
+{
+	ResetAffineTransformationRow();
+	affineTransformationRow = new AffineTransformationRow(
+		probability->getValue(),
+		affineTransformationForm->getAffineTransformation()
+	);
+}
+
+AffineTransformationRow* FractalTransformationsRowForm::getAffineTranformationRow(void)
+{
+	return affineTransformationRow;
 }
 
 //AffineTransformationRow FractalTransformationsRowForm::getValue(void)
@@ -177,13 +229,26 @@ FractalTransformationsRowForm::~FractalTransformationsRowForm()
 //	);
 //}
 
+void FractalTransformationsForm::ResetTransformationRows(void)
+{
+	if (numberOfRows > 0)
+	{
+		for (int i = 0; i < numberOfRows; i++)
+		{
+			delete transformationRows[i];
+		}
+		delete[] transformationRows;
+		numberOfRows = 0;
+	}
+}
+
 unsigned short FractalTransformationsForm::getHeight()
 {
 	return factorsUpperLabelHeight + factorsHeight + (FractalTransformationsRowForm::height * 4);
 }
 
 FractalTransformationsForm::FractalTransformationsForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
-{	
+{
 	this->probabilityLabel = new LabelWrapper(
 		parent,
 		L"prawdobodobieństwo",
@@ -254,34 +319,18 @@ FractalTransformationsForm::FractalTransformationsForm(HWND parent, unsigned sho
 		factorsHeight,
 		LabelHorizontalAlignment::center
 	);
-	this->ftr1 = new FractalTransformationsRowForm(
-		parent,
-		offsetX,
-		offsetY + factorsUpperLabelHeight + factorsHeight,
-		probabilityLabelWidth,
-		factorWidth
-	);
-	this->ftr2 = new FractalTransformationsRowForm(
-		parent,
-		offsetX,
-		offsetY + factorsUpperLabelHeight + factorsHeight + FractalTransformationsRowForm::height,
-		probabilityLabelWidth,
-		factorWidth
-	);
-	this->ftr3 = new FractalTransformationsRowForm(
-		parent,
-		offsetX,
-		offsetY + factorsUpperLabelHeight + factorsHeight + (FractalTransformationsRowForm::height * 2),
-		probabilityLabelWidth,
-		factorWidth
-	);
-	this->ftr4 = new FractalTransformationsRowForm(
-		parent,
-		offsetX,
-		offsetY + factorsUpperLabelHeight + factorsHeight + (FractalTransformationsRowForm::height * 3),
-		probabilityLabelWidth,
-		factorWidth
-	);
+	for (int i = 0; i < maxNumberOfTransformations; i++)
+	{
+		transformationRowForms[i] = new FractalTransformationsRowForm(
+			parent,
+			offsetX,
+			offsetY + factorsUpperLabelHeight + factorsHeight + (FractalTransformationsRowForm::height * i),
+			probabilityLabelWidth,
+			factorWidth
+		);
+	}
+	transformationRows = NULL;
+	numberOfRows = 0;
 }
 
 FractalTransformationsForm::~FractalTransformationsForm()
@@ -294,10 +343,44 @@ FractalTransformationsForm::~FractalTransformationsForm()
 	delete this->dFactorLabel;
 	delete this->eFactorLabel;
 	delete this->fFactorLabel;
-	delete this->ftr1;
-	delete this->ftr2;
-	delete this->ftr3;
-	delete this->ftr4;
+	for (int i = 0; i < maxNumberOfTransformations; i++)
+	{
+		delete transformationRowForms[i];
+	}
+}
+
+void FractalTransformationsForm::updateTransformationRows(void)
+{
+	ResetTransformationRows();
+	bool filledRows[4];
+	for (int i = 0; i < maxNumberOfTransformations; i++)
+	{
+		filledRows[i] = transformationRowForms[i]->isFilled();
+		if (filledRows[i])
+		{
+			numberOfRows++;
+		}
+	}
+	transformationRows = new AffineTransformationRow * [numberOfRows];
+	unsigned char transformationRowIndex = 0;
+	for (int i = 0; i < maxNumberOfTransformations; i++)
+	{
+		if (filledRows[i])
+		{
+			transformationRows[transformationRowIndex] = transformationRowForms[i]->getAffineTranformationRow();
+			transformationRowIndex++;
+		}
+	}
+}
+
+AffineTransformationRow** FractalTransformationsForm::getTransformationRows(void)
+{
+	return transformationRows;
+}
+
+unsigned char FractalTransformationsForm::getNumberOfTransformationRows(void)
+{
+	return numberOfRows;
 }
 
 LabelWrapper::LabelWrapper(
@@ -329,6 +412,15 @@ LabelWrapper::LabelWrapper(
 LabelWrapper::~LabelWrapper()
 {
 	DestroyWindow(this->labelWindow);
+}
+
+void FractalClippingForm::ResetClipping(void)
+{
+	if (clipping != NULL)
+	{
+		delete clipping;
+		clipping = NULL;
+	}
 }
 
 FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
@@ -374,11 +466,32 @@ FractalClippingForm::~FractalClippingForm()
 	delete maxX;
 	delete minY;
 	delete maxY;
+	ResetClipping();
 }
 
 unsigned short FractalClippingForm::getWidth(void)
 {
 	return width;
+}
+
+bool FractalClippingForm::isValid(void)
+{
+	return minX->getFloatInput()->isValid();
+}
+
+void FractalClippingForm::updateFractalClipping(void)
+{
+	clipping = new FractalClipping(
+		minX->getFloatInput()->GetValue(),
+		maxX->getFloatInput()->GetValue(),
+		minY->getFloatInput()->GetValue(),
+		maxY->getFloatInput()->GetValue()
+	);
+}
+
+FractalClipping* FractalClippingForm::getFractalClipping(void)
+{
+	return clipping;
 }
 
 FloatInputWithLeftLabel::FloatInputWithLeftLabel(HWND parent, LPCTSTR text, unsigned short offsetX, unsigned short offsetY, unsigned char labelWidth)
@@ -413,6 +526,25 @@ unsigned char FloatInputWithLeftLabel::getWidth(void)
 	return width;
 }
 
+FloatInput* FloatInputWithLeftLabel::getFloatInput(void)
+{
+	return input;
+}
+
+bool FractalDefinitionForm::isFormValid()
+{
+	return true;
+}
+
+void FractalDefinitionForm::ResetFractal(void)
+{
+	if (fractal != NULL)
+	{
+		delete fractal;
+		fractal = NULL;
+	}
+}
+
 FractalDefinitionForm::FractalDefinitionForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {
 	transformations = new FractalTransformationsForm(
@@ -427,12 +559,14 @@ FractalDefinitionForm::FractalDefinitionForm(HWND parent, unsigned short offsetX
 		clippingFormOffsetY
 	);
 	height = transformations->getHeight() + transformationsAndClippingOffsetY + FloatInputWithLeftLabel::height;
+	fractal = NULL;
 }
 
 FractalDefinitionForm::~FractalDefinitionForm()
 {
 	delete transformations;
 	delete clipping;
+	ResetFractal();
 }
 
 FractalTransformationsForm* FractalDefinitionForm::getTransformationsForm()
@@ -448,6 +582,23 @@ FractalClippingForm* FractalDefinitionForm::getClippingForm()
 unsigned short FractalDefinitionForm::getHeight(void)
 {
 	return height;
+}
+
+Fractal* FractalDefinitionForm::getFractal(void)
+{
+	return fractal;	
+}
+
+void FractalDefinitionForm::UpdateFractal(void)
+{
+	ResetFractal();
+	transformations->updateTransformationRows();
+	clipping->updateFractalClipping();
+	fractal = new Fractal(
+		transformations->getTransformationRows(),
+		transformations->getNumberOfTransformationRows(),
+		clipping->getFractalClipping()
+	);
 }
 
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)

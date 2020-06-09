@@ -29,6 +29,7 @@ class FloatInput : public InputWrapper
 	using InputWrapper::InputWrapper;
 public:
 	float GetValue(void);
+	bool isValid(void);
 };
 
 class NaturalInput : public InputWrapper
@@ -47,6 +48,8 @@ private:
 	FloatInput* d;
 	FloatInput* e;
 	FloatInput* f;
+	AffineTransformation* transformation;
+	void ResetTransformation(void);
 public:
 	AffineTransformationForm(
 		HWND parent,
@@ -55,7 +58,8 @@ public:
 		unsigned char factorCellWidth
 	);
 	~AffineTransformationForm();
-	AffineTransformation GetValue(void);
+	void updateTransformation(void);
+	AffineTransformation* getAffineTransformation(void);
 };
 
 class FractalTransformationsRowForm
@@ -63,6 +67,8 @@ class FractalTransformationsRowForm
 private:
 	NaturalInput* probability;
 	AffineTransformationForm* affineTransformationForm;
+	AffineTransformationRow* affineTransformationRow;
+	void ResetAffineTransformationRow(void);
 public:
 	static const unsigned char height = 20;
 	FractalTransformationsRowForm(
@@ -73,7 +79,9 @@ public:
 		unsigned char factorCellWidth
 	);
 	~FractalTransformationsRowForm();
-	//AffineTransformationRow getValue(void);
+	bool isFilled(void);
+	void updateAffineTransformationRow(void);
+	AffineTransformationRow* getAffineTranformationRow(void);
 };
 
 enum LabelHorizontalAlignment
@@ -107,6 +115,7 @@ private:
 	static const unsigned char factorsUpperLabelHeight = 25;
 	static const unsigned char factorsHeight = 20;
 	static const unsigned char factorWidth = 50;
+	static const unsigned char maxNumberOfTransformations = 4;
 	LabelWrapper* probabilityLabel;
 	LabelWrapper* factorsLabel;
 	LabelWrapper* aFactorLabel;
@@ -115,10 +124,10 @@ private:
 	LabelWrapper* dFactorLabel;
 	LabelWrapper* eFactorLabel;
 	LabelWrapper* fFactorLabel;
-	FractalTransformationsRowForm* ftr1;
-	FractalTransformationsRowForm* ftr2;
-	FractalTransformationsRowForm* ftr3;
-	FractalTransformationsRowForm* ftr4;
+	FractalTransformationsRowForm* transformationRowForms[maxNumberOfTransformations];
+	AffineTransformationRow** transformationRows;
+	unsigned char numberOfRows;
+	void ResetTransformationRows(void);
 public:
 	unsigned short getHeight();
 	FractalTransformationsForm(
@@ -127,6 +136,9 @@ public:
 		unsigned short offsetY
 	);
 	~FractalTransformationsForm();
+	void updateTransformationRows(void);
+	AffineTransformationRow** getTransformationRows(void);
+	unsigned char getNumberOfTransformationRows(void);
 };
 
 class FloatInputWithLeftLabel
@@ -147,6 +159,7 @@ public:
 	);
 	~FloatInputWithLeftLabel();
 	unsigned char getWidth(void);
+	FloatInput* getFloatInput(void);
 };
 
 class FractalClippingForm
@@ -158,6 +171,8 @@ private:
 	FloatInputWithLeftLabel* minY;
 	FloatInputWithLeftLabel* maxY;
 	unsigned short width;
+	FractalClipping* clipping;
+	void ResetClipping(void);
 public:
 	FractalClippingForm(
 		HWND parent,
@@ -166,6 +181,9 @@ public:
 	);
 	~FractalClippingForm();
 	unsigned short getWidth(void);
+	bool isValid(void);
+	void updateFractalClipping(void);
+	FractalClipping* getFractalClipping(void);
 };
 
 class FractalDefinitionForm
@@ -175,6 +193,9 @@ private:
 	FractalTransformationsForm* transformations;
 	FractalClippingForm* clipping;
 	unsigned short height;
+	bool isFormValid();
+	Fractal* fractal;
+	void ResetFractal(void);
 public:
 	FractalDefinitionForm(
 		HWND parent,
@@ -185,6 +206,8 @@ public:
 	FractalTransformationsForm* getTransformationsForm();
 	FractalClippingForm* getClippingForm();
 	unsigned short getHeight(void);
+	Fractal* getFractal(void);
+	void UpdateFractal(void);
 };
 
 //class RenderingFrameSizeForm

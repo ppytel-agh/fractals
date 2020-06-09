@@ -39,6 +39,7 @@ public:
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
 FractalDrawingUI* formTest;
+Fractal* definedFractalPointer;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -177,9 +178,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				WORD notificationCode = HIWORD(wParam);
 				if (notificationCode == BN_CLICKED)
 				{
-					
+					formTest->getFractalDefinitionForm()->UpdateFractal();
+					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
+					if (definedFractalPointer != NULL)
+					{
+						PAINTSTRUCT ps;
+						HDC hdc = BeginPaint(hWnd, &ps);
+						fractalDrawing.drawFractal(
+							definedFractalPointer,
+							hdc
+						);
+						EndPaint(hWnd, &ps);
+					}
 				}
 			}
+			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
 	break;
@@ -187,68 +200,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...		
-		const unsigned char noRows = 4;
-		AffineTransformationRow* transformationRows[noRows] = {
-			&AffineTransformationRow(
-				54,
-				&AffineTransformation(
-					-0.67f,
-					-0.02f,
-					0.0f,
-					-0.18f,
-					0.81f,
-					10.0f
-				)
-			),
-			&AffineTransformationRow(
-				20,
-				&AffineTransformation(
-					0.4f,
-					0.4f,
-					0.0f,
-					-0.1f,
-					0.4f,
-					0.0f
-				)
-			),
-			&AffineTransformationRow(
-				20,
-				&AffineTransformation(
-					-0.4f,
-					-0.4f,
-					0.0f,
-					-0.1f,
-					0.4f,
-					0.0f
-				)
-			),
-			&AffineTransformationRow(
-				6,
-				&AffineTransformation(
-					-0.1f,
-					0.0f,
-					0.0f,
-					0.44f,
-					0.44f,
-					-2.0f
-				)
-			)
-		};
-		Fractal choinka = Fractal(
-			transformationRows,
-			noRows,
-			&FractalClipping(
-				-30.0f,
-				30.0f,
-				-10.0f,
-				60.0f
-			)
-		);
-		/*fractalDrawing.drawFractal(
-			&choinka,
-			hdc
-		);*/
+		// TODO: Add any drawing code that uses hdc here...
+		if (definedFractalPointer != NULL)
+		{
+			fractalDrawing.drawFractal(
+				definedFractalPointer,
+				hdc
+			);
+		}
 		EndPaint(hWnd, &ps);
 	}
 	break;
