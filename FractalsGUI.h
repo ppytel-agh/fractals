@@ -19,7 +19,8 @@ public:
 		unsigned short offsetX,
 		unsigned short offsetY,
 		unsigned char width,
-		unsigned char height
+		unsigned char height,
+		bool isFirstElementOfNewGroup = false
 	);
 	~InputWrapper();
 };
@@ -155,7 +156,8 @@ public:
 		LPCTSTR text,
 		unsigned short offsetX,
 		unsigned short offsetY,
-		unsigned char labelWidth
+		unsigned char labelWidth,
+		bool isFirstElementOfGroup = false
 	);
 	~FloatInputWithLeftLabel();
 	unsigned char getWidth(void);

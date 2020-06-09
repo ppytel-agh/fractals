@@ -10,13 +10,25 @@ void InputWrapper::putValueIntoBuffer(const char* buffer, unsigned char bufferSi
 	);
 }
 
-InputWrapper::InputWrapper(HWND parent, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
+InputWrapper::InputWrapper(
+	HWND parent,
+	unsigned short offsetX,
+	unsigned short offsetY,
+	unsigned char width,
+	unsigned char height,
+	bool isFirstElementOfNewGroup
+)
 {
+	DWORD style = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
+	if (isFirstElementOfNewGroup)
+	{
+		style |= WS_GROUP;
+	}
 	this->windowHandle = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
 		L"Edit",
 		NULL,
-		WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+		style,
 		(int)offsetX,
 		(int)offsetY,
 		(int)width,
@@ -184,7 +196,8 @@ FractalTransformationsRowForm::FractalTransformationsRowForm(
 		offsetX + 2,
 		offsetY + 2,
 		probabilityCellWidth - 4,
-		FractalTransformationsRowForm::height
+		FractalTransformationsRowForm::height,
+		true
 	);
 	affineTransformationForm = new AffineTransformationForm(
 		parent,
@@ -431,7 +444,8 @@ FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, un
 		L"min X",
 		elementOffsetX,
 		offsetY,
-		labelsWidth
+		labelsWidth,
+		true
 	);
 	elementOffsetX += minX->getWidth();
 	maxX = new FloatInputWithLeftLabel(
@@ -458,6 +472,7 @@ FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, un
 		labelsWidth
 	);
 	width = elementOffsetX + maxY->getWidth();
+	clipping = NULL;
 }
 
 FractalClippingForm::~FractalClippingForm()
@@ -494,7 +509,14 @@ FractalClipping* FractalClippingForm::getFractalClipping(void)
 	return clipping;
 }
 
-FloatInputWithLeftLabel::FloatInputWithLeftLabel(HWND parent, LPCTSTR text, unsigned short offsetX, unsigned short offsetY, unsigned char labelWidth)
+FloatInputWithLeftLabel::FloatInputWithLeftLabel(
+	HWND parent,
+	LPCTSTR text,
+	unsigned short offsetX,
+	unsigned short offsetY,
+	unsigned char labelWidth,
+	bool isFirstElementOfGroup
+)
 {	
 	label = new LabelWrapper(
 		parent,
@@ -510,7 +532,8 @@ FloatInputWithLeftLabel::FloatInputWithLeftLabel(HWND parent, LPCTSTR text, unsi
 		offsetX + labelWidth,
 		offsetY,
 		inputWidth,
-		height
+		height,
+		isFirstElementOfGroup
 	);
 	width = labelWidth + inputWidth;
 }
