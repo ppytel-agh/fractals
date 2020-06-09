@@ -42,6 +42,8 @@ FractalDrawing fractalDrawing = FractalDrawing(800, 600);
 FractalDrawingUI* formTest;
 Fractal* definedFractalPointer;
 
+HWND dialogHandle;
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -74,7 +76,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
-		bool isDialog = IsDialogMessage(msg.hwnd, &msg);
+		bool isDialog = IsDialogMessage(dialogHandle, &msg);
 		if (!isTranslated || !isDialog)
 		{
 			TranslateMessage(&msg);
@@ -198,7 +200,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			50
 		);*/
 		{
-			HWND dialogHandle = CreateDialog(
+			dialogHandle = CreateDialog(
 				hInst,
 				MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
 				hWnd,
