@@ -77,7 +77,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
 		bool isDialog = IsDialogMessage(dialogHandle, &msg);
-		if (!isTranslated || !isDialog)
+		if (!isTranslated && !isDialog)
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -208,6 +208,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			);
 			ShowWindow(dialogHandle, SW_SHOW);
 		}
+	case WM_KEYDOWN:
+		if (wParam == VK_ESCAPE || wParam == VK_RETURN)
+		{
+			return 0;
+		}
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -250,11 +256,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 	case WM_COMMAND:
 		if (lParam == 0)
 		{
-			if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-			{
-				EndDialog(hDlg, LOWORD(wParam));
-				return (INT_PTR)TRUE;
-			}
+			return (INT_PTR)TRUE;
 		}
 		else
 		{
@@ -280,7 +282,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				}
 			}
 		}
-		break;
+		break;	
 	}
 	return (INT_PTR)FALSE;
 }
