@@ -481,6 +481,16 @@ unsigned short FractalDrawingUI::getHeight(void)
 	return height;
 }
 
+ButtonWrapper* FractalDrawingUI::getRenderButton(void)
+{
+	return this->renderFractalButton;
+}
+
+FractalDefinitionForm* FractalDrawingUI::getFractalDefinitionForm(void)
+{
+	return fractalDefinition;
+}
+
 ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
 {
 	this->buttonWindow = CreateWindowExW(
@@ -502,4 +512,9 @@ ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX,
 ButtonWrapper::~ButtonWrapper()
 {
 	DestroyWindow(buttonWindow);
+}
+
+bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
+{
+	return (HWND)wmCommandlParam == this->buttonWindow;
 }

@@ -207,6 +207,7 @@ public:
 		unsigned char height
 	);
 	~ButtonWrapper();
+	bool isCommandFromControl(LPARAM wmCommandlParam);
 };
 
 class FractalDrawingUI
@@ -225,4 +226,6 @@ public:
 	);
 	~FractalDrawingUI();
 	unsigned short getHeight(void);
+	ButtonWrapper* getRenderButton(void);
+	FractalDefinitionForm* getFractalDefinitionForm(void);
 };

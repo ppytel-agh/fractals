@@ -39,7 +39,6 @@ public:
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
 FractalDrawingUI* formTest;
-LabelWrapper* testLabel;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -154,18 +153,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_COMMAND:
 	{
-		int wmId = LOWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
+		if (lParam == 0)
 		{
-		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-			break;
-		case IDM_EXIT:
-			DestroyWindow(hWnd);
-			break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
+			int wmId = LOWORD(wParam);
+			// Parse the menu selections:
+			switch (wmId)
+			{
+			case IDM_ABOUT:
+				DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+				break;
+			case IDM_EXIT:
+				DestroyWindow(hWnd);
+				break;
+			default:
+				return DefWindowProc(hWnd, message, wParam, lParam);
+			}
+		}
+		else 
+		{
+			//controls have lParam value other than 0
+			if (formTest->getRenderButton()->isCommandFromControl(lParam))
+			{
+				WORD notificationCode = HIWORD(wParam);
+				if (notificationCode == BN_CLICKED)
+				{
+					
+				}
+			}
 		}
 	}
 	break;
@@ -252,14 +266,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			hWnd,
 			20,
 			20
-		);
-		testLabel = new LabelWrapper(
-			hWnd,
-			L"xDDDDDDDDDDDDDDDDDDDDD",
-			20,
-			20 + 2 + formTest->getHeight(),
-			200,
-			30
 		);
 		break;
 	default:
