@@ -181,10 +181,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code that uses hdc here...
 		if (definedFractalPointer != NULL)
 		{
-			fractalDrawing.drawFractal(
-				definedFractalPointer,
-				hdc
-			);
+			if (definedFractalPointer->isValid())
+			{
+				fractalDrawing.drawFractal(
+					definedFractalPointer,
+					hdc
+				);
+			}
 		}
 		EndPaint(hWnd, &ps);
 	}
@@ -274,19 +277,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				{
 					formTest->getFractalDefinitionForm()->UpdateFractal();
 					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
-					if (definedFractalPointer != NULL)
-					{
-						if (definedFractalPointer->isValid())\
-						{
-							HWND parentWindow = GetParent(hDlg);
-							HDC hdc = GetDC(parentWindow);
-							fractalDrawing.drawFractal(
-								definedFractalPointer,
-								hdc
-							);
-							ReleaseDC(parentWindow, hdc);
-						}
-					}
+					HWND parent = GetParent(hDlg);
+					RedrawWindow(parent, NULL, NULL, RDW_INVALIDATE);
 					return (INT_PTR)TRUE;
 				}
 			}
