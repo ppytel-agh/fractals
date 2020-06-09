@@ -72,7 +72,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+		bool isDialog = IsDialogMessage(msg.hwnd, &msg);
+		if (!isTranslated && !isDialog)
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -170,7 +172,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				return DefWindowProc(hWnd, message, wParam, lParam);
 			}
 		}
-		else 
+		else
 		{
 			//controls have lParam value other than 0
 			if (formTest->getRenderButton()->isCommandFromControl(lParam))

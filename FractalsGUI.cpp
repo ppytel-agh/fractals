@@ -16,7 +16,7 @@ InputWrapper::InputWrapper(HWND parent, unsigned short offsetX, unsigned short o
 		WS_EX_CLIENTEDGE,
 		L"Edit",
 		NULL,
-		WS_CHILD | WS_VISIBLE,
+		WS_CHILD | WS_VISIBLE | WS_TABSTOP,
 		(int)offsetX,
 		(int)offsetY,
 		(int)width,
