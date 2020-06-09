@@ -182,13 +182,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
 					if (definedFractalPointer != NULL)
 					{
-						PAINTSTRUCT ps;
-						HDC hdc = BeginPaint(hWnd, &ps);
+						HDC hdc = GetDC(hWnd);
 						fractalDrawing.drawFractal(
 							definedFractalPointer,
 							hdc
 						);
-						EndPaint(hWnd, &ps);
+						ReleaseDC(hWnd, hdc);
 					}
 				}
 			}
