@@ -329,10 +329,10 @@ void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
 {
 	if (fractal->isValid())
 	{
-		PixelCalculator kalkulatorPikseli = PixelCalculator(
+		PixelCalculator kalkulatorPikseli(
 			800,
 			600,
-			fractal->getClipping()
+			&fractal->getClipping()
 		);
 		Point currentPoint;
 		Point pointPrim;
@@ -344,7 +344,7 @@ void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
 			drawingPoint.right = drawingPoint.left + 1;
 			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint.GetY());
 			drawingPoint.bottom = drawingPoint.top + 1;
-			pointPrim = fractal->getAffineTransformation(rand())->calculatePrim(currentPoint);
+			pointPrim = fractal->getAffineTransformation(rand()).calculatePrim(currentPoint);
 			currentPoint = pointPrim;
 			FillRect(
 				clientHdc,

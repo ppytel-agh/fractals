@@ -85,17 +85,24 @@ float FractalClipping::getYMax(void)
 	return this->yMax;
 }
 
-Fractal::Fractal(AffineTransformationRow** transformationRows, unsigned char numberOfRows, FractalClipping* clipping)
+Fractal::Fractal(
+	AffineTransformationRow transformationRows[],
+	unsigned char numberOfRows,
+	FractalClipping clipping
+) : clipping(clipping), numberOfRows{numberOfRows}
 {
 	unsigned char i = 0;
 	unsigned char probabilitiesSum = 0;
 	for (; i < numberOfRows; i++)
 	{
-		probabilitiesSum += transformationRows[i]->getProbability();
+		probabilitiesSum += transformationRows[i].getProbability();
 	}
 	if (probabilitiesSum == 100) {
-		this->transformationRows = transformationRows;
-		this->clipping = clipping;
+		this->transformationRows = new AffineTransformationRow*[numberOfRows];
+		for (; i < numberOfRows; i++)
+		{
+			this->transformationRows[i] = new AffineTransformationRow(transformationRows[i]);
+		}
 		this->numberOfProbabilities = numberOfRows - 1;
 		this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
 		unsigned char maxProbabilityValue = 0;
@@ -106,13 +113,20 @@ Fractal::Fractal(AffineTransformationRow** transformationRows, unsigned char num
 		}
 	} else {
 		this->transformationRows = nullptr;
-		this->clipping = nullptr;
 		this->probabilityAssociations = nullptr;
 	}
 }
 
 Fractal::~Fractal()
 {
+	if (this->transformationRows != nullptr)
+	{
+		for (int i = 0; i < this->numberOfRows; i++)
+		{
+			delete this->transformationRows[i];
+		}
+		delete[] this->transformationRows;
+	}
 	if (probabilityAssociations != nullptr)
 	{
 		delete[] probabilityAssociations;
@@ -124,7 +138,7 @@ bool Fractal::isValid(void)
 	return this->transformationRows != nullptr;
 }
 
-AffineTransformation* Fractal::getAffineTransformation(int randomValue)
+AffineTransformation Fractal::getAffineTransformation(int randomValue)
 {
 	unsigned char percentageValue = randomValue % 100;
 	int i = 0;
@@ -132,13 +146,13 @@ AffineTransformation* Fractal::getAffineTransformation(int randomValue)
 	{
 		if (percentageValue < this->probabilityAssociations[i])
 		{
-			return &this->transformationRows[i]->getTransformation();
+			return this->transformationRows[i]->getTransformation();
 		}
 	}
-	return &this->transformationRows[this->numberOfProbabilities]->getTransformation();
+	return this->transformationRows[this->numberOfProbabilities]->getTransformation();
 }
 
-FractalClipping* Fractal::getClipping(void)
+FractalClipping Fractal::getClipping(void)
 {
 	return this->clipping;
 }

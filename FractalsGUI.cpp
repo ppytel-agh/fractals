@@ -630,11 +630,11 @@ void FractalDefinitionForm::UpdateFractal(void)
 	ResetFractal();
 	transformations->updateTransformationRows();
 	clipping->updateFractalClipping();
-	fractal = new Fractal(
+	/*fractal = new Fractal(
 		transformations->getTransformationRows(),
 		transformations->getNumberOfTransformationRows(),
 		clipping->getFractalClipping()
-	);
+	);*/
 }
 
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
