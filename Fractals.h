@@ -50,6 +50,22 @@ public:
 	AffineTransformation getTransformation(void);
 };
 
+class AffineTransformationRowsGroup
+{
+private:
+	AffineTransformationRow** transformationRows;
+	unsigned char numberOfRows;
+public:
+	AffineTransformationRowsGroup(
+		AffineTransformationRow transformationRows[],
+		unsigned char numberOfRows
+	);
+	~AffineTransformationRowsGroup();
+	AffineTransformationRow getAffineTransformation(unsigned char index);
+	unsigned char getNumberOfRows();
+	bool isValid(void);
+};
+
 class FractalClipping
 {
 private:
@@ -73,16 +89,14 @@ public:
 class Fractal
 {
 private:
-	AffineTransformationRow** transformationRows;
+	AffineTransformationRowsGroup transformationRowsGroup;
 	FractalClipping clipping;
-	unsigned char numberOfRows;
 	//internal
 	unsigned char numberOfProbabilities;
 	unsigned char* probabilityAssociations;
 public:
 	Fractal(
-		AffineTransformationRow transformationRows[],
-		unsigned char numberOfRows,
+		AffineTransformationRowsGroup transformationRowsGroup,
 		FractalClipping clipping
 	);
 	~Fractal();

@@ -57,6 +57,56 @@ AffineTransformation AffineTransformationRow::getTransformation(void)
 	return this->transformation;
 }
 
+AffineTransformationRowsGroup::AffineTransformationRowsGroup(
+	AffineTransformationRow transformationRows[],
+	unsigned char numberOfRows
+) : numberOfRows(numberOfRows)
+{
+	unsigned char i = 0;
+	unsigned char probabilitiesSum = 0;
+	for (; i < numberOfRows; i++)
+	{
+		probabilitiesSum += transformationRows[i].getProbability();
+	}
+	if (probabilitiesSum == 100) {
+		this->transformationRows = new AffineTransformationRow * [numberOfRows];
+		for (i = 0; i < numberOfRows; i++)
+		{
+			this->transformationRows[i] = new AffineTransformationRow(transformationRows[i]);
+		}
+	}
+	else {
+		this->transformationRows = nullptr;
+	}
+}
+
+AffineTransformationRowsGroup::~AffineTransformationRowsGroup()
+{
+	if (this->transformationRows != nullptr)
+	{
+		for (int i = 0; i < this->numberOfRows; i++)
+		{
+			delete this->transformationRows[i];
+		}
+		delete[] this->transformationRows;
+	}
+}
+
+AffineTransformationRow AffineTransformationRowsGroup::getAffineTransformation(unsigned char index)
+{
+	return *this->transformationRows[index];
+}
+
+unsigned char AffineTransformationRowsGroup::getNumberOfRows()
+{
+	return this->numberOfRows;
+}
+
+bool AffineTransformationRowsGroup::isValid(void)
+{
+	return this->transformationRows != nullptr;
+}
+
 FractalClipping::FractalClipping(float xMin, float xMax, float yMin, float yMax)
 {
 	this->xMin = xMin;
@@ -86,47 +136,22 @@ float FractalClipping::getYMax(void)
 }
 
 Fractal::Fractal(
-	AffineTransformationRow transformationRows[],
-	unsigned char numberOfRows,
+	AffineTransformationRowsGroup transformationRowsGroup,
 	FractalClipping clipping
-) : clipping(clipping), numberOfRows{numberOfRows}
+) : clipping(clipping), transformationRowsGroup(transformationRowsGroup)
 {
-	unsigned char i = 0;
-	unsigned char probabilitiesSum = 0;
-	for (; i < numberOfRows; i++)
+	this->numberOfProbabilities = transformationRowsGroup.getNumberOfRows() - 1;
+	this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
+	unsigned char maxProbabilityValue = 0;
+	for (unsigned char i = 0; i < this->numberOfProbabilities; i++)
 	{
-		probabilitiesSum += transformationRows[i].getProbability();
-	}
-	if (probabilitiesSum == 100) {
-		this->transformationRows = new AffineTransformationRow*[numberOfRows];
-		for (; i < numberOfRows; i++)
-		{
-			this->transformationRows[i] = new AffineTransformationRow(transformationRows[i]);
-		}
-		this->numberOfProbabilities = numberOfRows - 1;
-		this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
-		unsigned char maxProbabilityValue = 0;
-		for (i = 0; i < this->numberOfProbabilities; i++)
-		{
-			maxProbabilityValue += this->transformationRows[i]->getProbability();
-			this->probabilityAssociations[i] = maxProbabilityValue;
-		}
-	} else {
-		this->transformationRows = nullptr;
-		this->probabilityAssociations = nullptr;
+		maxProbabilityValue += transformationRowsGroup.getAffineTransformation(i).getProbability();
+		this->probabilityAssociations[i] = maxProbabilityValue;
 	}
 }
 
 Fractal::~Fractal()
 {
-	if (this->transformationRows != nullptr)
-	{
-		for (int i = 0; i < this->numberOfRows; i++)
-		{
-			delete this->transformationRows[i];
-		}
-		delete[] this->transformationRows;
-	}
 	if (probabilityAssociations != nullptr)
 	{
 		delete[] probabilityAssociations;
@@ -135,21 +160,20 @@ Fractal::~Fractal()
 
 bool Fractal::isValid(void)
 {
-	return this->transformationRows != nullptr;
+	return transformationRowsGroup.isValid();
 }
 
 AffineTransformation Fractal::getAffineTransformation(int randomValue)
 {
 	unsigned char percentageValue = randomValue % 100;
-	int i = 0;
-	for (;i < this->numberOfProbabilities; i++)
+	for (unsigned char i = 0;i < this->numberOfProbabilities; i++)
 	{
 		if (percentageValue < this->probabilityAssociations[i])
 		{
-			return this->transformationRows[i]->getTransformation();
+			return this->transformationRowsGroup.getAffineTransformation(i).getTransformation();
 		}
 	}
-	return this->transformationRows[this->numberOfProbabilities]->getTransformation();
+	return this->transformationRowsGroup.getAffineTransformation(this->numberOfProbabilities).getTransformation();
 }
 
 FractalClipping Fractal::getClipping(void)
@@ -161,7 +185,7 @@ PixelCalculator::PixelCalculator(
 	unsigned short gxMax,
 	unsigned short gyMax,
 	FractalClipping fractal
-):fractal(fractal)
+) :fractal(fractal)
 {
 	this->gxMax = gxMax;
 	this->gyMax = gyMax;
