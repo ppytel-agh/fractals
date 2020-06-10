@@ -61,6 +61,7 @@ public:
 		unsigned char numberOfRows
 	);
 	AffineTransformationRowsGroup(const AffineTransformationRowsGroup& prototype);
+	AffineTransformationRowsGroup& operator=(const AffineTransformationRowsGroup& prototype);
 	~AffineTransformationRowsGroup();
 	AffineTransformationRow getAffineTransformation(unsigned char index);
 	unsigned char getNumberOfRows();
@@ -102,6 +103,7 @@ public:
 	);
 	Fractal(const Fractal& prototype);
 	~Fractal();
+	Fractal& operator= (const Fractal& rVal);
 	bool isValid(void);
 	AffineTransformation getAffineTransformation(int randomValue);
 	FractalClipping getClipping(void);

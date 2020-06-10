@@ -93,6 +93,17 @@ AffineTransformationRowsGroup::AffineTransformationRowsGroup(const AffineTransfo
 	}
 }
 
+AffineTransformationRowsGroup& AffineTransformationRowsGroup::operator=(const AffineTransformationRowsGroup& prototype)
+{
+	this->numberOfRows = prototype.numberOfRows;
+	this->transformationRows = new AffineTransformationRow * [this->numberOfRows];
+	for (unsigned char i = 0; i < this->numberOfRows; i++)
+	{
+		this->transformationRows[i] = new AffineTransformationRow(*prototype.transformationRows[i]);
+	}
+	return *this;
+}
+
 AffineTransformationRowsGroup::~AffineTransformationRowsGroup()
 {
 	if (this->transformationRows != nullptr)
@@ -196,6 +207,27 @@ Fractal::~Fractal()
 	{
 		delete[] probabilityAssociations;
 	}
+}
+
+Fractal& Fractal::operator=(const Fractal& rVal)
+{
+	this->clipping = rVal.clipping;
+	this->transformationRowsGroup = rVal.transformationRowsGroup;
+	this->numberOfProbabilities = rVal.numberOfProbabilities;
+	if (this->numberOfProbabilities > 0)
+	{
+		this->probabilityAssociations = new unsigned char[rVal.numberOfProbabilities];
+		unsigned char maxProbabilityValue = 0;
+		for (unsigned char i = 0; i < rVal.numberOfProbabilities; i++)
+		{
+			this->probabilityAssociations[i] = rVal.probabilityAssociations[i];
+		}
+	}
+	else
+	{
+		this->probabilityAssociations = nullptr;
+	}
+	return *this;
 }
 
 bool Fractal::isValid(void)
