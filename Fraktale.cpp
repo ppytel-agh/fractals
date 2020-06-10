@@ -277,8 +277,11 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				{
 					formTest->getFractalDefinitionForm()->UpdateFractal();
 					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
-					HWND parent = GetParent(hDlg);
-					RedrawWindow(parent, NULL, NULL, RDW_INVALIDATE);
+					InvalidateRect(
+						GetParent(hDlg),
+						NULL,
+						FALSE
+					);
 					return (INT_PTR)TRUE;
 				}
 			}
