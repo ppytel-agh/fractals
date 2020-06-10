@@ -72,11 +72,24 @@ AffineTransformationRowsGroup::AffineTransformationRowsGroup(
 		this->transformationRows = new AffineTransformationRow * [numberOfRows];
 		for (i = 0; i < numberOfRows; i++)
 		{
-			this->transformationRows[i] = new AffineTransformationRow(transformationRows[i]);
+			this->transformationRows[i] = new AffineTransformationRow(
+				transformationRows[i].getProbability(),
+				transformationRows[i].getTransformation()
+			);
 		}
 	}
 	else {
 		this->transformationRows = nullptr;
+	}
+}
+
+AffineTransformationRowsGroup::AffineTransformationRowsGroup(const AffineTransformationRowsGroup& prototype)
+{
+	this->numberOfRows = prototype.numberOfRows;
+	this->transformationRows = new AffineTransformationRow * [this->numberOfRows];
+	for (unsigned char i = 0; i < this->numberOfRows; i++)
+	{
+		this->transformationRows[i] = new AffineTransformationRow(*prototype.transformationRows[i]);
 	}
 }
 
@@ -94,7 +107,7 @@ AffineTransformationRowsGroup::~AffineTransformationRowsGroup()
 
 AffineTransformationRow AffineTransformationRowsGroup::getAffineTransformation(unsigned char index)
 {
-	return *this->transformationRows[index];
+	return 	*(this->transformationRows[index]);
 }
 
 unsigned char AffineTransformationRowsGroup::getNumberOfRows()

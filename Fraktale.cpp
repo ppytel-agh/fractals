@@ -304,9 +304,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						delete definedFractalPointer;
 						definedFractalPointer = NULL;
 					}
-					definedFractalPointer = new Fractal(
-						formTest->getFractalDefinitionForm()->getValue()
-					);
+					Fractal tmpFractal = formTest->getFractalDefinitionForm()->getValue();
+					definedFractalPointer = new Fractal(tmpFractal);
 					InvalidateRect(
 						GetParent(hDlg),
 						NULL,

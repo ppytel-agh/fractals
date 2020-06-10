@@ -60,6 +60,7 @@ public:
 		AffineTransformationRow transformationRows[],
 		unsigned char numberOfRows
 	);
+	AffineTransformationRowsGroup(const AffineTransformationRowsGroup& prototype);
 	~AffineTransformationRowsGroup();
 	AffineTransformationRow getAffineTransformation(unsigned char index);
 	unsigned char getNumberOfRows();
