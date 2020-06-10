@@ -203,16 +203,6 @@ AffineTransformationRow FractalTransformationsRowForm::getValue(void)
 	);
 }
 
-void FractalTransformationsForm::ResetTransformationRows(void)
-{
-	if (numberOfRows > 0)
-	{
-		delete[] transformationRows;
-		transformationRows = NULL;
-		numberOfRows = 0;
-	}
-}
-
 unsigned short FractalTransformationsForm::getHeight()
 {
 	return factorsUpperLabelHeight + factorsHeight + (FractalTransformationsRowForm::height * 4);
@@ -305,8 +295,6 @@ FractalTransformationsForm::FractalTransformationsForm(HWND parent, unsigned sho
 			factorWidth
 		);
 	}
-	transformationRows = NULL;
-	numberOfRows = 0;
 }
 
 FractalTransformationsForm::~FractalTransformationsForm()
@@ -325,10 +313,10 @@ FractalTransformationsForm::~FractalTransformationsForm()
 	}
 }
 
-void FractalTransformationsForm::updateTransformationRows(void)
+AffineTransformationRowsGroup FractalTransformationsForm::getValue(void)
 {
-	ResetTransformationRows();
-	bool filledRows[4];
+	unsigned char numberOfRows = 0;
+	bool filledRows[maxNumberOfTransformations];
 	for (int i = 0; i < maxNumberOfTransformations; i++)
 	{
 		filledRows[i] = transformationRowForms[i]->isFilled();
@@ -337,26 +325,22 @@ void FractalTransformationsForm::updateTransformationRows(void)
 			numberOfRows++;
 		}
 	}
-	transformationRows = new AffineTransformationRow * [numberOfRows];
+	AffineTransformationRow* transformationRows = (AffineTransformationRow*)malloc(sizeof(AffineTransformationRow) * numberOfRows);
 	unsigned char transformationRowIndex = 0;
 	for (int i = 0; i < maxNumberOfTransformations; i++)
 	{
 		if (filledRows[i])
 		{
-			//transformationRows[transformationRowIndex] = transformationRowForms[i]->getValue();
+			transformationRows[transformationRowIndex] = transformationRowForms[i]->getValue();
 			transformationRowIndex++;
 		}
 	}
-}
-
-AffineTransformationRow** FractalTransformationsForm::getTransformationRows(void)
-{
-	return transformationRows;
-}
-
-unsigned char FractalTransformationsForm::getNumberOfTransformationRows(void)
-{
-	return numberOfRows;
+	AffineTransformationRowsGroup result(
+		transformationRows,
+		numberOfRows
+	);
+	free(transformationRows);
+	return result;
 }
 
 LabelWrapper::LabelWrapper(
@@ -584,7 +568,6 @@ Fractal* FractalDefinitionForm::getFractal(void)
 void FractalDefinitionForm::UpdateFractal(void)
 {
 	ResetFractal();
-	transformations->updateTransformationRows();
 	clipping->updateFractalClipping();
 	/*fractal = new Fractal(
 		transformations->getTransformationRows(),

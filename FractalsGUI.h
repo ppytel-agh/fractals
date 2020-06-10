@@ -120,9 +120,6 @@ private:
 	LabelWrapper* eFactorLabel;
 	LabelWrapper* fFactorLabel;
 	FractalTransformationsRowForm* transformationRowForms[maxNumberOfTransformations];
-	AffineTransformationRow** transformationRows;
-	unsigned char numberOfRows;
-	void ResetTransformationRows(void);
 public:
 	unsigned short getHeight();
 	unsigned short getWidth();
@@ -132,9 +129,7 @@ public:
 		unsigned short offsetY
 	);
 	~FractalTransformationsForm();
-	void updateTransformationRows(void);
-	AffineTransformationRow** getTransformationRows(void);
-	unsigned char getNumberOfTransformationRows(void);
+	AffineTransformationRowsGroup getValue(void);
 };
 
 class FloatInputWithLeftLabel
