@@ -131,6 +131,7 @@ private:
 	void ResetTransformationRows(void);
 public:
 	unsigned short getHeight();
+	unsigned short getWidth();
 	FractalTransformationsForm(
 		HWND parent,
 		unsigned short offsetX,
@@ -195,6 +196,7 @@ private:
 	FractalTransformationsForm* transformations;
 	FractalClippingForm* clipping;
 	unsigned short height;
+	unsigned short width;
 	bool isFormValid();
 	Fractal* fractal;
 	void ResetFractal(void);
@@ -208,6 +210,7 @@ public:
 	FractalTransformationsForm* getTransformationsForm();
 	FractalClippingForm* getClippingForm();
 	unsigned short getHeight(void);
+	unsigned short getWidth(void);
 	Fractal* getFractal(void);
 	void UpdateFractal(void);
 };
@@ -251,6 +254,7 @@ public:
 	);
 	~FractalDrawingUI();
 	unsigned short getHeight(void);
+	unsigned short getWidth(void);
 	ButtonWrapper* getRenderButton(void);
 	FractalDefinitionForm* getFractalDefinitionForm(void);
 };

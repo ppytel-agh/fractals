@@ -249,13 +249,36 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 	switch (message)
 	{
 	case WM_INITDIALOG:
-		formTest = new FractalDrawingUI(
-			hDlg,
-			20,
-			20
-		);
-		return (INT_PTR)TRUE;
+		{
 
+			unsigned char margin = 10;
+			formTest = new FractalDrawingUI(
+				hDlg,
+				margin,
+				margin
+			);
+			RECT rect = {};
+			rect.right = formTest->getWidth() + margin * 2;
+			rect.bottom = formTest->getHeight() + margin * 2;
+			DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
+			DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
+			AdjustWindowRectEx(
+				&rect,
+				dialogStyle,
+				FALSE,
+				dialogExStyle
+			);
+			SetWindowPos(
+				hDlg,
+				NULL,
+				0,
+				0,
+				rect.right - rect.left,
+				rect.bottom - rect.top,
+				SWP_NOZORDER | SWP_NOMOVE
+			);
+		}
+		return (INT_PTR)TRUE;
 	case WM_COMMAND:
 		if (lParam == 0)
 		{
