@@ -154,18 +154,45 @@ Fractal::Fractal(
 ) : clipping(clipping), transformationRowsGroup(transformationRowsGroup)
 {
 	this->numberOfProbabilities = transformationRowsGroup.getNumberOfRows() - 1;
-	this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
-	unsigned char maxProbabilityValue = 0;
-	for (unsigned char i = 0; i < this->numberOfProbabilities; i++)
+	if (this->numberOfProbabilities > 0)
 	{
-		maxProbabilityValue += transformationRowsGroup.getAffineTransformation(i).getProbability();
-		this->probabilityAssociations[i] = maxProbabilityValue;
+		this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
+		unsigned char maxProbabilityValue = 0;
+		for (unsigned char i = 0; i < this->numberOfProbabilities; i++)
+		{
+			maxProbabilityValue += transformationRowsGroup.getAffineTransformation(i).getProbability();
+			this->probabilityAssociations[i] = maxProbabilityValue;
+		}
+	}
+	else
+	{
+		this->probabilityAssociations = nullptr;
+	}
+}
+
+Fractal::Fractal(const Fractal& prototype)
+	: clipping(prototype.clipping),
+	transformationRowsGroup(prototype.transformationRowsGroup),
+	numberOfProbabilities{numberOfProbabilities}
+{	
+	if (this->numberOfProbabilities > 0)
+	{
+		this->probabilityAssociations = new unsigned char[prototype.numberOfProbabilities];
+		unsigned char maxProbabilityValue = 0;
+		for (unsigned char i = 0; i < prototype.numberOfProbabilities; i++)
+		{
+			this->probabilityAssociations[i] = prototype.probabilityAssociations[i];
+		}
+	}
+	else
+	{
+		this->probabilityAssociations = nullptr;
 	}
 }
 
 Fractal::~Fractal()
 {
-	if (probabilityAssociations != nullptr)
+	if (this->probabilityAssociations != nullptr)
 	{
 		delete[] probabilityAssociations;
 	}

@@ -100,6 +100,7 @@ public:
 		AffineTransformationRowsGroup transformationRowsGroup,
 		FractalClipping clipping
 	);
+	Fractal(const Fractal& prototype);
 	~Fractal();
 	bool isValid(void);
 	AffineTransformation getAffineTransformation(int randomValue);
