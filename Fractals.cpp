@@ -184,7 +184,7 @@ Fractal::Fractal(
 Fractal::Fractal(const Fractal& prototype)
 	: clipping(prototype.clipping),
 	transformationRowsGroup(prototype.transformationRowsGroup),
-	numberOfProbabilities{numberOfProbabilities}
+	numberOfProbabilities{ prototype.numberOfProbabilities}
 {	
 	if (this->numberOfProbabilities > 0)
 	{
