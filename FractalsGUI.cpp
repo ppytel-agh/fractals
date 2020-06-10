@@ -654,6 +654,15 @@ FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned
 		buttonWidth,
 		buttonHeight
 	);
+	unsigned importButtonOffsetX = buttonOffsetX - 5 - importButtonWidth;
+	this->importValuesFromPDFButton = new ButtonWrapper(
+		parent,
+		L"Importuj z PDF-a",
+		importButtonOffsetX,
+		buttonOffsetY,
+		importButtonWidth,
+		buttonHeight
+	);
 	height = this->fractalDefinition->getHeight() + buttonHeight + 5;
 }
 
@@ -681,6 +690,11 @@ ButtonWrapper* FractalDrawingUI::getRenderButton(void)
 FractalDefinitionForm* FractalDrawingUI::getFractalDefinitionForm(void)
 {
 	return fractalDefinition;
+}
+
+ButtonWrapper* FractalDrawingUI::getImportbutton(void)
+{
+	return importValuesFromPDFButton;
 }
 
 ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)

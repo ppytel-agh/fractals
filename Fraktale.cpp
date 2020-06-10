@@ -295,6 +295,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 			//controls have lParam value other than 0
 			if (formTest->getRenderButton()->isCommandFromControl(lParam))
 			{
+				//przycisk "Renderuj"
 				WORD notificationCode = HIWORD(wParam);
 				if (notificationCode == BN_CLICKED)
 				{
@@ -307,6 +308,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					);
 					return (INT_PTR)TRUE;
 				}
+			}
+			else if (formTest->getRenderButton()->isCommandFromControl(lParam))
+			{
+				//przycisk "Importuj z PDF-a"
 			}
 		}
 		break;

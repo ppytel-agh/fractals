@@ -243,9 +243,11 @@ class FractalDrawingUI
 private:
 	const unsigned char buttonWidth = 100;
 	const unsigned char buttonHeight = 27;
+	const unsigned char importButtonWidth = 200;
 	FractalDefinitionForm* fractalDefinition;
 	ButtonWrapper* renderFractalButton;
 	unsigned short height;
+	ButtonWrapper* importValuesFromPDFButton;
 public:
 	FractalDrawingUI(
 		HWND parent,
@@ -257,4 +259,5 @@ public:
 	unsigned short getWidth(void);
 	ButtonWrapper* getRenderButton(void);
 	FractalDefinitionForm* getFractalDefinitionForm(void);
+	ButtonWrapper* getImportbutton(void);
 };
