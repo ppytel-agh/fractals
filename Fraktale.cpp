@@ -332,7 +332,7 @@ void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
 		PixelCalculator kalkulatorPikseli(
 			800,
 			600,
-			&fractal->getClipping()
+			fractal->getClipping()
 		);
 		Point currentPoint;
 		Point pointPrim;

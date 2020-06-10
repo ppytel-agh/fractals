@@ -157,18 +157,22 @@ FractalClipping Fractal::getClipping(void)
 	return this->clipping;
 }
 
-PixelCalculator::PixelCalculator(unsigned short gxMax, unsigned short gyMax, FractalClipping* fractal)
+PixelCalculator::PixelCalculator(
+	unsigned short gxMax,
+	unsigned short gyMax,
+	FractalClipping fractal
+):fractal(fractal)
 {
 	this->gxMax = gxMax;
 	this->gyMax = gyMax;
 	this->fractal = fractal;
-	this->xDelta = fractal->getXMax() - fractal->getXMin();
-	this->yDelta = fractal->getYMax() - fractal->getYMin();
+	this->xDelta = fractal.getXMax() - fractal.getXMin();
+	this->yDelta = fractal.getYMax() - fractal.getYMin();
 }
 
 unsigned short PixelCalculator::getPixelX(float xPrim)
 {
-	float result = xPrim - fractal->getXMin();
+	float result = xPrim - fractal.getXMin();
 	result *= gxMax;
 	result /= xDelta;
 	unsigned short integerResult = static_cast<unsigned short>(result);
@@ -177,7 +181,7 @@ unsigned short PixelCalculator::getPixelX(float xPrim)
 
 unsigned short PixelCalculator::getPixelY(float yPrim)
 {
-	float result = yPrim - fractal->getYMin();
+	float result = yPrim - fractal.getYMin();
 	result /= yDelta;
 	result = 1 - result;
 	result *= gyMax;

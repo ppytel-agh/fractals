@@ -96,7 +96,7 @@ class PixelCalculator
 private:
 	unsigned short gxMax;
 	unsigned short gyMax;
-	FractalClipping* fractal;
+	FractalClipping fractal;
 	//internal
 	float xDelta;
 	float yDelta;
@@ -104,7 +104,7 @@ public:
 	PixelCalculator(
 		unsigned short gxMax,
 		unsigned short gyMax,
-		FractalClipping* fractal
+		FractalClipping fractal
 	);
 	unsigned short getPixelX(float xPrim);
 	unsigned short getPixelY(float yPrim);
