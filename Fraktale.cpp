@@ -33,7 +33,7 @@ public:
 		unsigned short clientHeight
 	);
 	void drawFractal(
-		Fractal* fractal,
+		Fractal fractal,
 		HDC clientHdc
 	);
 };
@@ -184,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (definedFractalPointer->isValid())
 			{
 				fractalDrawing.drawFractal(
-					definedFractalPointer,
+					*definedFractalPointer,
 					hdc
 				);
 			}
@@ -325,14 +325,14 @@ FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short client
 	this->clientHeight = clientHeight;
 }
 
-void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
+void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 {
-	if (fractal->isValid())
+	if (fractal.isValid())
 	{
 		PixelCalculator kalkulatorPikseli(
 			800,
 			600,
-			fractal->getClipping()
+			fractal.getClipping()
 		);
 		Point currentPoint;
 		Point pointPrim;
@@ -344,7 +344,7 @@ void FractalDrawing::drawFractal(Fractal* fractal, HDC clientHdc)
 			drawingPoint.right = drawingPoint.left + 1;
 			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint.GetY());
 			drawingPoint.bottom = drawingPoint.top + 1;
-			pointPrim = fractal->getAffineTransformation(rand()).calculatePrim(currentPoint);
+			pointPrim = fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
 			currentPoint = pointPrim;
 			FillRect(
 				clientHdc,
