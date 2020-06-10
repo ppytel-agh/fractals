@@ -229,7 +229,7 @@ void FractalTransformationsRowForm::updateAffineTransformationRow(void)
 	affineTransformationForm->updateTransformation();
 	affineTransformationRow = new AffineTransformationRow(
 		probability->getValue(),
-		affineTransformationForm->getAffineTransformation()
+		*affineTransformationForm->getAffineTransformation()
 	);
 }
 

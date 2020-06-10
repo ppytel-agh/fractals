@@ -40,14 +40,14 @@ class AffineTransformationRow
 {
 private:
 	unsigned char probability;
-	AffineTransformation* transformation;
+	AffineTransformation transformation;
 public:
 	AffineTransformationRow(
 		unsigned char probability,
-		AffineTransformation* transformation
+		AffineTransformation transformation
 	);
 	unsigned char getProbability(void);
-	AffineTransformation* getTransformation(void);
+	AffineTransformation getTransformation(void);
 };
 
 class FractalClipping

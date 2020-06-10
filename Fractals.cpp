@@ -39,10 +39,12 @@ Point AffineTransformation::calculatePrim(Point originalPoint)
 	return Point(xPrim, yPrim);
 }
 
-AffineTransformationRow::AffineTransformationRow(unsigned char probability, AffineTransformation* transformation)
+AffineTransformationRow::AffineTransformationRow(
+	unsigned char probability,
+	AffineTransformation transformation
+) : transformation(transformation)
 {
 	this->probability = probability;
-	this->transformation = transformation;
 }
 
 unsigned char AffineTransformationRow::getProbability(void)
@@ -50,7 +52,7 @@ unsigned char AffineTransformationRow::getProbability(void)
 	return this->probability;
 }
 
-AffineTransformation* AffineTransformationRow::getTransformation(void)
+AffineTransformation AffineTransformationRow::getTransformation(void)
 {
 	return this->transformation;
 }
@@ -130,10 +132,10 @@ AffineTransformation* Fractal::getAffineTransformation(int randomValue)
 	{
 		if (percentageValue < this->probabilityAssociations[i])
 		{
-			return this->transformationRows[i]->getTransformation();
+			return &this->transformationRows[i]->getTransformation();
 		}
 	}
-	return this->transformationRows[this->numberOfProbabilities]->getTransformation();
+	return &this->transformationRows[this->numberOfProbabilities]->getTransformation();
 }
 
 FractalClipping* Fractal::getClipping(void)
