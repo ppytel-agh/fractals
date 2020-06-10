@@ -164,7 +164,6 @@ private:
 	FloatInputWithLeftLabel* maxY;
 	unsigned short width;
 	FractalClipping* clipping;
-	void ResetClipping(void);
 public:
 	FractalClippingForm(
 		HWND parent,
@@ -174,8 +173,7 @@ public:
 	~FractalClippingForm();
 	unsigned short getWidth(void);
 	bool isValid(void);
-	void updateFractalClipping(void);
-	FractalClipping* getFractalClipping(void);
+	FractalClipping getValue(void);
 };
 
 class FractalDefinitionForm

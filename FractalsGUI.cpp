@@ -374,15 +374,6 @@ LabelWrapper::~LabelWrapper()
 	DestroyWindow(this->labelWindow);
 }
 
-void FractalClippingForm::ResetClipping(void)
-{
-	if (clipping != NULL)
-	{
-		delete clipping;
-		clipping = NULL;
-	}
-}
-
 FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {	
 	unsigned short elementOffsetX = offsetX;
@@ -419,7 +410,6 @@ FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, un
 		labelsWidth
 	);
 	width = elementOffsetX + maxY->getWidth();
-	clipping = NULL;
 }
 
 FractalClippingForm::~FractalClippingForm()
@@ -428,7 +418,6 @@ FractalClippingForm::~FractalClippingForm()
 	delete maxX;
 	delete minY;
 	delete maxY;
-	ResetClipping();
 }
 
 unsigned short FractalClippingForm::getWidth(void)
@@ -441,19 +430,14 @@ bool FractalClippingForm::isValid(void)
 	return minX->getFloatInput()->isValid();
 }
 
-void FractalClippingForm::updateFractalClipping(void)
+FractalClipping FractalClippingForm::getValue(void)
 {
-	clipping = new FractalClipping(
-		minX->getFloatInput()->GetValue(),
-		maxX->getFloatInput()->GetValue(),
-		minY->getFloatInput()->GetValue(),
-		maxY->getFloatInput()->GetValue()
+	return FractalClipping(
+		this->minX->getFloatInput()->GetValue(),
+		this->maxX->getFloatInput()->GetValue(),
+		this->minY->getFloatInput()->GetValue(),
+		this->maxY->getFloatInput()->GetValue()
 	);
-}
-
-FractalClipping* FractalClippingForm::getFractalClipping(void)
-{
-	return clipping;
 }
 
 FloatInputWithLeftLabel::FloatInputWithLeftLabel(
@@ -568,7 +552,6 @@ Fractal* FractalDefinitionForm::getFractal(void)
 void FractalDefinitionForm::UpdateFractal(void)
 {
 	ResetFractal();
-	clipping->updateFractalClipping();
 	/*fractal = new Fractal(
 		transformations->getTransformationRows(),
 		transformations->getNumberOfTransformationRows(),
