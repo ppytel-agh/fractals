@@ -40,7 +40,7 @@ public:
 
 FractalDrawing fractalDrawing = FractalDrawing(800, 600);
 FractalDrawingUI* formTest;
-Fractal* definedFractalPointer;
+Fractal* definedFractalPointer = NULL;
 
 HWND dialogHandle;
 
@@ -299,8 +299,14 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				WORD notificationCode = HIWORD(wParam);
 				if (notificationCode == BN_CLICKED)
 				{
-					formTest->getFractalDefinitionForm()->UpdateFractal();
-					definedFractalPointer = formTest->getFractalDefinitionForm()->getFractal();
+					if (definedFractalPointer != NULL)
+					{
+						delete definedFractalPointer;
+						definedFractalPointer = NULL;
+					}
+					definedFractalPointer = new Fractal(
+						formTest->getFractalDefinitionForm()->getValue()
+					);
 					InvalidateRect(
 						GetParent(hDlg),
 						NULL,

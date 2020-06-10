@@ -490,15 +490,6 @@ bool FractalDefinitionForm::isFormValid()
 	return true;
 }
 
-void FractalDefinitionForm::ResetFractal(void)
-{
-	if (fractal != NULL)
-	{
-		delete fractal;
-		fractal = NULL;
-	}
-}
-
 FractalDefinitionForm::FractalDefinitionForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {
 	clipping = new FractalClippingForm(
@@ -514,14 +505,12 @@ FractalDefinitionForm::FractalDefinitionForm(HWND parent, unsigned short offsetX
 	);
 	height = transformations->getHeight() + transformationsAndClippingOffsetY + FloatInputWithLeftLabel::height;
 	width = transformations->getWidth();
-	fractal = NULL;
 }
 
 FractalDefinitionForm::~FractalDefinitionForm()
 {
 	delete transformations;
 	delete clipping;
-	ResetFractal();
 }
 
 FractalTransformationsForm* FractalDefinitionForm::getTransformationsForm()
@@ -544,19 +533,12 @@ unsigned short FractalDefinitionForm::getWidth(void)
 	return width;
 }
 
-Fractal* FractalDefinitionForm::getFractal(void)
+Fractal FractalDefinitionForm::getValue(void)
 {
-	return fractal;	
-}
-
-void FractalDefinitionForm::UpdateFractal(void)
-{
-	ResetFractal();
-	/*fractal = new Fractal(
-		transformations->getTransformationRows(),
-		transformations->getNumberOfTransformationRows(),
-		clipping->getFractalClipping()
-	);*/
+	return Fractal(
+		this->transformations->getValue(),
+		this->clipping->getValue()
+	);
 }
 
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)

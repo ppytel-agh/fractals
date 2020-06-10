@@ -185,8 +185,6 @@ private:
 	unsigned short height;
 	unsigned short width;
 	bool isFormValid();
-	Fractal* fractal;
-	void ResetFractal(void);
 public:
 	FractalDefinitionForm(
 		HWND parent,
@@ -198,8 +196,7 @@ public:
 	FractalClippingForm* getClippingForm();
 	unsigned short getHeight(void);
 	unsigned short getWidth(void);
-	Fractal* getFractal(void);
-	void UpdateFractal(void);
+	Fractal getValue(void);
 };
 
 //class RenderingFrameSizeForm
