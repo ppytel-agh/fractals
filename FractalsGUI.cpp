@@ -64,15 +64,6 @@ bool FloatInput::isValid(void)
 	return GetValue();
 }
 
-void AffineTransformationForm::ResetTransformation(void)
-{
-	if (transformation != NULL)
-	{
-		delete transformation;
-		transformation = NULL;
-	}
-}
-
 AffineTransformationForm::AffineTransformationForm(
 	HWND parent,
 	unsigned short offsetX,
@@ -134,7 +125,6 @@ AffineTransformationForm::AffineTransformationForm(
 		elementWidth,
 		elementHeight
 	);
-	transformation = NULL;
 }
 
 AffineTransformationForm::~AffineTransformationForm()
@@ -145,13 +135,11 @@ AffineTransformationForm::~AffineTransformationForm()
 	delete d;
 	delete e;
 	delete f;
-	ResetTransformation();
 }
 
-void AffineTransformationForm::updateTransformation(void)
+AffineTransformation AffineTransformationForm::getValue(void)
 {
-	ResetTransformation();
-	transformation = new AffineTransformation(
+	return AffineTransformation(
 		a->GetValue(),
 		b->GetValue(),
 		c->GetValue(),
@@ -159,11 +147,6 @@ void AffineTransformationForm::updateTransformation(void)
 		e->GetValue(),
 		f->GetValue()
 	);
-}
-
-AffineTransformation* AffineTransformationForm::getAffineTransformation(void)
-{
-	return transformation;
 }
 
 unsigned int NaturalInput::getValue(void)
@@ -226,10 +209,9 @@ bool FractalTransformationsRowForm::isFilled(void)
 void FractalTransformationsRowForm::updateAffineTransformationRow(void)
 {
 	ResetAffineTransformationRow();
-	affineTransformationForm->updateTransformation();
 	affineTransformationRow = new AffineTransformationRow(
 		probability->getValue(),
-		*affineTransformationForm->getAffineTransformation()
+		affineTransformationForm->getValue()
 	);
 }
 

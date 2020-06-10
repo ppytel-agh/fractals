@@ -49,8 +49,6 @@ private:
 	FloatInput* d;
 	FloatInput* e;
 	FloatInput* f;
-	AffineTransformation* transformation;
-	void ResetTransformation(void);
 public:
 	AffineTransformationForm(
 		HWND parent,
@@ -59,8 +57,7 @@ public:
 		unsigned char factorCellWidth
 	);
 	~AffineTransformationForm();
-	void updateTransformation(void);
-	AffineTransformation* getAffineTransformation(void);
+	AffineTransformation getValue(void);
 };
 
 class FractalTransformationsRowForm
