@@ -65,8 +65,6 @@ class FractalTransformationsRowForm
 private:
 	NaturalInput* probability;
 	AffineTransformationForm* affineTransformationForm;
-	AffineTransformationRow* affineTransformationRow;
-	void ResetAffineTransformationRow(void);
 public:
 	static const unsigned char height = 20;
 	FractalTransformationsRowForm(
@@ -78,8 +76,7 @@ public:
 	);
 	~FractalTransformationsRowForm();
 	bool isFilled(void);
-	void updateAffineTransformationRow(void);
-	AffineTransformationRow* getAffineTranformationRow(void);
+	AffineTransformationRow getValue(void);
 };
 
 enum LabelHorizontalAlignment

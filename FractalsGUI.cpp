@@ -160,15 +160,6 @@ unsigned int NaturalInput::getValue(void)
 	return _wtoi(buffer);
 }
 
-void FractalTransformationsRowForm::ResetAffineTransformationRow(void)
-{
-	if (affineTransformationRow != NULL)
-	{
-		delete affineTransformationRow;
-		affineTransformationRow = NULL;
-	}
-}
-
 FractalTransformationsRowForm::FractalTransformationsRowForm(
 	HWND parent,
 	unsigned short offsetX,
@@ -191,14 +182,12 @@ FractalTransformationsRowForm::FractalTransformationsRowForm(
 		offsetY,
 		factorCellWidth
 	);
-	affineTransformationRow = NULL;
 }
 
 FractalTransformationsRowForm::~FractalTransformationsRowForm()
 {
 	delete probability;
 	delete affineTransformationForm;
-	ResetAffineTransformationRow();
 }
 
 bool FractalTransformationsRowForm::isFilled(void)
@@ -206,27 +195,13 @@ bool FractalTransformationsRowForm::isFilled(void)
 	return probability->getValue() != 0;
 }
 
-void FractalTransformationsRowForm::updateAffineTransformationRow(void)
+AffineTransformationRow FractalTransformationsRowForm::getValue(void)
 {
-	ResetAffineTransformationRow();
-	affineTransformationRow = new AffineTransformationRow(
-		probability->getValue(),
-		affineTransformationForm->getValue()
+	return AffineTransformationRow(
+		this->probability->getValue(),
+		this->affineTransformationForm->getValue()
 	);
 }
-
-AffineTransformationRow* FractalTransformationsRowForm::getAffineTranformationRow(void)
-{
-	return affineTransformationRow;
-}
-
-//AffineTransformationRow FractalTransformationsRowForm::getValue(void)
-//{
-//	return AffineTransformationRow(
-//		probability->getValue(),
-//		&affineTransformationForm->GetValue()
-//	);
-//}
 
 void FractalTransformationsForm::ResetTransformationRows(void)
 {
@@ -368,8 +343,7 @@ void FractalTransformationsForm::updateTransformationRows(void)
 	{
 		if (filledRows[i])
 		{
-			transformationRowForms[i]->updateAffineTransformationRow();
-			transformationRows[transformationRowIndex] = transformationRowForms[i]->getAffineTranformationRow();
+			//transformationRows[transformationRowIndex] = transformationRowForms[i]->getValue();
 			transformationRowIndex++;
 		}
 	}
