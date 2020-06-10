@@ -250,11 +250,8 @@ void FractalTransformationsForm::ResetTransformationRows(void)
 {
 	if (numberOfRows > 0)
 	{
-		for (int i = 0; i < numberOfRows; i++)
-		{
-			delete transformationRows[i];
-		}
 		delete[] transformationRows;
+		transformationRows = NULL;
 		numberOfRows = 0;
 	}
 }
