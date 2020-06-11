@@ -72,6 +72,8 @@ FractalDrawingUI* formTest;
 Fractal* definedFractalPointer = NULL;
 WindowDrawing* drawing = NULL;
 
+Fractal getDragonFractal(void);
+
 HWND dialogHandle;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -209,6 +211,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code that uses hdc here...
+		/*WindowDrawing bitmap(
+			hWnd,
+			800,
+			600
+		);
+		fractalDrawing.drawFractal(
+			getDragonFractal(),
+			bitmap.getWindowDrawingBuffer()
+		);
+		bitmap.redrawWindow(hdc, ps);*/
 		if (drawing != NULL)
 		{
 			drawing->redrawWindow(
@@ -331,7 +343,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						delete definedFractalPointer;
 						definedFractalPointer = NULL;
 					}
-					Fractal providedFractal = formTest->getFractalDefinitionForm()->getValue();
+					//Fractal providedFractal = formTest->getFractalDefinitionForm()->getValue();
+					
 					if (drawing != NULL)
 					{
 						delete drawing;
@@ -344,7 +357,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						fractalRenderHeight
 					);
 					fractalDrawing.drawFractal(
-						providedFractal,
+						getDragonFractal(),
 						drawing->getWindowDrawingBuffer()
 					);
 					InvalidateRect(
@@ -363,6 +376,47 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+Fractal getDragonFractal(void)
+{
+	const unsigned char dragonFractalRowsNumber = 2;
+	AffineTransformationRow dragonFractalRows[dragonFractalRowsNumber] = {
+				AffineTransformationRow(
+					18,
+					AffineTransformation(
+						-0.4f,
+						0.0f,
+						-1.0f,
+						0.0f,
+						-0.4f,
+						0.1f
+					)
+				),
+				AffineTransformationRow(
+					82,
+					AffineTransformation(
+						0.76f,
+						-0.4f,
+						0.0f,
+						0.4f,
+						0.76f,
+						0.0f
+					)
+				)
+	};
+	return Fractal(
+		AffineTransformationRowsGroup(
+			dragonFractalRows,
+			dragonFractalRowsNumber
+		),
+		FractalClipping(
+			-1.3f,
+			0.6f,
+			-0.9f,
+			0.45f
+		)
+	);
 }
 
 FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)
@@ -409,7 +463,18 @@ WindowDrawing::WindowDrawing(HWND window, unsigned short width, unsigned short h
 	HDC windowDC = GetDC(window);
 	windowClientCompatibleDC = CreateCompatibleDC(windowDC);
 	bitmap = CreateCompatibleBitmap(windowDC, width, height);
-	SelectObject(windowClientCompatibleDC, bitmap);	
+	SelectObject(windowClientCompatibleDC, bitmap);
+	RECT bitmapRect;
+	bitmapRect.left = 0;
+	bitmapRect.right = width;
+	bitmapRect.top = 0;
+	bitmapRect.bottom = height;
+	HBRUSH whiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	FillRect(
+		windowClientCompatibleDC,
+		&bitmapRect,
+		whiteBrush
+	);
 	ReleaseDC(window, windowDC);
 }
 
