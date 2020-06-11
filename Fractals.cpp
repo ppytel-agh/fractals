@@ -128,7 +128,7 @@ unsigned char AffineTransformationRowsGroup::getNumberOfRows()
 
 bool AffineTransformationRowsGroup::isValid(void)
 {
-	return this->transformationRows != nullptr;
+	return this->numberOfRows > 0;
 }
 
 FractalClipping::FractalClipping(float xMin, float xMax, float yMin, float yMax)
@@ -164,9 +164,10 @@ Fractal::Fractal(
 	FractalClipping clipping
 ) : clipping(clipping), transformationRowsGroup(transformationRowsGroup)
 {
-	this->numberOfProbabilities = transformationRowsGroup.getNumberOfRows() - 1;
-	if (this->numberOfProbabilities > 0)
+	unsigned char numberOfRows = transformationRowsGroup.getNumberOfRows();
+	if (numberOfRows > 0)
 	{
+		this->numberOfProbabilities = transformationRowsGroup.getNumberOfRows() - 1;
 		this->probabilityAssociations = new unsigned char[this->numberOfProbabilities];
 		unsigned char maxProbabilityValue = 0;
 		for (unsigned char i = 0; i < this->numberOfProbabilities; i++)
@@ -177,6 +178,7 @@ Fractal::Fractal(
 	}
 	else
 	{
+		this->numberOfProbabilities = 0;
 		this->probabilityAssociations = nullptr;
 	}
 }
@@ -197,6 +199,7 @@ Fractal::Fractal(const Fractal& prototype)
 	}
 	else
 	{
+		this->numberOfProbabilities = 0;
 		this->probabilityAssociations = nullptr;
 	}
 }
@@ -225,6 +228,7 @@ Fractal& Fractal::operator=(const Fractal& rVal)
 	}
 	else
 	{
+		this->numberOfProbabilities = 0;
 		this->probabilityAssociations = nullptr;
 	}
 	return *this;

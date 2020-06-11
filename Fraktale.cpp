@@ -210,17 +210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
-		/*WindowDrawing bitmap(
-			hWnd,
-			800,
-			600
-		);
-		fractalDrawing.drawFractal(
-			getDragonFractal(),
-			bitmap.getWindowDrawingBuffer()
-		);
-		bitmap.redrawWindow(hdc, ps);*/
+		// TODO: Add any drawing code that uses hdc here...		
 		if (drawing != NULL)
 		{
 			drawing->redrawWindow(
