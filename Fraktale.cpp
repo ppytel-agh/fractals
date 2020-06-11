@@ -14,6 +14,7 @@ BOOL                InitInstance(HINSTANCE hInstance, int nCmdShow, WCHAR szWind
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
 
 class FractalDrawing
 {
@@ -397,9 +398,15 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					return (INT_PTR)TRUE;
 				}
 			}
-			else if (dialogData->fractalUI->getRenderButton()->isCommandFromControl(lParam))
+			else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
 			{
-				//przycisk "Importuj z PDF-a"
+				DialogBox(
+					(HINSTANCE)GetWindowLongPtr(hDlg, GWLP_HINSTANCE),
+					MAKEINTRESOURCE(IDD_FRAKTALE_IMPORT_FROM_PDF),
+					hDlg,
+					(DLGPROC)ImportFromPdfProc
+				);
+				//ShowWindow(importDialog, SW_SHOW);
 			}
 		}
 		break;
@@ -414,6 +421,11 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	return (INT_PTR)TRUE;
 }
 
 Fractal getDragonFractal(void)
