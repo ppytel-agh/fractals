@@ -38,9 +38,39 @@ public:
 	);
 };
 
-FractalDrawing fractalDrawing = FractalDrawing(800, 600);
+/*
+	Klasa wrapująca bufor GDI rysowanego okna.
+	Umożliwia rysowanie po buforze w tle.
+	Parametry WM_PAINT należy przekazać do redrawWindow aby odrysować daną część okna.
+	Kopiowanie obiektu tworzy niezależne obiekty GDI zawierające dotychczasową zawartość kopiowanej instancji.
+*/
+class WindowDrawing
+{
+private:
+	HWND windowHandle;
+	HDC windowClientCompatibleDC;
+	HBITMAP bitmap;
+	unsigned short width;
+	unsigned short height;
+public:
+	WindowDrawing(
+		HWND window,
+		unsigned short width,
+		unsigned short height
+	);
+	WindowDrawing(const WindowDrawing& original);
+	WindowDrawing& operator= (const WindowDrawing& original);
+	~WindowDrawing();
+	HDC getWindowDrawingBuffer(void);
+	void redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS);
+};
+
+const unsigned short fractalRenderWidth = 800;
+const unsigned short fractalRenderHeight = 600;
+FractalDrawing fractalDrawing = FractalDrawing(fractalRenderWidth, fractalRenderHeight);
 FractalDrawingUI* formTest;
 Fractal* definedFractalPointer = NULL;
+WindowDrawing* drawing = NULL;
 
 HWND dialogHandle;
 
@@ -179,15 +209,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code that uses hdc here...
-		if (definedFractalPointer != NULL)
+		if (drawing != NULL)
 		{
-			if (definedFractalPointer->isValid())
-			{
-				fractalDrawing.drawFractal(
-					*definedFractalPointer,
-					hdc
-				);
-			}
+			drawing->redrawWindow(
+				hdc,
+				ps
+			);
 		}
 		EndPaint(hWnd, &ps);
 	}
@@ -249,36 +276,36 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 	switch (message)
 	{
 	case WM_INITDIALOG:
-		{
+	{
 
-			unsigned char margin = 10;
-			formTest = new FractalDrawingUI(
-				hDlg,
-				margin,
-				margin
-			);
-			RECT rect = {};
-			rect.right = formTest->getWidth() + margin * 2;
-			rect.bottom = formTest->getHeight() + margin * 2;
-			DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
-			DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
-			AdjustWindowRectEx(
-				&rect,
-				dialogStyle,
-				FALSE,
-				dialogExStyle
-			);
-			SetWindowPos(
-				hDlg,
-				NULL,
-				0,
-				0,
-				rect.right - rect.left,
-				rect.bottom - rect.top,
-				SWP_NOZORDER | SWP_NOMOVE
-			);
-		}
-		return (INT_PTR)TRUE;
+		unsigned char margin = 10;
+		formTest = new FractalDrawingUI(
+			hDlg,
+			margin,
+			margin
+		);
+		RECT rect = {};
+		rect.right = formTest->getWidth() + margin * 2;
+		rect.bottom = formTest->getHeight() + margin * 2;
+		DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
+		DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
+		AdjustWindowRectEx(
+			&rect,
+			dialogStyle,
+			FALSE,
+			dialogExStyle
+		);
+		SetWindowPos(
+			hDlg,
+			NULL,
+			0,
+			0,
+			rect.right - rect.left,
+			rect.bottom - rect.top,
+			SWP_NOZORDER | SWP_NOMOVE
+		);
+	}
+	return (INT_PTR)TRUE;
 	case WM_COMMAND:
 		if (lParam == 0)
 		{
@@ -304,10 +331,24 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						delete definedFractalPointer;
 						definedFractalPointer = NULL;
 					}
-					Fractal tmpFractal = formTest->getFractalDefinitionForm()->getValue();
-					definedFractalPointer = new Fractal(tmpFractal);
+					Fractal providedFractal = formTest->getFractalDefinitionForm()->getValue();
+					if (drawing != NULL)
+					{
+						delete drawing;
+						drawing = NULL;
+					}
+					HWND mainWindow = GetParent(hDlg);
+					drawing = new WindowDrawing(
+						mainWindow,
+						fractalRenderWidth,
+						fractalRenderHeight
+					);
+					fractalDrawing.drawFractal(
+						providedFractal,
+						drawing->getWindowDrawingBuffer()
+					);
 					InvalidateRect(
-						GetParent(hDlg),
+						mainWindow,
 						NULL,
 						FALSE
 					);
@@ -358,4 +399,89 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 			);
 		}
 	}
+}
+
+WindowDrawing::WindowDrawing(HWND window, unsigned short width, unsigned short height)
+{
+	this->windowHandle = window;
+	this->width = width;
+	this->height = height;
+	HDC windowDC = GetDC(window);
+	windowClientCompatibleDC = CreateCompatibleDC(windowDC);
+	bitmap = CreateCompatibleBitmap(windowDC, width, height);
+	SelectObject(windowClientCompatibleDC, bitmap);	
+	ReleaseDC(window, windowDC);
+}
+
+WindowDrawing::WindowDrawing(const WindowDrawing& original)
+{
+	this->windowHandle = original.windowHandle;
+	this->width = original.width;
+	this->height = original.height;
+	HDC windowDC = GetDC(original.windowHandle);
+	windowClientCompatibleDC = CreateCompatibleDC(windowDC);
+	bitmap = CreateCompatibleBitmap(windowDC, width, height);
+	SelectObject(windowClientCompatibleDC, bitmap);
+	BitBlt(
+		windowClientCompatibleDC,
+		0,
+		0,
+		width,
+		height,
+		original.windowClientCompatibleDC,
+		0,
+		0,
+		SRCCOPY
+	);
+	ReleaseDC(this->windowHandle, windowDC);
+}
+
+WindowDrawing& WindowDrawing::operator=(const WindowDrawing& original)
+{
+	this->windowHandle = original.windowHandle;
+	this->width = original.width;
+	this->height = original.height;
+	HDC windowDC = GetDC(original.windowHandle);
+	windowClientCompatibleDC = CreateCompatibleDC(windowDC);
+	bitmap = CreateCompatibleBitmap(windowDC, width, height);
+	SelectObject(windowClientCompatibleDC, bitmap);
+	BitBlt(
+		windowClientCompatibleDC,
+		0,
+		0,
+		width,
+		height,
+		original.windowClientCompatibleDC,
+		0,
+		0,
+		SRCCOPY
+	);
+	ReleaseDC(this->windowHandle, windowDC);
+	return *this;
+}
+
+WindowDrawing::~WindowDrawing()
+{
+	DeleteDC(windowClientCompatibleDC);
+	DeleteObject(bitmap);
+}
+
+HDC WindowDrawing::getWindowDrawingBuffer(void)
+{
+	return windowClientCompatibleDC;
+}
+
+void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
+{
+	BitBlt(
+		wmPaintDC,
+		0,
+		0,
+		width,
+		height,
+		windowClientCompatibleDC,
+		0,
+		0,
+		SRCCOPY
+	);
 }
