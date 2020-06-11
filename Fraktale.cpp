@@ -8,16 +8,9 @@
 #include <ctime>
 #include "FractalsGUI.h"
 
-#define MAX_LOADSTRING 100
-
-// Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-
 // Forward declarations of functions included in this code module:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
+ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
+BOOL                InitInstance(HINSTANCE hInstance, int nCmdShow, WCHAR szWindowClass[], WCHAR szTitle[], HWND& hWnd);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
@@ -62,7 +55,7 @@ public:
 	WindowDrawing& operator= (const WindowDrawing& original);
 	~WindowDrawing();
 	HDC getWindowDrawingBuffer(void);
-	void redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS);
+	void redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS);	
 };
 
 class FractalFormDialog
@@ -85,14 +78,16 @@ public:
 	~FractalWindow();
 	void setFractalBuffer(WindowDrawing* fractalBuffer);
 	void redrawFractal(HDC paintingHdc, PAINTSTRUCT& ps); //należy wywoływać w WM_PAINT
+	HWND getDialogWindowHandle(void);
+	void redrawFractalBuffer(Fractal fractal);
 };
-
-const unsigned short fractalRenderWidth = 800;
-const unsigned short fractalRenderHeight = 600;
 
 Fractal getDragonFractal(void);
 
-HWND dialogHandle;
+struct FractalWindowData
+{
+	HBITMAP fractalBufferBitmapHandle;
+};
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -107,13 +102,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// TODO: Place code here.
 
-	// Initialize global strings
-	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadStringW(hInstance, IDC_FRAKTALE, szWindowClass, MAX_LOADSTRING);
-	MyRegisterClass(hInstance);
+	const unsigned char maxLoadString = 100;
+	WCHAR szTitle[maxLoadString];
+	WCHAR szWindowClass[maxLoadString];
+	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, maxLoadString);
+	LoadStringW(hInstance, IDC_FRAKTALE, szWindowClass, maxLoadString);
+	MyRegisterClass(hInstance, szWindowClass);
 
 	// Perform application initialization:
-	if (!InitInstance(hInstance, nCmdShow))
+	HWND mainWindowHandle;
+	if (!InitInstance(hInstance, nCmdShow, szWindowClass, szTitle, mainWindowHandle))
 	{
 		return FALSE;
 	}
@@ -121,6 +119,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_FRAKTALE));
 
 	MSG msg;
+	FractalWindow* fractalWindow = (FractalWindow*)GetWindowLong(mainWindowHandle, GWL_USERDATA);
+	HWND dialogHandle = fractalWindow->getDialogWindowHandle();
 
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
@@ -144,7 +144,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 //  PURPOSE: Registers the window class.
 //
-ATOM MyRegisterClass(HINSTANCE hInstance)
+ATOM MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[])
 {
 	WNDCLASSEXW wcex;
 
@@ -175,11 +175,9 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, WCHAR szWindowClass[], WCHAR szTitle[], HWND& hWnd)
 {
-	hInst = hInstance; // Store instance handle in our global variable
-
-	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, 800, 600, nullptr, nullptr, hInstance, nullptr);
 
 	if (!hWnd)
@@ -214,7 +212,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DialogBox(
+				(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+				MAKEINTRESOURCE(IDD_ABOUTBOX),
+				hWnd,
+				About
+			);
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -241,14 +244,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_CREATE:		
 	{
-		//
-		FractalDrawing fractalDrawing = FractalDrawing(fractalRenderWidth, fractalRenderHeight);
+		CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
+		FractalDrawing fractalDrawing = FractalDrawing(createData->cx, createData->cy);
 		FractalWindow* fractalWindow = new FractalWindow(hWnd);
 		SetWindowLongW(
 			hWnd,
 			GWL_USERDATA,
 			(LONG) fractalWindow
-		);		
+		);
 	}
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE || wParam == VK_RETURN)
@@ -320,20 +323,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				{
 					//pobierz fraktal z formularza
 					Fractal providedFractal = dialogData->getFormTest()->getFractalDefinitionForm()->getValue();					
-					HWND mainWindow = GetParent(hDlg);
-					//narysuj fraktal w buforze
-					WindowDrawing* fractalBuffer = new WindowDrawing(
-						mainWindow,
-						fractalRenderWidth,
-						fractalRenderHeight
-					);
-					fractalDrawing.drawFractal(
-						providedFractal,
-						fractalBuffer->getWindowDrawingBuffer()
-					);
-					//ustaw nowy bufor okna
+					//przekaż fraktal do głównego okna w celu przerysowania bufora
+					HWND mainWindow = GetParent(hDlg);					
 					FractalWindow* fractalWindow = (FractalWindow*)GetWindowLongW(mainWindow, GWL_USERDATA);
-					fractalWindow->setFractalBuffer(fractalBuffer);
+					fractalWindow->redrawFractalBuffer(providedFractal);
 					//wywołaj przerysowanie okna
 					InvalidateRect(
 						mainWindow,
@@ -529,7 +522,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 FractalWindow::FractalWindow(HWND windowHandle)
 {
 	dialogHandle = CreateDialog(
-		hInst,
+		(HINSTANCE)GetWindowLongPtr(windowHandle, GWLP_HINSTANCE),
 		MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
 		windowHandle,
 		(DLGPROC)FractalFormDialogProc
@@ -556,6 +549,11 @@ void FractalWindow::redrawFractal(HDC paintingHdc, PAINTSTRUCT& ps)
 			ps
 		);
 	}
+}
+
+HWND FractalWindow::getDialogWindowHandle(void)
+{
+	return dialogHandle;
 }
 
 FractalFormDialog::FractalFormDialog(HWND hDlg, unsigned char margin)
@@ -595,4 +593,18 @@ FractalFormDialog::~FractalFormDialog()
 FractalDrawingUI* FractalFormDialog::getFormTest(void)
 {
 	return formTest;
+}
+
+void FractalWindow::redrawFractalBuffer(Fractal fractal)
+{
+	//narysuj fraktal w buforze
+	WindowDrawing* fractalBuffer = new WindowDrawing(
+		this->windowHandle,
+		this->currentWidth,
+		this->currentHeight
+	);
+	fractalDrawing.drawFractal(
+		providedFractal,
+		fractalBuffer->getWindowDrawingBuffer()
+	);
 }
