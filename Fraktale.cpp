@@ -343,8 +343,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						delete definedFractalPointer;
 						definedFractalPointer = NULL;
 					}
-					//Fractal providedFractal = formTest->getFractalDefinitionForm()->getValue();
-					
+					Fractal providedFractal = formTest->getFractalDefinitionForm()->getValue();					
 					if (drawing != NULL)
 					{
 						delete drawing;
@@ -357,7 +356,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						fractalRenderHeight
 					);
 					fractalDrawing.drawFractal(
-						getDragonFractal(),
+						providedFractal,
 						drawing->getWindowDrawingBuffer()
 					);
 					InvalidateRect(
