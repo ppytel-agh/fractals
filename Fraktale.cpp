@@ -470,22 +470,23 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 								{
 									substringPointer += newlineLength;
 									numberOfLines++;
-								}	
+								}
 								//utwórz tablicę z linijkami
 								unsigned char* lineLengths = new unsigned char[numberOfLines];
 								WCHAR** linesArray = new WCHAR * [numberOfLines];
 								substringPointer = textBuffer;
-								for (unsigned char i = 0; i < (numberOfLines-1); i++)
+								for (unsigned char i = 0; i < (numberOfLines - 1); i++)
 								{
 									WCHAR* lineStart = substringPointer;
 									substringPointer = wcsstr(substringPointer, newline);
 									unsigned char lineLength = (unsigned char)(substringPointer - lineStart);
 									linesArray[i] = new WCHAR[lineLength + 1];
-									memcpy((void*)linesArray[i], (void*) lineStart, sizeof(WCHAR) * lineLength);
+									memcpy((void*)linesArray[i], (void*)lineStart, sizeof(WCHAR) * lineLength);
 									linesArray[i][lineLength] = L'\0';
 									substringPointer += newlineLength;
 									lineLengths[i] = lineLength;
 								}
+								//ostatnia linijka
 								unsigned char lastLineLength = wcslen(substringPointer);
 								linesArray[numberOfLines - 1] = new WCHAR[lastLineLength + 1];
 								memcpy((void*)linesArray[numberOfLines - 1], (void*)substringPointer, sizeof(WCHAR) * (lastLineLength + 1));
@@ -494,6 +495,82 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 								{
 									WCHAR* line = linesArray[i];
 									char x = 'd';
+								}
+								//walidacja nagłówków
+								if (numberOfLines > 2)
+								{
+									int firstLineComparisonResult = wcscmp(linesArray[0], L"prawdopodobieństwo");
+									int secondLineComparisonResult = wcscmp(linesArray[1], L"Współczynniki odwzorowania");
+									if ((firstLineComparisonResult == 0) && (secondLineComparisonResult == 0))
+									{
+										//waliacja wierszy
+										const unsigned char numberOfLinesPerRow = 7;
+										unsigned char expectedNumberOfRows = (numberOfLines - 2) / numberOfLinesPerRow;
+										AffineTransformationRow* transformationRowsArray = (AffineTransformationRow*)malloc(sizeof(AffineTransformationRow) * expectedNumberOfRows);
+										for (unsigned char i = 0; i < expectedNumberOfRows; i++)
+										{
+											unsigned char probabilityRow = 2 + (i * 7);
+											unsigned char probLineLength = wcslen(linesArray[probabilityRow]);
+											unsigned char probability = 0;
+											float paramValues[6] = {};
+											if (linesArray[probabilityRow][probLineLength - 1] == L'%')
+											{
+												probability = (unsigned char)_wtoi(linesArray[probabilityRow]);
+											}
+											else
+											{
+												
+											}
+											for (unsigned char j = 97; j <= 102; j++)
+											{
+												WCHAR letter = (WCHAR)(char)(j);
+												unsigned char lineIndex = 2 + (i * 7) + (j - 96);
+												unsigned char lineLength = wcslen(linesArray[probabilityRow]);
+												if (lineLength > 2)
+												{
+													if (linesArray[lineIndex][0] == letter && linesArray[lineIndex][1] == L'=')
+													{
+														paramValues[j - 97] = _wtof((WCHAR*)&linesArray[lineIndex][2]);
+													}
+													else
+													{
+													}
+												}
+												else
+												{
+												}
+											}
+											AffineTransformation transformation(
+												paramValues[0],
+												paramValues[1],
+												paramValues[2],
+												paramValues[3],
+												paramValues[4],
+												paramValues[5]
+											);
+											transformationRowsArray[i] = AffineTransformationRow(
+												probability,
+												transformation
+											);
+										}										
+										AffineTransformationRowsGroup rowsGroup(
+											transformationRowsArray,
+											expectedNumberOfRows
+										);
+										free(transformationRowsArray);
+										LPCWSTR lastLineParts[] = {
+										   L"zakres wyświetlanych punktów na ekranie: xmin=",
+										   L"; xmax=",
+										   L"; xmax=",
+										   L"; ymin=",
+										   L"; ymax=",
+										};
+										unsigned char lastLineComparisonResult = wcsncmp(
+											linesArray[numberOfLines - 1],
+											lastLineParts[0],
+											wcslen(lastLineParts[0])
+										);										
+									}
 								}
 								delete[] textBuffer;
 								return (INT_PTR)TRUE;
