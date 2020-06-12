@@ -73,6 +73,7 @@ struct FractalFormDialogData
 {
 	FractalDrawingUI* fractalUI;
 	WindowDrawing* fractalBuffer;
+	HWND importDialogWindowHandle;
 };
 
 void updateFractal(
@@ -113,12 +114,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLong(mainWindowHandle, GWL_USERDATA);
 	HWND dialogHandle = fractalWindowData->dialogWindowHandle;
+	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
 		bool isDialog = IsDialogMessage(dialogHandle, &msg);
+		if (fractalDialogData->importDialogWindowHandle != NULL)
+		{
+			isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
+		}
 		if (!isTranslated && !isDialog)
 		{
 			TranslateMessage(&msg);
@@ -197,103 +203,103 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-	case WM_COMMAND:
-	{
-		int wmId = LOWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
-		{
-		case IDM_ABOUT:
-			DialogBox(
-				(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
-				MAKEINTRESOURCE(IDD_ABOUTBOX),
-				hWnd,
-				About
-			);
+		case WM_COMMAND:
+			{
+				int wmId = LOWORD(wParam);
+				// Parse the menu selections:
+				switch (wmId)
+				{
+					case IDM_ABOUT:
+						DialogBox(
+							(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+							MAKEINTRESOURCE(IDD_ABOUTBOX),
+							hWnd,
+							About
+						);
+						break;
+					case IDM_EXIT:
+						DestroyWindow(hWnd);
+						break;
+					default:
+						return DefWindowProc(hWnd, message, wParam, lParam);
+				}
+			}
 			break;
-		case IDM_EXIT:
-			DestroyWindow(hWnd);
+		case WM_PAINT:
+			{
+				PAINTSTRUCT ps;
+				HDC hdc = BeginPaint(hWnd, &ps);
+				// TODO: Add any drawing code that uses hdc here...				
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
+				if (dialogData->fractalBuffer != NULL)
+				{
+					dialogData->fractalBuffer->redrawWindow(hdc, ps);
+				}
+				EndPaint(hWnd, &ps);
+			}
+			break;
+		case WM_DESTROY:
+			{
+
+				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				delete fractalWindowData->fractalDrawing;
+				PostQuitMessage(0);
+				break;
+			}
+		case WM_CREATE:
+			{
+				//utwórz dialog box z formulrzem
+				HWND dialogHandle = CreateDialog(
+					(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+					MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
+					hWnd,
+					(DLGPROC)FractalFormDialogProc
+				);
+				ShowWindow(dialogHandle, SW_SHOW);
+				//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
+				CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
+				//dane okna
+				FractalWindowData* windowData = new FractalWindowData{};
+				windowData->dialogWindowHandle = dialogHandle;
+				windowData->fractalDrawing = new FractalDrawing(
+					createData->cx,
+					createData->cy
+				);
+				SetWindowLongW(
+					hWnd,
+					GWL_USERDATA,
+					(LONG)windowData
+				);
+			}
+		case WM_KEYDOWN:
+			if (wParam == VK_ESCAPE || wParam == VK_RETURN)
+			{
+				return 0;
+			}
+			break;
+		case WM_SIZE:
+			{
+
+				RECT newSize;
+				GetClientRect(hWnd, &newSize);
+				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				delete fractalWindowData->fractalDrawing;
+				fractalWindowData->fractalDrawing = new FractalDrawing(
+					newSize.right,
+					newSize.bottom
+				);
+
+				updateFractal(
+					hWnd,
+					fractalWindowData->dialogWindowHandle,
+					fractalWindowData
+				);
+			}
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-	}
-	break;
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...				
-		FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-		FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
-		if (dialogData->fractalBuffer != NULL)
-		{
-			dialogData->fractalBuffer->redrawWindow(hdc, ps);
-		}
-		EndPaint(hWnd, &ps);
-	}
-	break;
-	case WM_DESTROY:
-	{
-
-		FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-		delete fractalWindowData->fractalDrawing;
-		PostQuitMessage(0);
-		break;
-	}
-	case WM_CREATE:
-	{
-		//utwórz dialog box z formulrzem
-		HWND dialogHandle = CreateDialog(
-			(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
-			MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
-			hWnd,
-			(DLGPROC)FractalFormDialogProc
-		);
-		ShowWindow(dialogHandle, SW_SHOW);
-		//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
-		FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
-		CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
-		//dane okna
-		FractalWindowData* windowData = new FractalWindowData{};
-		windowData->dialogWindowHandle = dialogHandle;
-		windowData->fractalDrawing = new FractalDrawing(
-			createData->cx,
-			createData->cy
-		);
-		SetWindowLongW(
-			hWnd,
-			GWL_USERDATA,
-			(LONG)windowData
-		);
-	}
-	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE || wParam == VK_RETURN)
-		{
-			return 0;
-		}
-		break;
-	case WM_SIZE:
-	{
-
-		RECT newSize;
-		GetClientRect(hWnd, &newSize);
-		FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-		delete fractalWindowData->fractalDrawing;
-		fractalWindowData->fractalDrawing = new FractalDrawing(
-			newSize.right,
-			newSize.bottom
-		);
-
-		updateFractal(
-			hWnd,
-			fractalWindowData->dialogWindowHandle,
-			fractalWindowData
-		);
-	}
-	break;
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
 }
@@ -304,16 +310,16 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
+		case WM_INITDIALOG:
 			return (INT_PTR)TRUE;
-		}
-		break;
+
+		case WM_COMMAND:
+			if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			break;
 	}
 	return (INT_PTR)FALSE;
 }
@@ -323,109 +329,156 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
-	case WM_INITDIALOG:
-	{
-		//zainicjuj klasę formularza
-		const unsigned char margin = 10;
-		FractalDrawingUI* formTest = new FractalDrawingUI(
-			hDlg,
-			margin,
-			margin
-		);
-		//zmień rozmiar dialog boxa aby pomieścił formularz
-		RECT rect = {};
-		rect.right = formTest->getWidth() + margin * 2;
-		rect.bottom = formTest->getHeight() + margin * 2;
-		DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
-		DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
-		AdjustWindowRectEx(
-			&rect,
-			dialogStyle,
-			FALSE,
-			dialogExStyle
-		);
-		SetWindowPos(
-			hDlg,
-			NULL,
-			0,
-			0,
-			rect.right - rect.left,
-			rect.bottom - rect.top,
-			SWP_NOZORDER | SWP_NOMOVE
-		);
-		//zapisz dane w oknie
-		FractalFormDialogData* dialogData = new FractalFormDialogData{};
-		dialogData->fractalUI = formTest;
-		SetWindowLongW(
-			hDlg,
-			GWL_USERDATA,
-			(LONG)dialogData
-		);
-	}
-	return (INT_PTR)TRUE;
-	case WM_COMMAND:
-		if (lParam == 0)
-		{
-			WORD commandId = LOWORD(wParam);
-			switch (commandId)
+		case WM_INITDIALOG:
 			{
-			case IDOK:
-			case IDCANCEL:
-				return (INT_PTR)TRUE;
+				//zainicjuj klasę formularza
+				const unsigned char margin = 10;
+				FractalDrawingUI* formTest = new FractalDrawingUI(
+					hDlg,
+					margin,
+					margin
+				);
+				//zmień rozmiar dialog boxa aby pomieścił formularz
+				RECT rect = {};
+				rect.right = formTest->getWidth() + margin * 2;
+				rect.bottom = formTest->getHeight() + margin * 2;
+				DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
+				DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
+				AdjustWindowRectEx(
+					&rect,
+					dialogStyle,
+					FALSE,
+					dialogExStyle
+				);
+				SetWindowPos(
+					hDlg,
+					NULL,
+					0,
+					0,
+					rect.right - rect.left,
+					rect.bottom - rect.top,
+					SWP_NOZORDER | SWP_NOMOVE
+				);
+				//zapisz dane w oknie
+				FractalFormDialogData* dialogData = new FractalFormDialogData{};
+				dialogData->fractalUI = formTest;
+				SetWindowLongW(
+					hDlg,
+					GWL_USERDATA,
+					(LONG)dialogData
+				);
 			}
-		}
-		else
-		{
-			FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
-			//controls have lParam value other than 0
-			if (dialogData == NULL)
+			return (INT_PTR)TRUE;
+		case WM_COMMAND:
+			if (lParam == 0)
 			{
-				return (INT_PTR)FALSE;
-			}
-			if (dialogData->fractalUI->getRenderButton()->isCommandFromControl(lParam))
-			{
-				//przycisk "Renderuj"
-				WORD notificationCode = HIWORD(wParam);
-				if (notificationCode == BN_CLICKED)
+				WORD commandId = LOWORD(wParam);
+				switch (commandId)
 				{
-					HWND mainWindow = GetWindow(hDlg, GW_OWNER);
-					FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
-					updateFractal(
-						mainWindow,
-						hDlg,
-						fractalWindowData
-					);
-					return (INT_PTR)TRUE;
+					//zapobiegaj zamknięciu modala po naciśnięciu ENTER lub ESC
+					case IDOK:
+					case IDCANCEL:
+						return (INT_PTR)TRUE;
 				}
 			}
-			else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
+			else
 			{
-				DialogBox(
-					(HINSTANCE)GetWindowLongPtr(hDlg, GWLP_HINSTANCE),
-					MAKEINTRESOURCE(IDD_FRAKTALE_IMPORT_FROM_PDF),
-					hDlg,
-					(DLGPROC)ImportFromPdfProc
-				);
-				//ShowWindow(importDialog, SW_SHOW);
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
+				//controls have lParam value other than 0
+				if (dialogData == NULL)
+				{
+					return (INT_PTR)FALSE;
+				}
+				if (dialogData->fractalUI->getRenderButton()->isCommandFromControl(lParam))
+				{
+					//przycisk "Renderuj"
+					WORD notificationCode = HIWORD(wParam);
+					if (notificationCode == BN_CLICKED)
+					{
+						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
+						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
+						updateFractal(
+							mainWindow,
+							hDlg,
+							fractalWindowData
+						);
+						return (INT_PTR)TRUE;
+					}
+				}
+				else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
+				{
+					dialogData->importDialogWindowHandle = CreateDialog(
+						(HINSTANCE)GetWindowLongPtr(hDlg, GWLP_HINSTANCE),
+						MAKEINTRESOURCE(IDD_FRAKTALE_IMPORT_FROM_PDF),
+						hDlg,
+						(DLGPROC)ImportFromPdfProc
+					);
+					ShowWindow(dialogData->importDialogWindowHandle, SW_SHOW);
+				}
 			}
-		}
-		break;
-	case WM_DESTROY:
-		//zniszcz obiekt formularza
-		FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
-		delete dialogData->fractalUI;
-		if (dialogData->fractalBuffer != NULL)
-		{
-			delete dialogData->fractalBuffer;
-		}
-		break;
+			break;
+		case WM_DESTROY:
+			//zniszcz obiekt formularza
+			FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
+			delete dialogData->fractalUI;
+			if (dialogData->fractalBuffer != NULL)
+			{
+				delete dialogData->fractalBuffer;
+			}
+			break;
 	}
 	return (INT_PTR)FALSE;
 }
 
 INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	return (INT_PTR)TRUE;
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+		case WM_COMMAND:
+			if (lParam != 0)
+			{
+				DWORD notificationElementId = LOWORD(wParam);
+				WORD notificationCode = HIWORD(wParam);
+				if (notificationCode == BN_CLICKED)
+				{
+					switch (notificationElementId)
+					{
+						case IDOK:
+							{
+
+								//przetwórz wartość z editboxa
+								HWND editControl = GetDlgItem(
+									hDlg,
+									IDC_EDIT1
+								);
+								unsigned short minBufferSize = GetWindowTextLengthW(editControl) + 1;
+								WCHAR* textBuffer = new WCHAR[minBufferSize];
+								GetWindowTextW(
+									editControl,
+									textBuffer,
+									minBufferSize
+								);
+
+								delete[] textBuffer;
+								return (INT_PTR)TRUE;
+							}
+						case IDCANCEL:
+							DestroyWindow(hDlg);
+							return (INT_PTR)TRUE;
+					}
+				}
+			}
+			break;
+		case WM_DESTROY:
+			{
+				HWND fractalFormDialogHandle = GetWindow(hDlg, GW_OWNER);
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);
+				dialogData->importDialogWindowHandle = NULL;
+			}
+			break;
+	}
+	return (INT_PTR)FALSE;
 }
 
 Fractal getDragonFractal(void)
