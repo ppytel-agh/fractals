@@ -29,6 +29,7 @@ public:
 		bool isFirstElementOfNewGroup = false
 	);
 	~InputWrapper();
+	void reset(void);
 };
 
 class FloatInput : public InputWrapper
@@ -67,6 +68,7 @@ public:
 	~AffineTransformationForm();
 	AffineTransformation getValue(void);
 	void setValue(AffineTransformation newValue);
+	void reset(void);
 };
 
 class FractalTransformationsRowForm
@@ -87,6 +89,7 @@ public:
 	bool isFilled(void);
 	AffineTransformationRow getValue(void);
 	void setValue(AffineTransformationRow newValue);
+	void reset(void);
 };
 
 enum LabelHorizontalAlignment

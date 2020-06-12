@@ -58,6 +58,11 @@ InputWrapper::~InputWrapper()
 	DestroyWindow(this->windowHandle);
 }
 
+void InputWrapper::reset(void)
+{
+	setValueFromString(L"");
+}
+
 float FloatInput::GetValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -179,6 +184,16 @@ void AffineTransformationForm::setValue(AffineTransformation newValue)
 	f->setValue(newValue.getF());
 }
 
+void AffineTransformationForm::reset(void)
+{
+	this->a->reset();
+	this->b->reset();
+	this->c->reset();
+	this->d->reset();
+	this->e->reset();
+	this->f->reset();
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -249,6 +264,12 @@ void FractalTransformationsRowForm::setValue(AffineTransformationRow newValue)
 	this->affineTransformationForm->setValue(
 		newValue.getTransformation()
 	);
+}
+
+void FractalTransformationsRowForm::reset(void)
+{
+	this->probability->reset();
+	this->affineTransformationForm->reset();
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -398,6 +419,10 @@ void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue
 		this->transformationRowForms[i]->setValue(
 			newValue.getAffineTransformation(i)
 		);
+	}
+	for (unsigned char i = newValue.getNumberOfRows(); i < maxNumberOfTransformations; i++)
+	{
+		this->transformationRowForms[i]->reset();
 	}
 }
 
