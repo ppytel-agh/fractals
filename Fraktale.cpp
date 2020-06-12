@@ -665,12 +665,55 @@ void parseImportAndPutIntoForm(WCHAR* textBuffer)
 			LPCWSTR lastLineParts[] = {
 			   L"zakres wyświetlanych punktów na ekranie: xmin=",
 			   L"; xmax=",
-			   L"; xmax=",
 			   L"; ymin=",
 			   L"; ymax=",
 			};
+			const unsigned char noParts = sizeof(lastLineParts) / sizeof(LPCWSTR);
 			LPWSTR lastLine = linesArray[numberOfLines - 1];
-			unsigned char lastLineFirstPartLen = wcslen(lastLineParts[0]);
+			LPWSTR substring = lastLine;
+			LPWSTR nextSubstring = NULL;
+			float clippingParts[noParts] = {};
+			for (unsigned char i = 0; i < (noParts-1); i++)
+			{
+				substring = wcsstr(substring, lastLineParts[i]);
+				if (substring != NULL)
+				{
+					nextSubstring = wcsstr(substring, lastLineParts[i + 1]);
+					if (nextSubstring != NULL)
+					{
+						unsigned char lastLinePartLen = wcslen(lastLineParts[i]);
+						unsigned char clippingPartLength = (unsigned char)(nextSubstring - substring) - lastLinePartLen;
+						LPWSTR clippingPartSubstring = substring + lastLinePartLen;
+						clippingParts[i] = _wtof(clippingPartSubstring);
+					}
+					else
+					{
+						return;
+					}
+				}
+				else
+				{
+					return;
+				}
+				
+			}
+			//unsigned char lastLineLength = wcslen(lastLine);
+			unsigned char lastPartIndex = noParts - 1;
+			unsigned char lastPartLength = wcslen(lastLineParts[lastPartIndex]);
+			LPWSTR lastPartSubstring = nextSubstring + lastPartLength;
+			clippingParts[lastPartIndex] = _wtof(lastPartSubstring);
+			FractalClipping clipping(
+				clippingParts[0],
+				clippingParts[1],
+				clippingParts[2],
+				clippingParts[3]
+			);
+			Fractal importedFractal(
+				rowsGroup,
+				clipping
+			);
+			char x = 'd';
+			/*
 			unsigned char lastLineComparisonResult = wcsncmp(
 				lastLine,
 				lastLineParts[0],
@@ -687,7 +730,7 @@ void parseImportAndPutIntoForm(WCHAR* textBuffer)
 			else
 			{
 				return;
-			}
+			}*/
 		}
 	}	
 }
