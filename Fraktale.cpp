@@ -452,14 +452,49 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									hDlg,
 									IDC_EDIT1
 								);
+								//utwórz bufor o długości wprowadzonego tekstu + 1 dla znaku końca ciągu
 								unsigned short minBufferSize = GetWindowTextLengthW(editControl) + 1;
+								//pobierz tekst do bufora
 								WCHAR* textBuffer = new WCHAR[minBufferSize];
 								GetWindowTextW(
 									editControl,
 									textBuffer,
 									minBufferSize
 								);
-
+								//policz liczbę linii tekstu
+								WCHAR newline[] = L"\r\n";
+								unsigned char newlineLength = wcslen(newline);
+								WCHAR* substringPointer = textBuffer;
+								int numberOfLines = 1;
+								while (substringPointer = wcsstr(substringPointer, newline))
+								{
+									substringPointer += newlineLength;
+									numberOfLines++;
+								}	
+								//utwórz tablicę z linijkami
+								unsigned char* lineLengths = new unsigned char[numberOfLines];
+								WCHAR** linesArray = new WCHAR * [numberOfLines];
+								substringPointer = textBuffer;
+								for (unsigned char i = 0; i < (numberOfLines-1); i++)
+								{
+									WCHAR* lineStart = substringPointer;
+									substringPointer = wcsstr(substringPointer, newline);
+									unsigned char lineLength = (unsigned char)(substringPointer - lineStart);
+									linesArray[i] = new WCHAR[lineLength + 1];
+									memcpy((void*)linesArray[i], (void*) lineStart, sizeof(WCHAR) * lineLength);
+									linesArray[i][lineLength] = L'\0';
+									substringPointer += newlineLength;
+									lineLengths[i] = lineLength;
+								}
+								unsigned char lastLineLength = wcslen(substringPointer);
+								linesArray[numberOfLines - 1] = new WCHAR[lastLineLength + 1];
+								memcpy((void*)linesArray[numberOfLines - 1], (void*)substringPointer, sizeof(WCHAR) * (lastLineLength + 1));
+								//iteracja linijek
+								for (unsigned char i = 0; i < numberOfLines; i++)
+								{
+									WCHAR* line = linesArray[i];
+									char x = 'd';
+								}
 								delete[] textBuffer;
 								return (INT_PTR)TRUE;
 							}
