@@ -694,7 +694,14 @@ void parseImportAndPutIntoForm(
 						unsigned char lastLinePartLen = wcslen(lastLineParts[i]);
 						unsigned char clippingPartLength = (unsigned char)(nextSubstring - substring) - lastLinePartLen;
 						LPWSTR clippingPartSubstring = substring + lastLinePartLen;
-						clippingParts[i] = _wtof(clippingPartSubstring);
+						LPWSTR clippingPartString = new WCHAR[clippingPartLength + 1];
+						memcpy(clippingPartString, clippingPartSubstring, sizeof(WCHAR) * clippingPartLength);
+						clippingPartString[clippingPartLength] = L'\0';
+						//zastąp przecinek kropką
+						WCHAR* delimiterPointer = wcsrchr(clippingPartString, L',');
+						*delimiterPointer = L'.';
+						float conversionResult = _wtof(clippingPartString);
+						clippingParts[i] = conversionResult;
 					}
 					else
 					{
@@ -711,7 +718,12 @@ void parseImportAndPutIntoForm(
 			unsigned char lastPartIndex = noParts - 1;
 			unsigned char lastPartLength = wcslen(lastLineParts[lastPartIndex]);
 			LPWSTR lastPartSubstring = nextSubstring + lastPartLength;
-			clippingParts[lastPartIndex] = _wtof(lastPartSubstring);
+			LPWSTR lastPartString = new WCHAR[lastPartLength + 1];
+			memcpy(lastPartString, lastPartSubstring, sizeof(WCHAR) * lastPartLength);
+			lastPartString[lastPartLength] = L'\0';
+			WCHAR* delimiterPointer = wcsrchr(lastPartString, L',');
+			*delimiterPointer = L'.';
+			clippingParts[lastPartIndex] = (float)_wtof(lastPartString);
 			FractalClipping clipping(
 				clippingParts[0],
 				clippingParts[1],
