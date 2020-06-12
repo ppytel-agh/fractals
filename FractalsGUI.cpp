@@ -393,7 +393,7 @@ AffineTransformationRowsGroup FractalTransformationsForm::getValue(void)
 
 void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue)
 {
-	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	for (unsigned char i = 0; i < newValue.getNumberOfRows(); i++)
 	{
 		this->transformationRowForms[i]->setValue(
 			newValue.getAffineTransformation(i)
