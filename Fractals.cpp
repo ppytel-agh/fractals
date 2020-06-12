@@ -39,6 +39,36 @@ Point AffineTransformation::calculatePrim(Point originalPoint)
 	return Point(xPrim, yPrim);
 }
 
+float AffineTransformation::getA(void)
+{
+	return a;
+}
+
+float AffineTransformation::getB(void)
+{
+	return b;
+}
+
+float AffineTransformation::getC(void)
+{
+	return c;
+}
+
+float AffineTransformation::getD(void)
+{
+	return d;
+}
+
+float AffineTransformation::getE(void)
+{
+	return e;
+}
+
+float AffineTransformation::getF(void)
+{
+	return f;
+}
+
 AffineTransformationRow::AffineTransformationRow(
 	unsigned char probability,
 	AffineTransformation transformation
@@ -255,6 +285,11 @@ AffineTransformation Fractal::getAffineTransformation(int randomValue)
 FractalClipping Fractal::getClipping(void)
 {
 	return this->clipping;
+}
+
+AffineTransformationRowsGroup Fractal::getTransformationRows(void)
+{
+	return this->transformationRowsGroup;
 }
 
 PixelCalculator::PixelCalculator(

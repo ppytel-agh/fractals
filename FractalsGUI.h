@@ -3,6 +3,9 @@
 #include <Windows.h>
 #include "Fractals.h"
 #include <windowsx.h>
+#include <sstream>
+#include <iomanip>
+#include <string>
 
 class InputWrapper
 {
@@ -12,6 +15,9 @@ protected:
 	void putValueIntoBuffer(
 		const TCHAR* buffer,
 		unsigned char bufferSize
+	);
+	void setValueFromString(
+		LPCWSTR newValue
 	);
 public:
 	InputWrapper(
@@ -31,6 +37,7 @@ class FloatInput : public InputWrapper
 public:
 	float GetValue(void);
 	bool isValid(void);
+	void setValue(float newValue);
 };
 
 class NaturalInput : public InputWrapper
@@ -38,6 +45,7 @@ class NaturalInput : public InputWrapper
 	using InputWrapper::InputWrapper;
 public:
 	unsigned int getValue(void);
+	void setValue(int newValue);
 };
 
 class AffineTransformationForm
@@ -58,6 +66,7 @@ public:
 	);
 	~AffineTransformationForm();
 	AffineTransformation getValue(void);
+	void setValue(AffineTransformation newValue);
 };
 
 class FractalTransformationsRowForm
@@ -77,6 +86,7 @@ public:
 	~FractalTransformationsRowForm();
 	bool isFilled(void);
 	AffineTransformationRow getValue(void);
+	void setValue(AffineTransformationRow newValue);
 };
 
 enum LabelHorizontalAlignment
@@ -130,6 +140,7 @@ public:
 	);
 	~FractalTransformationsForm();
 	AffineTransformationRowsGroup getValue(void);
+	void setValue(AffineTransformationRowsGroup newValue);
 };
 
 class FloatInputWithLeftLabel
@@ -174,6 +185,7 @@ public:
 	unsigned short getWidth(void);
 	bool isValid(void);
 	FractalClipping getValue(void);
+	void setValue(FractalClipping newValue);
 };
 
 class FractalDefinitionForm
@@ -197,6 +209,7 @@ public:
 	unsigned short getHeight(void);
 	unsigned short getWidth(void);
 	Fractal getValue(void);
+	void setValue(Fractal newValue);
 };
 
 //class RenderingFrameSizeForm
@@ -245,3 +258,5 @@ public:
 	FractalDefinitionForm* getFractalDefinitionForm(void);
 	ButtonWrapper* getImportbutton(void);
 };
+
+LPWSTR ansiToUnicode(const char* cString);

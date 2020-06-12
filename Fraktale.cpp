@@ -83,7 +83,8 @@ void updateFractal(
 );
 
 void parseImportAndPutIntoForm(
-	WCHAR* textBuffer
+	WCHAR* textBuffer,
+	FractalDefinitionForm* fractalForm
 );
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -465,8 +466,14 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									textBuffer,
 									minBufferSize
 								);
-								parseImportAndPutIntoForm(textBuffer);
+								HWND fractalFormDialogHandle = GetWindow(hDlg, GW_OWNER);
+								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);																
+								parseImportAndPutIntoForm(
+									textBuffer,
+									dialogData->fractalUI->getFractalDefinitionForm()
+								);
 								delete[] textBuffer;
+								DestroyWindow(hDlg);
 								return (INT_PTR)TRUE;
 							}
 						case IDCANCEL:
@@ -547,8 +554,8 @@ void updateFractal(
 		windowData->fractalDrawing->getClientHeight()
 	);
 	//pobierz fraktal z formularza
-	Fractal providedFractal = getDragonFractal();
-	//Fractal providedFractal = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+	//Fractal providedFractal = getDragonFractal();
+	Fractal providedFractal = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
 	windowData->fractalDrawing->drawFractal(
 		providedFractal,
 		dialogData->fractalBuffer->getWindowDrawingBuffer()
@@ -561,7 +568,10 @@ void updateFractal(
 	);
 }
 
-void parseImportAndPutIntoForm(WCHAR* textBuffer)
+void parseImportAndPutIntoForm(
+	WCHAR* textBuffer,
+	FractalDefinitionForm* fractalForm
+)
 {
 	//policz liczbę linii tekstu
 	WCHAR newline[] = L"\r\n";
@@ -712,25 +722,7 @@ void parseImportAndPutIntoForm(WCHAR* textBuffer)
 				rowsGroup,
 				clipping
 			);
-			char x = 'd';
-			/*
-			unsigned char lastLineComparisonResult = wcsncmp(
-				lastLine,
-				lastLineParts[0],
-				lastLineFirstPartLen
-			);
-			if (lastLineComparisonResult == 0)
-			{
-				LPWSTR nextPartPointer = wcsstr(lastLine, lastLineParts[1]);
-				unsigned char xMinLen = (unsigned char)(nextPartPointer - lastLine) - lastLineFirstPartLen;
-				LPWSTR xMinPointer = lastLine + lastLineFirstPartLen;
-				float xMin = _wtof(xMinPointer);
-				char x = 'd';
-			}
-			else
-			{
-				return;
-			}*/
+			fractalForm->setValue(importedFractal);
 		}
 	}	
 }

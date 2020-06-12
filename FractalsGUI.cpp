@@ -13,6 +13,16 @@ void InputWrapper::putValueIntoBuffer(
 	);
 }
 
+void InputWrapper::setValueFromString(
+	LPCWSTR newValue
+)
+{
+	Edit_SetText(
+		this->windowHandle,
+		newValue
+	);
+}
+
 InputWrapper::InputWrapper(
 	HWND parent,
 	unsigned short offsetX,
@@ -62,6 +72,16 @@ float FloatInput::GetValue(void)
 bool FloatInput::isValid(void)
 {
 	return GetValue();
+}
+
+void FloatInput::setValue(float newValue)
+{
+	std::stringstream stream;
+	stream << std::fixed << std::setprecision(2) << newValue;
+	std::string outputString = stream.str();
+	const char* cString = outputString.c_str();
+	LPCWSTR floatString = (LPCWSTR)ansiToUnicode(outputString.c_str());
+	setValueFromString(floatString);
 }
 
 AffineTransformationForm::AffineTransformationForm(
@@ -149,6 +169,16 @@ AffineTransformation AffineTransformationForm::getValue(void)
 	);
 }
 
+void AffineTransformationForm::setValue(AffineTransformation newValue)
+{
+	a->setValue(newValue.getA());
+	b->setValue(newValue.getB());
+	c->setValue(newValue.getC());
+	d->setValue(newValue.getD());
+	e->setValue(newValue.getE());
+	f->setValue(newValue.getF());
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -158,6 +188,14 @@ unsigned int NaturalInput::getValue(void)
 		bufferSize
 	);
 	return _wtoi(buffer);
+}
+
+void NaturalInput::setValue(int newValue)
+{
+	std::string valueString = std::to_string(newValue);
+	const char* cString = valueString.c_str();
+	LPCWSTR integerString = (LPCWSTR)ansiToUnicode(cString);
+	setValueFromString(integerString);
 }
 
 FractalTransformationsRowForm::FractalTransformationsRowForm(
@@ -200,6 +238,16 @@ AffineTransformationRow FractalTransformationsRowForm::getValue(void)
 	return AffineTransformationRow(
 		this->probability->getValue(),
 		this->affineTransformationForm->getValue()
+	);
+}
+
+void FractalTransformationsRowForm::setValue(AffineTransformationRow newValue)
+{
+	this->probability->setValue(
+		newValue.getProbability()
+	);
+	this->affineTransformationForm->setValue(
+		newValue.getTransformation()
 	);
 }
 
@@ -343,6 +391,16 @@ AffineTransformationRowsGroup FractalTransformationsForm::getValue(void)
 	return result;
 }
 
+void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue)
+{
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		this->transformationRowForms[i]->setValue(
+			newValue.getAffineTransformation(i)
+		);
+	}
+}
+
 LabelWrapper::LabelWrapper(
 	HWND parent,
 	LPCTSTR text,
@@ -437,6 +495,22 @@ FractalClipping FractalClippingForm::getValue(void)
 		this->maxX->getFloatInput()->GetValue(),
 		this->minY->getFloatInput()->GetValue(),
 		this->maxY->getFloatInput()->GetValue()
+	);
+}
+
+void FractalClippingForm::setValue(FractalClipping newValue)
+{
+	this->minX->getFloatInput()->setValue(
+		newValue.getXMin()
+	);
+	this->maxX->getFloatInput()->setValue(
+		newValue.getXMax()
+	);
+	this->minY->getFloatInput()->setValue(
+		newValue.getYMin()
+	);
+	this->maxY->getFloatInput()->setValue(
+		newValue.getYMax()
 	);
 }
 
@@ -541,6 +615,16 @@ Fractal FractalDefinitionForm::getValue(void)
 	);
 }
 
+void FractalDefinitionForm::setValue(Fractal newValue)
+{
+	this->transformations->setValue(
+		newValue.getTransformationRows()
+	);
+	this->clipping->setValue(
+		newValue.getClipping()
+	);
+}
+
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {
 	this->fractalDefinition = new FractalDefinitionForm(
@@ -627,4 +711,13 @@ ButtonWrapper::~ButtonWrapper()
 bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
 {
 	return (HWND)wmCommandlParam == this->buttonWindow;
+}
+
+LPWSTR ansiToUnicode(const char* cString)
+{
+	size_t size = strlen(cString) + 1;
+	LPWSTR unicodeBuffer = new WCHAR[size];
+	size_t outSize;
+	mbstowcs_s(&outSize, unicodeBuffer, size, cString, size - 1);
+	return unicodeBuffer;
 }

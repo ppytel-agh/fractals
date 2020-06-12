@@ -34,6 +34,12 @@ public:
 		float f
 	);
 	Point calculatePrim(Point originalPoint);
+	float getA(void);
+	float getB(void);
+	float getC(void);
+	float getD(void);
+	float getE(void);
+	float getF(void);
 };
 
 class AffineTransformationRow
@@ -107,6 +113,7 @@ public:
 	bool isValid(void);
 	AffineTransformation getAffineTransformation(int randomValue);
 	FractalClipping getClipping(void);
+	AffineTransformationRowsGroup getTransformationRows(void);
 };
 
 class PixelCalculator
