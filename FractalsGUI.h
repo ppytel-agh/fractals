@@ -11,14 +11,15 @@ class InputWrapper
 {
 private:
 	HWND windowHandle;
+	unsigned char minBufferSize;
 protected:
 	void putValueIntoBuffer(
-		const TCHAR* buffer,
-		unsigned char bufferSize
+		LPWSTR buffer
 	);
 	void setValueFromString(
 		LPCWSTR newValue
 	);
+	unsigned char getMinBufferSize(void);
 public:
 	InputWrapper(
 		HWND parent,
@@ -37,8 +38,8 @@ class FloatInput : public InputWrapper
 	using InputWrapper::InputWrapper;
 public:
 	float GetValue(void);
-	bool isValid(void);
 	void setValue(float newValue);
+	bool isValid(void);
 };
 
 class NaturalInput : public InputWrapper
@@ -47,6 +48,7 @@ class NaturalInput : public InputWrapper
 public:
 	unsigned int getValue(void);
 	void setValue(int newValue);
+	bool isValid(void);
 };
 
 class AffineTransformationForm
@@ -69,6 +71,7 @@ public:
 	AffineTransformation getValue(void);
 	void setValue(AffineTransformation newValue);
 	void reset(void);
+	bool isValid(void);
 };
 
 class FractalTransformationsRowForm
@@ -90,6 +93,7 @@ public:
 	AffineTransformationRow getValue(void);
 	void setValue(AffineTransformationRow newValue);
 	void reset(void);
+	bool isValid(void);
 };
 
 enum LabelHorizontalAlignment
@@ -187,9 +191,9 @@ public:
 	);
 	~FractalClippingForm();
 	unsigned short getWidth(void);
-	bool isValid(void);
 	FractalClipping getValue(void);
 	void setValue(FractalClipping newValue);
+	bool isValid(void);
 };
 
 class FractalDefinitionForm

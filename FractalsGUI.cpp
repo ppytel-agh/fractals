@@ -1,15 +1,13 @@
 #include "FractalsGUI.h"
 
 void InputWrapper::putValueIntoBuffer(
-	const TCHAR* buffer,
-	unsigned char bufferSize
+	LPWSTR buffer
 )
 {
-	Edit_GetLine(
+	GetWindowTextW(
 		this->windowHandle,
-		NULL,
 		buffer,
-		bufferSize
+		this->minBufferSize
 	);
 }
 
@@ -21,6 +19,12 @@ void InputWrapper::setValueFromString(
 		this->windowHandle,
 		newValue
 	);
+}
+
+unsigned char InputWrapper::getMinBufferSize(void)
+{
+	this->minBufferSize = GetWindowTextLengthW(windowHandle) + 1;
+	return this->minBufferSize;
 }
 
 InputWrapper::InputWrapper(
@@ -65,17 +69,20 @@ void InputWrapper::reset(void)
 
 float FloatInput::GetValue(void)
 {
-	const unsigned char bufferSize = 16;
-	TCHAR buffer[bufferSize];
+	unsigned char bufferSize = getMinBufferSize();
+	LPWSTR buffer = new WCHAR[bufferSize];
 	putValueIntoBuffer(
-		buffer,
-		bufferSize
+		buffer
 	);
-	return _wtof(buffer);
+	float decimalValue = _wtof(buffer);
+	delete buffer;
+	return decimalValue;
 }
 
 bool FloatInput::isValid(void)
 {
+	float providedValue = GetValue();
+
 	return GetValue();
 }
 
@@ -194,6 +201,27 @@ void AffineTransformationForm::reset(void)
 	this->f->reset();
 }
 
+bool AffineTransformationForm::isValid(void)
+{
+	FloatInput* params[] = {
+		a,
+		b,
+		c,
+		d,
+		e,
+		f
+	};
+	unsigned char numberOfInputs = sizeof(params) / sizeof(FloatInput*);
+	for (unsigned char i = 0; i < numberOfInputs; i++)
+	{
+		if (!params[i]->isValid())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -211,6 +239,11 @@ void NaturalInput::setValue(int newValue)
 	const char* cString = valueString.c_str();
 	LPCWSTR integerString = (LPCWSTR)ansiToUnicode(cString);
 	setValueFromString(integerString);
+}
+
+bool NaturalInput::isValid(void)
+{
+	return false;
 }
 
 FractalTransformationsRowForm::FractalTransformationsRowForm(
@@ -270,6 +303,18 @@ void FractalTransformationsRowForm::reset(void)
 {
 	this->probability->reset();
 	this->affineTransformationForm->reset();
+}
+
+bool FractalTransformationsRowForm::isValid(void)
+{
+	if (this->probability->isValid())
+	{
+		return this->affineTransformationForm->isValid();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -426,6 +471,18 @@ void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue
 	}
 }
 
+bool FractalTransformationsForm::isValid(void)
+{
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		if (!this->transformationRowForms[i]->isValid())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 LabelWrapper::LabelWrapper(
 	HWND parent,
 	LPCTSTR text,
@@ -510,7 +567,21 @@ unsigned short FractalClippingForm::getWidth(void)
 
 bool FractalClippingForm::isValid(void)
 {
-	return minX->getFloatInput()->isValid();
+	FloatInputWithLeftLabel* params[] = {
+		minX,
+		maxX,
+		minY,
+		maxY
+	};
+	unsigned char numberOfParams = sizeof(params) / sizeof(FloatInputWithLeftLabel*);
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		if (!params[i]->getFloatInput()->isValid())
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 FractalClipping FractalClippingForm::getValue(void)
