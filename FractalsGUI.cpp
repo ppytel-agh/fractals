@@ -63,6 +63,11 @@ void InputWrapper::reset(void)
 	setValueFromString(L"");
 }
 
+HWND InputWrapper::getControlHandle(void)
+{
+	return windowHandle;
+}
+
 float FloatInput::GetValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -194,6 +199,16 @@ void AffineTransformationForm::reset(void)
 	this->f->reset();
 }
 
+FloatInput* AffineTransformationForm::getA(void)
+{
+	return this->a;
+}
+
+FloatInput* AffineTransformationForm::getD(void)
+{
+	return this->d;
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	const unsigned char bufferSize = 16;
@@ -270,6 +285,16 @@ void FractalTransformationsRowForm::reset(void)
 {
 	this->probability->reset();
 	this->affineTransformationForm->reset();
+}
+
+NaturalInput* FractalTransformationsRowForm::getProbabilityInput(void)
+{
+	return this->probability;
+}
+
+AffineTransformationForm* FractalTransformationsRowForm::getAffineTransformationForm(void)
+{
+	return this->affineTransformationForm;
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -426,6 +451,18 @@ void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue
 	}
 }
 
+FractalTransformationsRowForm* FractalTransformationsForm::getTransformationRowForm(unsigned char index)
+{
+	if (index < maxNumberOfTransformations)
+	{
+		return this->transformationRowForms[index];
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 LabelWrapper::LabelWrapper(
 	HWND parent,
 	LPCTSTR text,
@@ -537,6 +574,11 @@ void FractalClippingForm::setValue(FractalClipping newValue)
 	this->maxY->getFloatInput()->setValue(
 		newValue.getYMax()
 	);
+}
+
+FloatInputWithLeftLabel* FractalClippingForm::getMinX()
+{
+	return this->minX;
 }
 
 FloatInputWithLeftLabel::FloatInputWithLeftLabel(

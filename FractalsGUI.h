@@ -30,6 +30,7 @@ public:
 	);
 	~InputWrapper();
 	void reset(void);
+	HWND getControlHandle(void);
 };
 
 class FloatInput : public InputWrapper
@@ -69,6 +70,8 @@ public:
 	AffineTransformation getValue(void);
 	void setValue(AffineTransformation newValue);
 	void reset(void);
+	FloatInput* getA(void);
+	FloatInput* getD(void);
 };
 
 class FractalTransformationsRowForm
@@ -90,6 +93,8 @@ public:
 	AffineTransformationRow getValue(void);
 	void setValue(AffineTransformationRow newValue);
 	void reset(void);
+	NaturalInput* getProbabilityInput(void);
+	AffineTransformationForm* getAffineTransformationForm(void);
 };
 
 enum LabelHorizontalAlignment
@@ -144,6 +149,7 @@ public:
 	~FractalTransformationsForm();
 	AffineTransformationRowsGroup getValue(void);
 	void setValue(AffineTransformationRowsGroup newValue);
+	FractalTransformationsRowForm* getTransformationRowForm(unsigned char index);
 };
 
 class FloatInputWithLeftLabel
@@ -189,6 +195,7 @@ public:
 	bool isValid(void);
 	FractalClipping getValue(void);
 	void setValue(FractalClipping newValue);
+	FloatInputWithLeftLabel* getMinX();
 };
 
 class FractalDefinitionForm
