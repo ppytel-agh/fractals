@@ -3,23 +3,21 @@
 #include <Windows.h>
 #include "Fractals.h"
 #include <windowsx.h>
-#include <sstream>
-#include <iomanip>
-#include <string>
+#include "string-processing.h"
 
 class InputWrapper
 {
 private:
 	HWND windowHandle;
-	unsigned char minBufferSize;
+	LPWSTR inputBuffer;
+	unsigned char inputLength;
 protected:
-	void putValueIntoBuffer(
-		LPWSTR buffer
-	);
 	void setValueFromString(
 		LPCWSTR newValue
 	);
-	unsigned char getMinBufferSize(void);
+	void updateInputBuffer(void);
+	LPWSTR getInputBuffer(void);
+	unsigned char getInputLength(void);
 public:
 	InputWrapper(
 		HWND parent,
@@ -31,6 +29,8 @@ public:
 	);
 	~InputWrapper();
 	void reset(void);
+	bool isEmpty(void);
+	void displayError(LPCWSTR message);
 };
 
 class FloatInput : public InputWrapper
@@ -94,6 +94,8 @@ public:
 	void setValue(AffineTransformationRow newValue);
 	void reset(void);
 	bool isValid(void);
+	bool isEmpty(void);
+	void displayError(LPCWSTR message);
 };
 
 enum LabelHorizontalAlignment
