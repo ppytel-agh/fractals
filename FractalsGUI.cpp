@@ -111,7 +111,7 @@ bool FloatInput::isValid(void)
 {
 	float providedValue = GetValue();
 	LPWSTR inputBuffer = getInputBuffer();
-	LPWSTR reconvertedFloat = floatToStringNonPrecise(providedValue);
+	LPWSTR reconvertedFloat = floatToString(providedValue);
 	int comparisonResult = wcscmp(inputBuffer, reconvertedFloat);
 	if (comparisonResult == 0)
 	{
@@ -119,7 +119,7 @@ bool FloatInput::isValid(void)
 	}
 	else
 	{
-		displayError(L"podana wartość nie jest liczbą zmiennoprzecinkową, wymagany format ");
+		displayError(L"podana wartość nie jest liczbą zmiennoprzecinkową, wymagany format X.YY");
 		return false;
 	}
 }
