@@ -38,7 +38,17 @@ unsigned char InputWrapper::getInputLength(void)
 
 void InputWrapper::displayError(LPCWSTR message)
 {
-	//todo wyświetl tooltip
+	EDITBALLOONTIP ebt;
+	ebt.cbStruct = sizeof(EDITBALLOONTIP);
+	ebt.pszText = L"Błąd!";
+	ebt.pszTitle = message;
+	ebt.ttiIcon = TTI_ERROR_LARGE;    // tooltip icon
+	SendMessageW(
+		this->windowHandle,
+		EM_SHOWBALLOONTIP,
+		0,
+		(LPARAM)&ebt
+	);
 }
 
 InputWrapper::InputWrapper(
