@@ -400,14 +400,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					WORD notificationCode = HIWORD(wParam);
 					if (notificationCode == BN_CLICKED)
 					{
-						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
-						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
-						updateFractal(
-							mainWindow,
-							hDlg,
-							fractalWindowData
-						);
-						return (INT_PTR)TRUE;
+						FractalFormDialogData* dialogData = (FractalFormDialogData * )GetWindowLongW(hDlg, GWL_USERDATA);
+						dialogData->fractalUI->getFractalDefinitionForm()->getClippingForm();
 					}
 				}
 				else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
