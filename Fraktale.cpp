@@ -431,14 +431,16 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						ebt.ttiIcon = TTI_ERROR_LARGE;    // tooltip icon
 						SendMessage(minXHandle, EM_SHOWBALLOONTIP, 0, (LPARAM)&ebt);
 
-						ebt.pszText = NULL;
-						ebt.pszTitle = L"xDDDD";
-						ebt.ttiIcon = TTI_NONE;    // tooltip icon
+						EDITBALLOONTIP ebt2;
+						ebt2.cbStruct = sizeof(EDITBALLOONTIP);
+						ebt2.pszText = L"TEKST GÓRNY";
+						ebt2.pszTitle = L"xDDDD";
+						ebt2.ttiIcon = TTI_NONE;    // tooltip icon
 						SendMessage(
-							fractalForm->getTransformationsForm()->getTransformationRowForm(0)->getProbabilityInput()->getControlHandle(),
+							fractalForm->getTransformationsForm()->getTransformationRowForm(0)->getAffineTransformationForm()->getD()->getControlHandle(),
 							EM_SHOWBALLOONTIP,
 							0,
-							(LPARAM)&ebt
+							(LPARAM)&ebt2
 						);
 					}
 				}
