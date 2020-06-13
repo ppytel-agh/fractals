@@ -555,7 +555,12 @@ void updateFractal(
 	);
 	//pobierz fraktal z formularza
 	//Fractal providedFractal = getDragonFractal();
-	Fractal providedFractal = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+	FractalDefinitionForm* fractalForm = dialogData->fractalUI->getFractalDefinitionForm();
+	if (!fractalForm->isValid())
+	{
+		return;
+	}
+	Fractal providedFractal = fractalForm->getValue();
 	windowData->fractalDrawing->drawFractal(
 		providedFractal,
 		dialogData->fractalBuffer->getWindowDrawingBuffer()

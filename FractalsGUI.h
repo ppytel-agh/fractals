@@ -144,6 +144,7 @@ public:
 	~FractalTransformationsForm();
 	AffineTransformationRowsGroup getValue(void);
 	void setValue(AffineTransformationRowsGroup newValue);
+	bool isValid(void);
 };
 
 class FloatInputWithLeftLabel
@@ -213,6 +214,7 @@ public:
 	unsigned short getWidth(void);
 	Fractal getValue(void);
 	void setValue(Fractal newValue);
+	bool isValid(void);
 };
 
 //class RenderingFrameSizeForm

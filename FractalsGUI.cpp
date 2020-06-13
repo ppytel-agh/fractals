@@ -650,6 +650,19 @@ void FractalDefinitionForm::setValue(Fractal newValue)
 	);
 }
 
+bool FractalDefinitionForm::isValid(void)
+{
+	if (!this->transformations->isValid())
+	{
+		return false;
+	}
+	if (!this->clipping->isValid())
+	{
+		return false;
+	}
+	return true;
+}
+
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {
 	this->fractalDefinition = new FractalDefinitionForm(
