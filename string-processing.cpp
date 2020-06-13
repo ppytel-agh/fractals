@@ -19,6 +19,13 @@ LPWSTR floatToString(float value)
 	return ansiToUnicode(outputString.c_str());
 }
 
+LPWSTR floatToStringNonPrecise(float value)
+{
+	std::string valueString = std::to_string(value);
+	const char* cString = valueString.c_str();
+	return ansiToUnicode(cString);
+}
+
 LPWSTR integerToString(int value)
 {
 	std::string valueString = std::to_string(value);

@@ -7,4 +7,5 @@
 
 LPWSTR ansiToUnicode(const char* cString);
 LPWSTR floatToString(float value);
+LPWSTR floatToStringNonPrecise(float value);
 LPWSTR integerToString(int value);
