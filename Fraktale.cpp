@@ -9,6 +9,16 @@
 #include "FractalsGUI.h"
 #include <CommCtrl.h>
 
+#pragma comment( lib, "comctl32.lib")
+
+#pragma comment(linker, \
+    "\"/manifestdependency:type='Win32' "\
+    "name='Microsoft.Windows.Common-Controls' "\
+    "version='6.0.0.0' "\
+    "processorArchitecture='*' "\
+    "publicKeyToken='6595b64144ccf1df' "\
+    "language='*'\"")
+
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
 BOOL                InitInstance(HINSTANCE hInstance, int nCmdShow, WCHAR szWindowClass[], WCHAR szTitle[], HWND& hWnd);
@@ -106,6 +116,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	WCHAR szWindowClass[maxLoadString];
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, maxLoadString);
 	LoadStringW(hInstance, IDC_FRAKTALE, szWindowClass, maxLoadString);
+
+	//inicjalizacja kontrolek
+	INITCOMMONCONTROLSEX iccex;
+	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	iccex.dwICC = ICC_BAR_CLASSES | ICC_WIN95_CLASSES |
+		ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES | ICC_STANDARD_CLASSES;
+	InitCommonControlsEx(&iccex);
+
 	MyRegisterClass(hInstance, szWindowClass);
 
 	// Perform application initialization:
@@ -405,23 +423,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						FractalDefinitionForm* fractalForm = dialogData->fractalUI->getFractalDefinitionForm();
 						HWND minXHandle = fractalForm->getClippingForm()->getMinX()->getFloatInput()->getControlHandle();
 
-						HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
-							WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
-							CW_USEDEFAULT, CW_USEDEFAULT,
-							CW_USEDEFAULT, CW_USEDEFAULT,
-							hDlg, NULL,
-							(HINSTANCE)GetWindowLongPtr(hDlg, GWLP_HINSTANCE), NULL);
-						/*SetWindowPos(hwndTip, HWND_TOPMOST, 0, 0, 0, 0,
-							SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);*/
+						EDITBALLOONTIP ebt;
 
-						TOOLINFO toolInfo = { 0 };
-						toolInfo.cbSize = sizeof(toolInfo);
-						toolInfo.hwnd = hDlg;
-						toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
-						toolInfo.uId = (UINT_PTR)minXHandle;
-						WCHAR tooltipText[] = L"xDDDD";
-						toolInfo.lpszText = tooltipText;
-						SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+						ebt.cbStruct = sizeof(EDITBALLOONTIP);
+						ebt.pszText = L" Tooltip text! ";
+						ebt.pszTitle = L" Tooltip title!!! ";
+						ebt.ttiIcon = TTI_ERROR_LARGE;    // tooltip icon
+						SendMessage(minXHandle, EM_SHOWBALLOONTIP, 0, (LPARAM)&ebt);
 					}
 				}
 				else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
