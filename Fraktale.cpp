@@ -430,6 +430,16 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						ebt.pszTitle = L" Tooltip title!!! ";
 						ebt.ttiIcon = TTI_ERROR_LARGE;    // tooltip icon
 						SendMessage(minXHandle, EM_SHOWBALLOONTIP, 0, (LPARAM)&ebt);
+
+						ebt.pszText = NULL;
+						ebt.pszTitle = L"xDDDD";
+						ebt.ttiIcon = TTI_NONE;    // tooltip icon
+						SendMessage(
+							fractalForm->getTransformationsForm()->getTransformationRowForm(0)->getProbabilityInput()->getControlHandle(),
+							EM_SHOWBALLOONTIP,
+							0,
+							(LPARAM)&ebt
+						);
 					}
 				}
 				else if (dialogData->fractalUI->getImportbutton()->isCommandFromControl(lParam))
