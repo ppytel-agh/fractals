@@ -1,25 +1,53 @@
 #include "FractalsGUI.h"
 
-void InputWrapper::putValueIntoBuffer(
-	const TCHAR* buffer,
-	unsigned char bufferSize
-)
-{
-	Edit_GetLine(
-		this->windowHandle,
-		NULL,
-		buffer,
-		bufferSize
-	);
-}
-
 void InputWrapper::setValueFromString(
 	LPCWSTR newValue
 )
 {
-	Edit_SetText(
+	SetWindowTextW(
 		this->windowHandle,
 		newValue
+	);
+}
+
+void InputWrapper::updateInputBuffer(void)
+{
+	if (this->inputBuffer != NULL)
+	{
+		delete inputBuffer;
+	}
+	this->inputLength = GetWindowTextLengthW(this->windowHandle);
+	unsigned char bufferLength = this->inputLength + 1;
+	this->inputBuffer = new WCHAR[bufferLength];
+	GetWindowTextW(
+		this->windowHandle,
+		this->inputBuffer,
+		bufferLength
+	);
+}
+
+LPWSTR InputWrapper::getInputBuffer(void)
+{
+	return this->inputBuffer;
+}
+
+unsigned char InputWrapper::getInputLength(void)
+{
+	return this->inputLength;
+}
+
+void InputWrapper::displayError(LPCWSTR message)
+{
+	EDITBALLOONTIP ebt;
+	ebt.cbStruct = sizeof(EDITBALLOONTIP);
+	ebt.pszText = L"Błąd!";
+	ebt.pszTitle = message;
+	ebt.ttiIcon = TTI_ERROR_LARGE;    // tooltip icon
+	SendMessageW(
+		this->windowHandle,
+		EM_SHOWBALLOONTIP,
+		0,
+		(LPARAM)&ebt
 	);
 }
 
@@ -51,6 +79,8 @@ InputWrapper::InputWrapper(
 		(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
 		NULL
 	);
+	this->inputBuffer = NULL;
+	this->inputLength = 0;
 }
 
 InputWrapper::~InputWrapper()
@@ -63,29 +93,40 @@ void InputWrapper::reset(void)
 	setValueFromString(L"");
 }
 
+bool InputWrapper::isEmpty(void)
+{
+	this->updateInputBuffer();
+	return this->getInputLength() == 0;
+}
+
 float FloatInput::GetValue(void)
 {
-	const unsigned char bufferSize = 16;
-	TCHAR buffer[bufferSize];
-	putValueIntoBuffer(
-		buffer,
-		bufferSize
+	this->updateInputBuffer();		
+	return _wtof(
+		this->getInputBuffer()
 	);
-	return _wtof(buffer);
 }
 
 bool FloatInput::isValid(void)
 {
-	return GetValue();
+	float providedValue = GetValue();
+	LPWSTR inputBuffer = getInputBuffer();
+	LPWSTR reconvertedFloat = floatToString(providedValue);
+	int comparisonResult = wcscmp(inputBuffer, reconvertedFloat);
+	if (comparisonResult == 0)
+	{
+		return true;
+	}
+	else
+	{
+		displayError(L"podana wartość nie jest liczbą zmiennoprzecinkową, wymagany format X.YY");
+		return false;
+	}
 }
 
 void FloatInput::setValue(float newValue)
 {
-	std::stringstream stream;
-	stream << std::fixed << std::setprecision(2) << newValue;
-	std::string outputString = stream.str();
-	const char* cString = outputString.c_str();
-	LPCWSTR floatString = (LPCWSTR)ansiToUnicode(outputString.c_str());
+	LPCWSTR floatString = (LPCWSTR)floatToString(newValue);
 	setValueFromString(floatString);
 }
 
@@ -194,23 +235,64 @@ void AffineTransformationForm::reset(void)
 	this->f->reset();
 }
 
+bool AffineTransformationForm::isValid(void)
+{
+	FloatInput* params[] = {
+		a,
+		b,
+		c,
+		d,
+		e,
+		f
+	};
+	unsigned char numberOfInputs = sizeof(params) / sizeof(FloatInput*);
+	for (unsigned char i = 0; i < numberOfInputs; i++)
+	{
+		if (!params[i]->isValid())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 unsigned int NaturalInput::getValue(void)
 {
-	const unsigned char bufferSize = 16;
-	TCHAR buffer[bufferSize];
-	putValueIntoBuffer(
-		buffer,
-		bufferSize
+	this->updateInputBuffer();
+	return _wtoi(
+		this->getInputBuffer()
 	);
-	return _wtoi(buffer);
 }
 
 void NaturalInput::setValue(int newValue)
 {
-	std::string valueString = std::to_string(newValue);
-	const char* cString = valueString.c_str();
-	LPCWSTR integerString = (LPCWSTR)ansiToUnicode(cString);
+	LPCWSTR integerString = (LPCWSTR)integerToString(newValue);
 	setValueFromString(integerString);
+}
+
+bool NaturalInput::isValid(void)
+{
+	int providedValue = getValue();
+	LPWSTR inputBuffer = getInputBuffer();
+	LPWSTR reconvertedInt = integerToString(providedValue);
+	int comparisonResult = wcscmp(inputBuffer, reconvertedInt);
+	if (comparisonResult == 0)
+	{
+		if (providedValue > 0)
+		{
+			return true;
+		}
+		else
+		{
+			displayError(L"wartość musi być większa od zera");
+			return false;
+		}
+	}
+	else
+	{
+		displayError(L"podana wartość nie jest liczbą całkowitą");
+		return false;
+	}
 }
 
 FractalTransformationsRowForm::FractalTransformationsRowForm(
@@ -270,6 +352,35 @@ void FractalTransformationsRowForm::reset(void)
 {
 	this->probability->reset();
 	this->affineTransformationForm->reset();
+}
+
+bool FractalTransformationsRowForm::isValid(void)
+{
+	if (this->isEmpty())
+	{
+		return true;
+	}
+	else
+	{
+		if (this->probability->isValid())
+		{
+			return this->affineTransformationForm->isValid();
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+bool FractalTransformationsRowForm::isEmpty(void)
+{
+	return this->probability->isEmpty();
+}
+
+void FractalTransformationsRowForm::displayError(LPCWSTR message)
+{
+	this->probability->displayError(message);
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -426,6 +537,33 @@ void FractalTransformationsForm::setValue(AffineTransformationRowsGroup newValue
 	}
 }
 
+bool FractalTransformationsForm::isValid(void)
+{
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		if (!this->transformationRowForms[i]->isValid())
+		{
+			return false;
+		}
+	}
+	unsigned char probabilitiesSum = 0;
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		if (!this->transformationRowForms[i]->isEmpty())
+		{
+			probabilitiesSum += this->transformationRowForms[i]->getValue().getProbability();
+		}
+	}
+	if (probabilitiesSum == 100)
+	{
+		return true;
+	}
+	else
+	{
+		this->transformationRowForms[0]->displayError(L"Suma prawdopodobieństw musi być równa 100");
+	}
+}
+
 LabelWrapper::LabelWrapper(
 	HWND parent,
 	LPCTSTR text,
@@ -510,7 +648,21 @@ unsigned short FractalClippingForm::getWidth(void)
 
 bool FractalClippingForm::isValid(void)
 {
-	return minX->getFloatInput()->isValid();
+	FloatInputWithLeftLabel* params[] = {
+		minX,
+		maxX,
+		minY,
+		maxY
+	};
+	unsigned char numberOfParams = sizeof(params) / sizeof(FloatInputWithLeftLabel*);
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		if (!params[i]->getFloatInput()->isValid())
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 FractalClipping FractalClippingForm::getValue(void)
@@ -650,6 +802,19 @@ void FractalDefinitionForm::setValue(Fractal newValue)
 	);
 }
 
+bool FractalDefinitionForm::isValid(void)
+{
+	if (!this->clipping->isValid())
+	{
+		return false;
+	}
+	if (!this->transformations->isValid())
+	{
+		return false;
+	}
+	return true;
+}
+
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {
 	this->fractalDefinition = new FractalDefinitionForm(
@@ -736,13 +901,4 @@ ButtonWrapper::~ButtonWrapper()
 bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
 {
 	return (HWND)wmCommandlParam == this->buttonWindow;
-}
-
-LPWSTR ansiToUnicode(const char* cString)
-{
-	size_t size = strlen(cString) + 1;
-	LPWSTR unicodeBuffer = new WCHAR[size];
-	size_t outSize;
-	mbstowcs_s(&outSize, unicodeBuffer, size, cString, size - 1);
-	return unicodeBuffer;
 }

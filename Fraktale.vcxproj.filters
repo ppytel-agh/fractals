@@ -33,6 +33,9 @@
     <ClInclude Include="FractalsGUI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="string-processing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fraktale.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FractalsGUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string-processing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
