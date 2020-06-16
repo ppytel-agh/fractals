@@ -999,7 +999,7 @@ bool FloatInputWithStepping::isValid(void)
 
 void FloatInputWithStepping::setValue(float newValue)
 {
-	short positionValue = (short) newValue * 100.0f;
+	short positionValue = (short) (newValue * 100.0f);
 	this->updateUpDownPos(positionValue);
 	FloatInput::setValue(newValue);
 }
@@ -1012,13 +1012,15 @@ float FloatInputWithStepping::GetValue(void)
 		0,
 		0
 	);
-	if (HIWORD(result) == 0)
+	WORD hiWord = HIWORD(result);
+	if (hiWord == 1)
 	{
 		short currentPosition = LOWORD(result);
 		return (float)currentPosition / 100.0f;
 	}
 	else
 	{
+		DWORD error = GetLastError();
 		return 0.0f;
 	}
 }
