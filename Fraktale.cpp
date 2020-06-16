@@ -289,9 +289,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				RECT newSize;
 				GetClientRect(hWnd, &newSize);
-				const WCHAR outputFormat[] = L"tryb - %d, szer - %d, wys - %d\n";
+				const WCHAR outputFormat[] = L"tryb - %d, szer - %d, wys - %d\n, top - %d, right - %d, bottom - %d, left - %d\n";
 				LPWSTR output = new WCHAR[sizeof(outputFormat) + 8];
-				wsprintf(output, outputFormat, wParam, LOWORD(lParam), HIWORD(lParam));
+				wsprintf(output, outputFormat, wParam, LOWORD(lParam), HIWORD(lParam),newSize.top, newSize.right, newSize.bottom, newSize.left);
 				OutputDebugStringW(output);				
 				/*FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				delete fractalWindowData->fractalDrawing;
