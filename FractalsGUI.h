@@ -23,6 +23,7 @@ private:
 	HWND windowHandle;
 	LPWSTR inputBuffer;
 	unsigned char inputLength;
+	bool valueIsChangedViaSetter;
 protected:
 	void setValueFromString(
 		LPCWSTR newValue
@@ -31,6 +32,7 @@ protected:
 	LPWSTR getInputBuffer(void);
 	unsigned char getInputLength(void);
 	HWND getInputWindowHandle(void);
+	bool isValueChangedViaSetter(void);
 public:
 	InputWrapper(
 		HWND parent,
@@ -69,7 +71,8 @@ private:
 	HWND upDownWindowHandle;
 	char min;
 	char max;
-	void updateUpDownPos(void);
+	void updateUpDownPos(short newValue);
+	void updateFloatInput(void);
 public:
 	FloatInputWithStepping(
 		HWND parent,
@@ -104,6 +107,7 @@ public:
 	void processInputChange(const HWND changedInputWindowHandle);
 	bool isValid(void);
 	void setValue(float newValue);
+	float GetValue(void);
 };
 
 class NaturalInput : public InputWrapper

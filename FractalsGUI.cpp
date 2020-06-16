@@ -4,10 +4,12 @@ void InputWrapper::setValueFromString(
 	LPCWSTR newValue
 )
 {
+	this->valueIsChangedViaSetter = true;
 	SetWindowTextW(
 		this->windowHandle,
 		newValue
 	);
+	this->valueIsChangedViaSetter = false;
 }
 
 void InputWrapper::updateInputBuffer(void)
@@ -39,6 +41,11 @@ unsigned char InputWrapper::getInputLength(void)
 HWND InputWrapper::getInputWindowHandle(void)
 {
 	return this->windowHandle;
+}
+
+bool InputWrapper::isValueChangedViaSetter(void)
+{
+	return valueIsChangedViaSetter;
 }
 
 void InputWrapper::displayError(LPCWSTR message)
@@ -920,16 +927,30 @@ bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
 	return (HWND)wmCommandlParam == this->buttonWindow;
 }
 
-void FloatInputWithStepping::updateUpDownPos(void)
+void FloatInputWithStepping::updateUpDownPos(short newValue)
 {
-	float newValue = this->GetValue();
-	short newPosition = (short)(newValue * 100.0f);
 	SendMessageW(
 		this->upDownWindowHandle,
 		UDM_SETPOS,
 		0,
-		newPosition
+		newValue
 	);
+}
+
+void FloatInputWithStepping::updateFloatInput(void)
+{
+	LRESULT result = SendMessageW(
+		this->upDownWindowHandle,
+		UDM_GETPOS,
+		0,
+		0
+	);
+	if (HIWORD(result) == 0)
+	{
+		short currentPosition = LOWORD(result);
+		float newInputValue = (float)currentPosition / 100.0f;
+		FloatInput::setValue(newInputValue);
+	}
 }
 
 void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
@@ -937,7 +958,10 @@ void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
 	if (upDownMessage->hdr.hwndFrom == this->upDownWindowHandle)
 	{
 		float newInputValue = (float)(upDownMessage->iPos + upDownMessage->iDelta) / 100.0f;
-		this->setValue(newInputValue);
+		if(newInputValue <= this->max && newInputValue >= this->min)
+		{
+			FloatInput::setValue(newInputValue);
+		}
 	}
 }
 
@@ -945,8 +969,12 @@ void FloatInputWithStepping::processInputChange(const HWND changedInputWindowHan
 {
 	if (changedInputWindowHandle == this->getInputWindowHandle())
 	{
-		this->isValid();
-		this->updateUpDownPos();
+		if (!this->isValueChangedViaSetter())
+		{
+			short positionValue = (short)(FloatInput::GetValue() * 100.0f);
+			this->updateUpDownPos(positionValue);
+			this->isValid();		
+		}
 	}
 }
 
@@ -971,6 +999,26 @@ bool FloatInputWithStepping::isValid(void)
 
 void FloatInputWithStepping::setValue(float newValue)
 {
+	short positionValue = (short) newValue * 100.0f;
+	this->updateUpDownPos(positionValue);
 	FloatInput::setValue(newValue);
-	this->updateUpDownPos();
+}
+
+float FloatInputWithStepping::GetValue(void)
+{
+	LRESULT result = SendMessageW(
+		this->upDownWindowHandle,
+		UDM_GETPOS,
+		0,
+		0
+	);
+	if (HIWORD(result) == 0)
+	{
+		short currentPosition = LOWORD(result);
+		return (float)currentPosition / 100.0f;
+	}
+	else
+	{
+		return 0.0f;
+	}
 }
