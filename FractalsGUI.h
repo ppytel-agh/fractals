@@ -89,7 +89,7 @@ public:
 			(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
 			NULL
 		);
-		//SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(-10.0f, 10.0f));
+		SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(10.0f, -10.0f));
 	};
 };
 
