@@ -227,10 +227,10 @@ class FloatInputWithLeftLabel
 {
 private:
 	LabelWrapper* label;
-	FloatInput* input;
+	FloatInputWithStepping* input;
 	unsigned char width;
 public:
-	static const unsigned char inputWidth = 50;
+	static const unsigned char inputWidth = 60;
 	static const unsigned char height = 25;
 	FloatInputWithLeftLabel(
 		HWND parent,
@@ -242,7 +242,7 @@ public:
 	);
 	~FloatInputWithLeftLabel();
 	unsigned char getWidth(void);
-	FloatInput* getFloatInput(void);
+	FloatInputWithStepping* getFloatInput(void);
 };
 
 class FractalClippingForm
@@ -266,6 +266,8 @@ public:
 	FractalClipping getValue(void);
 	void setValue(FractalClipping newValue);
 	bool isValid(void);
+	void processUpDownNotification(const NMUPDOWN* upDownMessage);
+	void processInputChange(const HWND changedInputWindowHandle);
 };
 
 class FractalDefinitionForm

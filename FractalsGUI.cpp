@@ -672,6 +672,22 @@ bool FractalClippingForm::isValid(void)
 	return true;
 }
 
+void FractalClippingForm::processUpDownNotification(const NMUPDOWN* upDownMessage)
+{
+	this->minX->getFloatInput()->processChange(upDownMessage);
+	this->maxX->getFloatInput()->processChange(upDownMessage);
+	this->minY->getFloatInput()->processChange(upDownMessage);
+	this->maxY->getFloatInput()->processChange(upDownMessage);
+}
+
+void FractalClippingForm::processInputChange(const HWND changedInputWindowHandle)
+{
+	this->minX->getFloatInput()->processInputChange(changedInputWindowHandle);
+	this->maxX->getFloatInput()->processInputChange(changedInputWindowHandle);
+	this->minY->getFloatInput()->processInputChange(changedInputWindowHandle);
+	this->maxY->getFloatInput()->processInputChange(changedInputWindowHandle);
+}
+
 FractalClipping FractalClippingForm::getValue(void)
 {
 	return FractalClipping(
@@ -716,12 +732,14 @@ FloatInputWithLeftLabel::FloatInputWithLeftLabel(
 		height,
 		LabelHorizontalAlignment::right
 	);
-	input = new FloatInput(
+	input = new FloatInputWithStepping(
 		parent,
 		offsetX + labelWidth,
 		offsetY,
 		inputWidth,
 		height,
+		-5,
+		5,
 		isFirstElementOfGroup
 	);
 	width = labelWidth + inputWidth;
@@ -738,7 +756,7 @@ unsigned char FloatInputWithLeftLabel::getWidth(void)
 	return width;
 }
 
-FloatInput* FloatInputWithLeftLabel::getFloatInput(void)
+FloatInputWithStepping* FloatInputWithLeftLabel::getFloatInput(void)
 {
 	return input;
 }
@@ -888,6 +906,7 @@ void FractalDefinitionForm::processNotification(const NMHDR* message)
 	{
 		NMUPDOWN* upDownMessage = (NMUPDOWN*)message;
 		this->transformations->processUpDownNotification(upDownMessage);
+		this->clipping->processUpDownNotification(upDownMessage);
 	}
 }
 
