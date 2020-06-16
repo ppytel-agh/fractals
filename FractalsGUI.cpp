@@ -212,6 +212,14 @@ bool AffineTransformationForm::isValid(void)
 	return true;
 }
 
+void AffineTransformationForm::processUpDownNotification(const NMUPDOWN* upDownMessage)
+{
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		params[i]->processChange(upDownMessage);
+	}
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	this->updateInputBuffer();
@@ -337,6 +345,11 @@ bool FractalTransformationsRowForm::isEmpty(void)
 void FractalTransformationsRowForm::displayError(LPCWSTR message)
 {
 	this->probability->displayError(message);
+}
+
+void FractalTransformationsRowForm::processUpDownNotification(const NMUPDOWN* upDownMessage)
+{
+	this->affineTransformationForm->processUpDownNotification(upDownMessage);
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -517,6 +530,14 @@ bool FractalTransformationsForm::isValid(void)
 	else
 	{
 		this->transformationRowForms[0]->displayError(L"Suma prawdopodobieństw musi być równa 100");
+	}
+}
+
+void FractalTransformationsForm::processUpDownNotification(const NMUPDOWN* upDownMessage)
+{
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		this->transformationRowForms[i]->processUpDownNotification(upDownMessage);
 	}
 }
 
@@ -831,6 +852,15 @@ ButtonWrapper* FractalDrawingUI::getImportbutton(void)
 	return importValuesFromPDFButton;
 }
 
+void FractalDefinitionForm::processNotification(const NMHDR* message)
+{
+	if (message->code == UDN_DELTAPOS)
+	{
+		NMUPDOWN* upDownMessage = (NMUPDOWN*)message;
+		this->transformations->processUpDownNotification(upDownMessage);
+	}
+}
+
 ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
 {
 	this->buttonWindow = CreateWindowExW(
@@ -857,4 +887,12 @@ ButtonWrapper::~ButtonWrapper()
 bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
 {
 	return (HWND)wmCommandlParam == this->buttonWindow;
+}
+
+void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
+{
+	if (upDownMessage->hdr.hwndFrom == this->upDownWindowHandle)
+	{
+		char x = 'd';
+	}
 }

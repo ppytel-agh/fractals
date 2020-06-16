@@ -423,12 +423,21 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 			}
 			break;
 		case WM_DESTROY:
-			//zniszcz obiekt formularza
-			FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
-			delete dialogData->fractalUI;
-			if (dialogData->fractalBuffer != NULL)
 			{
-				delete dialogData->fractalBuffer;
+				//zniszcz obiekt formularza
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
+				delete dialogData->fractalUI;
+				if (dialogData->fractalBuffer != NULL)
+				{
+					delete dialogData->fractalBuffer;
+				}
+			}
+			break;
+		case WM_NOTIFY:
+			{
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
+				NMHDR* message = (NMHDR*)lParam;
+				dialogData->fractalUI->getFractalDefinitionForm()->processNotification(message);				
 			}
 			break;
 	}
@@ -467,7 +476,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									minBufferSize
 								);
 								HWND fractalFormDialogHandle = GetWindow(hDlg, GW_OWNER);
-								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);																
+								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);
 								parseImportAndPutIntoForm(
 									textBuffer,
 									dialogData->fractalUI->getFractalDefinitionForm()
@@ -688,7 +697,7 @@ void parseImportAndPutIntoForm(
 			LPWSTR substring = lastLine;
 			LPWSTR nextSubstring = NULL;
 			float clippingParts[noParts] = {};
-			for (unsigned char i = 0; i < (noParts-1); i++)
+			for (unsigned char i = 0; i < (noParts - 1); i++)
 			{
 				substring = wcsstr(substring, lastLineParts[i]);
 				if (substring != NULL)
@@ -717,7 +726,7 @@ void parseImportAndPutIntoForm(
 				{
 					return;
 				}
-				
+
 			}
 			//unsigned char lastLineLength = wcslen(lastLine);
 			unsigned char lastPartIndex = noParts - 1;
@@ -741,7 +750,7 @@ void parseImportAndPutIntoForm(
 			);
 			fractalForm->setValue(importedFractal);
 		}
-	}	
+	}
 }
 
 FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)

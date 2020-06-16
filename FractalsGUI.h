@@ -81,7 +81,7 @@ public:
 			UPDOWN_CLASS,
 			NULL,
 			WS_CHILDWINDOW | WS_VISIBLE
-			| UDS_AUTOBUDDY | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK,
+			| UDS_AUTOBUDDY | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK,
 			0, 0,
 			0, 0,         // Set to zero to automatically size to fit the buddy window.
 			parent,
@@ -91,6 +91,7 @@ public:
 		);
 		SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(10.0f, -10.0f));
 	};
+	void processChange(const NMUPDOWN* upDownMessage);
 };
 
 class NaturalInput : public InputWrapper
@@ -119,6 +120,7 @@ public:
 	void setValue(AffineTransformation newValue);
 	void reset(void);
 	bool isValid(void);
+	void processUpDownNotification(const NMUPDOWN* upDownMessage);
 };
 
 class FractalTransformationsRowForm
@@ -143,6 +145,7 @@ public:
 	bool isValid(void);
 	bool isEmpty(void);
 	void displayError(LPCWSTR message);
+	void processUpDownNotification(const NMUPDOWN* upDownMessage);
 };
 
 enum LabelHorizontalAlignment
@@ -198,6 +201,7 @@ public:
 	AffineTransformationRowsGroup getValue(void);
 	void setValue(AffineTransformationRowsGroup newValue);
 	bool isValid(void);
+	void processUpDownNotification(const NMUPDOWN* upDownMessage);
 };
 
 class FloatInputWithLeftLabel
@@ -268,6 +272,7 @@ public:
 	Fractal getValue(void);
 	void setValue(Fractal newValue);
 	bool isValid(void);
+	void processNotification(const NMHDR* message);
 };
 
 //class RenderingFrameSizeForm
@@ -314,7 +319,7 @@ public:
 	unsigned short getWidth(void);
 	ButtonWrapper* getRenderButton(void);
 	FractalDefinitionForm* getFractalDefinitionForm(void);
-	ButtonWrapper* getImportbutton(void);
+	ButtonWrapper* getImportbutton(void);	
 };
 
 LPWSTR ansiToUnicode(const char* cString);
