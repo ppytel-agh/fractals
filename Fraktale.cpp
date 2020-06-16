@@ -107,6 +107,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	LoadStringW(hInstance, IDC_FRAKTALE, szWindowClass, maxLoadString);
 	MyRegisterClass(hInstance, szWindowClass);
 
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icex.dwICC = ICC_UPDOWN_CLASS;
+	InitCommonControlsEx(&icex);
+
 	// Perform application initialization:
 	HWND mainWindowHandle;
 	if (!InitInstance(hInstance, nCmdShow, szWindowClass, szTitle, mainWindowHandle))

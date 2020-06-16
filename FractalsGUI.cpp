@@ -36,6 +36,11 @@ unsigned char InputWrapper::getInputLength(void)
 	return this->inputLength;
 }
 
+HWND InputWrapper::getInputWindowHandle(void)
+{
+	return this->windowHandle;
+}
+
 void InputWrapper::displayError(LPCWSTR message)
 {
 	EDITBALLOONTIP ebt;
@@ -146,7 +151,7 @@ AffineTransformationForm::AffineTransformationForm(
 	unsigned short elementOffsetX = offsetX + margin;
 	for (unsigned char i = 0; i < numberOfParams; i++)
 	{
-		params[i] = new FloatInput(
+		params[i] = new FloatInputWithStepping(
 			parent,
 			elementOffsetX,
 			elementOffsetY,

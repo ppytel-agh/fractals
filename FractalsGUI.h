@@ -30,6 +30,7 @@ protected:
 	void updateInputBuffer(void);
 	LPWSTR getInputBuffer(void);
 	unsigned char getInputLength(void);
+	HWND getInputWindowHandle(void);
 public:
 	InputWrapper(
 		HWND parent,
@@ -47,11 +48,49 @@ public:
 
 class FloatInput : public InputWrapper
 {
-	using InputWrapper::InputWrapper;
 public:
+	FloatInput(
+		HWND parent,
+		unsigned short offsetX,
+		unsigned short offsetY,
+		unsigned char width,
+		unsigned char height,
+		bool isFirstElementOfNewGroup = false
+	) : InputWrapper(parent, offsetX, offsetY, width, height, isFirstElementOfNewGroup) {};
 	float GetValue(void);
 	void setValue(float newValue);
 	bool isValid(void);
+};
+
+
+class FloatInputWithStepping : public FloatInput
+{
+private:
+	HWND upDownWindowHandle;
+public:
+	FloatInputWithStepping(
+		HWND parent,
+		unsigned short offsetX,
+		unsigned short offsetY,
+		unsigned char width,
+		unsigned char height,
+		bool isFirstElementOfNewGroup = false
+	) : FloatInput(parent, offsetX, offsetY, width, height, isFirstElementOfNewGroup) {
+		this->upDownWindowHandle = CreateWindowExW(
+			WS_EX_LEFT | WS_EX_LTRREADING,
+			UPDOWN_CLASS,
+			NULL,
+			WS_CHILDWINDOW | WS_VISIBLE
+			| UDS_AUTOBUDDY | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK,
+			0, 0,
+			0, 0,         // Set to zero to automatically size to fit the buddy window.
+			parent,
+			NULL,
+			(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
+			NULL
+		);
+		//SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(-10.0f, 10.0f));
+	};
 };
 
 class NaturalInput : public InputWrapper
@@ -67,7 +106,7 @@ class AffineTransformationForm
 {
 private:
 	static const unsigned char numberOfParams = 6;
-	FloatInput* params[numberOfParams] = {};
+	FloatInputWithStepping* params[numberOfParams] = {};
 public:
 	AffineTransformationForm(
 		HWND parent,
