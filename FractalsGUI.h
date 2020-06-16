@@ -66,12 +66,8 @@ public:
 class AffineTransformationForm
 {
 private:
-	FloatInput* a;
-	FloatInput* b;
-	FloatInput* c;
-	FloatInput* d;
-	FloatInput* e;
-	FloatInput* f;
+	static const unsigned char numberOfParams = 6;
+	FloatInput* params[numberOfParams] = {};
 public:
 	AffineTransformationForm(
 		HWND parent,

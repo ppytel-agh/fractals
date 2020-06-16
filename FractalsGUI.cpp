@@ -144,109 +144,60 @@ AffineTransformationForm::AffineTransformationForm(
 	unsigned char elementWidth = factorCellWidth - doubleMargin;
 	unsigned char elementOffsetY = offsetY + margin;
 	unsigned short elementOffsetX = offsetX + margin;
-	a = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
-	elementOffsetX += elementWidth + doubleMargin;
-	b = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
-	elementOffsetX += elementWidth + doubleMargin;
-	c = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
-	elementOffsetX += elementWidth + doubleMargin;
-	d = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
-	elementOffsetX += elementWidth + doubleMargin;
-	e = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
-	elementOffsetX += elementWidth + doubleMargin;
-	f = new FloatInput(
-		parent,
-		elementOffsetX,
-		elementOffsetY,
-		elementWidth,
-		elementHeight
-	);
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		params[i] = new FloatInput(
+			parent,
+			elementOffsetX,
+			elementOffsetY,
+			elementWidth,
+			elementHeight
+		);
+		elementOffsetX += elementWidth + doubleMargin;
+	}
 }
 
 AffineTransformationForm::~AffineTransformationForm()
 {
-	delete a;
-	delete b;
-	delete c;
-	delete d;
-	delete e;
-	delete f;
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		delete params[i];
+	}
 }
 
 AffineTransformation AffineTransformationForm::getValue(void)
 {
 	return AffineTransformation(
-		a->GetValue(),
-		b->GetValue(),
-		c->GetValue(),
-		d->GetValue(),
-		e->GetValue(),
-		f->GetValue()
+		params[0]->GetValue(),
+		params[1]->GetValue(),
+		params[2]->GetValue(),
+		params[3]->GetValue(),
+		params[4]->GetValue(),
+		params[5]->GetValue()
 	);
 }
 
 void AffineTransformationForm::setValue(AffineTransformation newValue)
 {
-	a->setValue(newValue.getA());
-	b->setValue(newValue.getB());
-	c->setValue(newValue.getC());
-	d->setValue(newValue.getD());
-	e->setValue(newValue.getE());
-	f->setValue(newValue.getF());
+	params[0]->setValue(newValue.getA());
+	params[1]->setValue(newValue.getB());
+	params[2]->setValue(newValue.getC());
+	params[3]->setValue(newValue.getD());
+	params[4]->setValue(newValue.getE());
+	params[5]->setValue(newValue.getF());
 }
 
 void AffineTransformationForm::reset(void)
 {
-	this->a->reset();
-	this->b->reset();
-	this->c->reset();
-	this->d->reset();
-	this->e->reset();
-	this->f->reset();
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		params[i]->reset();
+	}
 }
 
 bool AffineTransformationForm::isValid(void)
 {
-	FloatInput* params[] = {
-		a,
-		b,
-		c,
-		d,
-		e,
-		f
-	};
-	unsigned char numberOfInputs = sizeof(params) / sizeof(FloatInput*);
-	for (unsigned char i = 0; i < numberOfInputs; i++)
+	for (unsigned char i = 0; i < numberOfParams; i++)
 	{
 		if (!params[i]->isValid())
 		{
