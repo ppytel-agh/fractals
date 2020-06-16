@@ -67,6 +67,12 @@ struct FractalWindowData
 {
 	HWND dialogWindowHandle;
 	FractalDrawing* fractalDrawing;
+	bool isResizedManually;
+	bool isMinimized;
+	unsigned short previousWidth;
+	unsigned short previousHeight;
+	unsigned short newWidth;
+	unsigned short newHeight;
 };
 
 struct FractalFormDialogData
@@ -284,34 +290,88 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				return 0;
 			}
 			break;
+		case WM_ENTERSIZEMOVE:
+			{
+				OutputDebugStringW(L"Początek zmiany rozmiaru\n");
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				windowData->isResizedManually = true;
+				RECT currentSize;
+				GetClientRect(hWnd, &currentSize);
+				windowData->previousWidth = currentSize.right;
+				windowData->previousHeight = currentSize.bottom;
+			}
+			break;
+		case WM_EXITSIZEMOVE:
+			{
+				OutputDebugStringW(L"Koniec zmiany rozmiaru\n");
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				windowData->isResizedManually = false;
+				if (
+					(windowData->previousWidth != windowData->newWidth)
+					||
+					(windowData->previousHeight != windowData->newHeight)
+				)
+				{
+					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
+					windowData->fractalDrawing = new FractalDrawing(
+						windowData->newWidth,
+						windowData->newHeight
+					);
+					updateFractal(
+						hWnd,
+						windowData->dialogWindowHandle,
+						windowData
+					);
+				}
+			}
+			break;
 		case WM_SIZE:
 			{
-
-				RECT newSize;
-				GetClientRect(hWnd, &newSize);
-				const WCHAR outputFormat[] = L"tryb - %d, szer - %d, wys - %d\n, top - %d, right - %d, bottom - %d, left - %d\n";
-				LPWSTR output = new WCHAR[sizeof(outputFormat) + 8];
-				wsprintf(output, outputFormat, wParam, LOWORD(lParam), HIWORD(lParam),newSize.top, newSize.right, newSize.bottom, newSize.left);
-				OutputDebugStringW(output);				
-				/*FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				delete fractalWindowData->fractalDrawing;
-				fractalWindowData->fractalDrawing = new FractalDrawing(
-					newSize.right,
-					newSize.bottom
-				);
-
-				updateFractal(
-					hWnd,
-					fractalWindowData->dialogWindowHandle,
-					fractalWindowData
-				);*/
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				short newWidth = LOWORD(lParam);
+				short newHeight = HIWORD(lParam);
+				bool resizeNow = false;
+				if (wParam == SIZE_MAXIMIZED)
+				{
+					OutputDebugStringW(L"Zmaksymalizowano okno\n");					
+					resizeNow = true;
+				}
+				else if (wParam == SIZE_RESTORED)
+				{
+					if (windowData->isResizedManually)
+					{
+						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
+						windowData->newWidth = newWidth;
+						windowData->newHeight = newHeight;
+					}
+					else if (windowData->isMinimized)
+					{
+						OutputDebugStringW(L"Odminimalizowano okno\n");
+						windowData->isMinimized = false;
+					}
+					else
+					{
+						OutputDebugStringW(L"Przywrócono rozmiar okna\n");
+						resizeNow = true;
+					}
+				}
+				else if (wParam == SIZE_MINIMIZED)
+				{
+					windowData->isMinimized = true;
+				}
+				if (resizeNow)
+				{
+					windowData->fractalDrawing = new FractalDrawing(
+						newWidth,
+						newHeight
+					);
+					updateFractal(
+						hWnd,
+						windowData->dialogWindowHandle,
+						windowData
+					);
+				}
 			}
-			break;
-		case WM_SIZING:
-			{
-				
-			}
-			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -454,7 +514,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 			{
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
 				NMHDR* message = (NMHDR*)lParam;
-				dialogData->fractalUI->getFractalDefinitionForm()->processNotification(message);				
+				dialogData->fractalUI->getFractalDefinitionForm()->processNotification(message);
 			}
 			break;
 	}
