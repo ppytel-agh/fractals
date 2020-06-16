@@ -67,6 +67,8 @@ class FloatInputWithStepping : public FloatInput
 {
 private:
 	HWND upDownWindowHandle;
+	char min;
+	char max;
 public:
 	FloatInputWithStepping(
 		HWND parent,
@@ -74,6 +76,8 @@ public:
 		unsigned short offsetY,
 		unsigned char width,
 		unsigned char height,
+		char min,
+		char max,
 		bool isFirstElementOfNewGroup = false
 	) : FloatInput(parent, offsetX, offsetY, width, height, isFirstElementOfNewGroup) {
 		this->upDownWindowHandle = CreateWindowExW(
@@ -89,7 +93,11 @@ public:
 			(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
 			NULL
 		);
-		SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(10.0f, -10.0f));
+		this->min = min;
+		this->max = max;
+		short maxPos = this->max * 100;
+		short minPos = this->min * 100;
+		SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(maxPos, minPos));
 	};
 	void processChange(const NMUPDOWN* upDownMessage);
 };
@@ -178,7 +186,7 @@ private:
 	static const unsigned char probabilityLabelWidth = 150;
 	static const unsigned char factorsUpperLabelHeight = 25;
 	static const unsigned char factorsHeight = 20;
-	static const unsigned char factorWidth = 50;
+	static const unsigned char factorWidth = 60;
 	static const unsigned char maxNumberOfTransformations = 4;
 	LabelWrapper* probabilityLabel;
 	LabelWrapper* factorsLabel;

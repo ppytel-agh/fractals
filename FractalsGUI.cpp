@@ -156,7 +156,9 @@ AffineTransformationForm::AffineTransformationForm(
 			elementOffsetX,
 			elementOffsetY,
 			elementWidth,
-			elementHeight
+			elementHeight,
+			-10,
+			10
 		);
 		elementOffsetX += elementWidth + doubleMargin;
 	}
@@ -893,6 +895,7 @@ void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
 {
 	if (upDownMessage->hdr.hwndFrom == this->upDownWindowHandle)
 	{
-		char x = 'd';
+		float newInputValue = (float)(upDownMessage->iPos + upDownMessage->iDelta) / 100.0f;
+		this->setValue(newInputValue);
 	}
 }
