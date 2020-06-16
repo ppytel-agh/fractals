@@ -289,7 +289,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				RECT newSize;
 				GetClientRect(hWnd, &newSize);
-				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				const WCHAR outputFormat[] = L"tryb - %d, szer - %d, wys - %d\n";
+				LPWSTR output = new WCHAR[sizeof(outputFormat) + 8];
+				wsprintf(output, outputFormat, wParam, LOWORD(lParam), HIWORD(lParam));
+				OutputDebugStringW(output);				
+				/*FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				delete fractalWindowData->fractalDrawing;
 				fractalWindowData->fractalDrawing = new FractalDrawing(
 					newSize.right,
@@ -300,7 +304,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hWnd,
 					fractalWindowData->dialogWindowHandle,
 					fractalWindowData
-				);
+				);*/
+			}
+			break;
+		case WM_SIZING:
+			{
+				
 			}
 			break;
 		default:
