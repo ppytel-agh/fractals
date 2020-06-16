@@ -420,6 +420,14 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					);
 					ShowWindow(dialogData->importDialogWindowHandle, SW_SHOW);
 				}
+				else
+				{
+					WORD notificationCode = HIWORD(wParam);
+					dialogData->fractalUI->getFractalDefinitionForm()->processControlCommand(
+						notificationCode,
+						(HWND)lParam
+					);
+				}
 			}
 			break;
 		case WM_DESTROY:

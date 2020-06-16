@@ -222,6 +222,14 @@ void AffineTransformationForm::processUpDownNotification(const NMUPDOWN* upDownM
 	}
 }
 
+void AffineTransformationForm::processInputChange(const HWND changedInputWindowHandle)
+{
+	for (unsigned char i = 0; i < numberOfParams; i++)
+	{
+		params[i]->processInputChange(changedInputWindowHandle);
+	}
+}
+
 unsigned int NaturalInput::getValue(void)
 {
 	this->updateInputBuffer();
@@ -352,6 +360,11 @@ void FractalTransformationsRowForm::displayError(LPCWSTR message)
 void FractalTransformationsRowForm::processUpDownNotification(const NMUPDOWN* upDownMessage)
 {
 	this->affineTransformationForm->processUpDownNotification(upDownMessage);
+}
+
+void FractalTransformationsRowForm::processInputChange(const HWND changedInputWindowHandle)
+{
+	this->affineTransformationForm->processInputChange(changedInputWindowHandle);
 }
 
 unsigned short FractalTransformationsForm::getHeight()
@@ -540,6 +553,14 @@ void FractalTransformationsForm::processUpDownNotification(const NMUPDOWN* upDow
 	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
 	{
 		this->transformationRowForms[i]->processUpDownNotification(upDownMessage);
+	}
+}
+
+void FractalTransformationsForm::processInputChange(const HWND changedInputWindowHandle)
+{
+	for (unsigned char i = 0; i < maxNumberOfTransformations; i++)
+	{
+		this->transformationRowForms[i]->processInputChange(changedInputWindowHandle);
 	}
 }
 
@@ -863,6 +884,14 @@ void FractalDefinitionForm::processNotification(const NMHDR* message)
 	}
 }
 
+void FractalDefinitionForm::processControlCommand(WORD notificationCode, HWND controlWindowHandle)
+{
+	if (notificationCode == EN_CHANGE)
+	{
+		this->transformations->processInputChange(controlWindowHandle);
+	}
+}
+
 ButtonWrapper::ButtonWrapper(HWND parent, LPCTSTR label, unsigned short offsetX, unsigned short offsetY, unsigned char width, unsigned char height)
 {
 	this->buttonWindow = CreateWindowExW(
@@ -891,6 +920,18 @@ bool ButtonWrapper::isCommandFromControl(LPARAM wmCommandlParam)
 	return (HWND)wmCommandlParam == this->buttonWindow;
 }
 
+void FloatInputWithStepping::updateUpDownPos(void)
+{
+	float newValue = this->GetValue();
+	short newPosition = (short)(newValue * 100.0f);
+	SendMessageW(
+		this->upDownWindowHandle,
+		UDM_SETPOS,
+		0,
+		newPosition
+	);
+}
+
 void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
 {
 	if (upDownMessage->hdr.hwndFrom == this->upDownWindowHandle)
@@ -898,4 +939,38 @@ void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
 		float newInputValue = (float)(upDownMessage->iPos + upDownMessage->iDelta) / 100.0f;
 		this->setValue(newInputValue);
 	}
+}
+
+void FloatInputWithStepping::processInputChange(const HWND changedInputWindowHandle)
+{
+	if (changedInputWindowHandle == this->getInputWindowHandle())
+	{
+		this->isValid();
+		this->updateUpDownPos();
+	}
+}
+
+bool FloatInputWithStepping::isValid(void)
+{
+	if (FloatInput::isValid())
+	{
+		float currentValue = this->GetValue();
+		if (currentValue > this->max)
+		{
+			this->displayError(L"Podana wartość jest większa od maksymalnej");
+			return false;
+		}
+		if (currentValue < this->min)
+		{
+			this->displayError(L"Podana wartość jest niższa od minimalnej");
+			return false;
+		}
+	}
+	return true;
+}
+
+void FloatInputWithStepping::setValue(float newValue)
+{
+	FloatInput::setValue(newValue);
+	this->updateUpDownPos();
 }

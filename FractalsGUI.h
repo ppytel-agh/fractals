@@ -69,6 +69,7 @@ private:
 	HWND upDownWindowHandle;
 	char min;
 	char max;
+	void updateUpDownPos(void);
 public:
 	FloatInputWithStepping(
 		HWND parent,
@@ -100,6 +101,9 @@ public:
 		SendMessageW(upDownWindowHandle, UDM_SETRANGE, 0, MAKELPARAM(maxPos, minPos));
 	};
 	void processChange(const NMUPDOWN* upDownMessage);
+	void processInputChange(const HWND changedInputWindowHandle);
+	bool isValid(void);
+	void setValue(float newValue);
 };
 
 class NaturalInput : public InputWrapper
@@ -129,6 +133,7 @@ public:
 	void reset(void);
 	bool isValid(void);
 	void processUpDownNotification(const NMUPDOWN* upDownMessage);
+	void processInputChange(const HWND changedInputWindowHandle);
 };
 
 class FractalTransformationsRowForm
@@ -154,6 +159,7 @@ public:
 	bool isEmpty(void);
 	void displayError(LPCWSTR message);
 	void processUpDownNotification(const NMUPDOWN* upDownMessage);
+	void processInputChange(const HWND changedInputWindowHandle);
 };
 
 enum LabelHorizontalAlignment
@@ -210,6 +216,7 @@ public:
 	void setValue(AffineTransformationRowsGroup newValue);
 	bool isValid(void);
 	void processUpDownNotification(const NMUPDOWN* upDownMessage);
+	void processInputChange(const HWND changedInputWindowHandle);
 };
 
 class FloatInputWithLeftLabel
@@ -281,6 +288,10 @@ public:
 	void setValue(Fractal newValue);
 	bool isValid(void);
 	void processNotification(const NMHDR* message);
+	void processControlCommand(
+		WORD notificationCode,
+		HWND controlWindowHandle
+	);
 };
 
 //class RenderingFrameSizeForm
@@ -327,7 +338,7 @@ public:
 	unsigned short getWidth(void);
 	ButtonWrapper* getRenderButton(void);
 	FractalDefinitionForm* getFractalDefinitionForm(void);
-	ButtonWrapper* getImportbutton(void);	
+	ButtonWrapper* getImportbutton(void);
 };
 
 LPWSTR ansiToUnicode(const char* cString);
