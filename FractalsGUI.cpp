@@ -738,8 +738,8 @@ FloatInputWithLeftLabel::FloatInputWithLeftLabel(
 		offsetY,
 		inputWidth,
 		height,
-		-5,
-		5,
+		-64,
+		64,
 		isFirstElementOfGroup
 	);
 	width = labelWidth + inputWidth;
@@ -915,6 +915,7 @@ void FractalDefinitionForm::processControlCommand(WORD notificationCode, HWND co
 	if (notificationCode == EN_CHANGE)
 	{
 		this->transformations->processInputChange(controlWindowHandle);
+		this->clipping->processInputChange(controlWindowHandle);
 	}
 }
 
