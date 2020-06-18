@@ -392,12 +392,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				if (windowData->isFractalImageMoved)
 				{
+					//oblicz przesunięcie kursora
 					int deltaX = mouseX - windowData->lastPointerPosition->x;
 					int deltaY = mouseY - windowData->lastPointerPosition->y;
 					const WCHAR fractalMoveDebugStringFormat[] = L"Przesunięcie fraktala - (%d, %d)\n";
 					LPWSTR fractalMoveDebugString = new WCHAR[sizeof(fractalMoveDebugStringFormat) + 16];
 					wsprintfW(fractalMoveDebugString, fractalMoveDebugStringFormat, deltaX, deltaY);
 					OutputDebugStringW(fractalMoveDebugString);
+					//zaktualizuj ostatnią pozycję kursora
+					windowData->lastPointerPosition->x = mouseX;
+					windowData->lastPointerPosition->y = mouseY;
 				}
 			}
 			break;
