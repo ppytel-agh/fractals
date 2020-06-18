@@ -283,6 +283,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					GWL_USERDATA,
 					(LONG)windowData
 				);
+				//zainicjuj nasłuchiwanie czy mysz opuściła obszar client okna
+				TRACKMOUSEEVENT trackMouseEventData = {};
+				trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);
+				trackMouseEventData.dwFlags = TME_LEAVE;
+				trackMouseEventData.hwndTrack = hWnd;
+				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
+				char x = 'd';
 			}
 		case WM_KEYDOWN:
 			if (wParam == VK_ESCAPE || wParam == VK_RETURN)
