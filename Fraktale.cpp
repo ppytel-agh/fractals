@@ -386,18 +386,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				trackMouseEventData.dwFlags = TME_LEAVE;
 				trackMouseEventData.hwndTrack = hWnd;
 				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
-				//ustaw kursor na "łapkę"
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				if (!windowData->isCursorAlreadyInside)
-				{
-					windowData->isCursorAlreadyInside = true;
-					SetCursor(
-						LoadCursorW(
-							NULL,
-							IDC_HAND
-						)
-					);
-				}
 			}
 			break;
 		case WM_MOUSELEAVE:
@@ -420,6 +408,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_LBUTTONUP:
 			OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");
+			break;
+		case WM_SETCURSOR:
+			//ustaw kursor na "łapkę"
+			SetCursor(
+				LoadCursorW(
+					NULL,
+					IDC_HAND
+				)
+			);
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
