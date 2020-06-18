@@ -397,6 +397,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				wsprintfW(debugString, debugStringFormat, GET_WHEEL_DELTA_WPARAM(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				OutputDebugStringW(debugString);
 			}
+			break;
+		case WM_LBUTTONDOWN:
+			OutputDebugStringW(L"Wciśnięto lewy przycisk myszy\n");
+			break;
+		case WM_LBUTTONUP:
+			OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
