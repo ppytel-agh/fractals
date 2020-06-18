@@ -73,6 +73,7 @@ struct FractalWindowData
 	unsigned short previousHeight;
 	unsigned short newWidth;
 	unsigned short newHeight;
+	bool isListeningToMouseLeaveEvent;
 };
 
 struct FractalFormDialogData
@@ -283,13 +284,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					GWL_USERDATA,
 					(LONG)windowData
 				);
-				//zainicjuj nasłuchiwanie czy mysz opuściła obszar client okna
-				TRACKMOUSEEVENT trackMouseEventData = {};
-				trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);
-				trackMouseEventData.dwFlags = TME_LEAVE;
-				trackMouseEventData.hwndTrack = hWnd;
-				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
-				char x = 'd';
 			}
 		case WM_KEYDOWN:
 			if (wParam == VK_ESCAPE || wParam == VK_RETURN)
@@ -385,6 +379,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
 				wsprintfW(debugString, debugStringFormat, LOWORD(lParam),HIWORD(lParam), wParam);
 				OutputDebugStringW(debugString);
+				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
+				TRACKMOUSEEVENT trackMouseEventData = {};
+				trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);
+				trackMouseEventData.dwFlags = TME_LEAVE;
+				trackMouseEventData.hwndTrack = hWnd;
+				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
 			}
 			break;
 		case WM_MOUSELEAVE:
