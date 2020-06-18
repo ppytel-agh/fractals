@@ -385,6 +385,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				trackMouseEventData.dwFlags = TME_LEAVE;
 				trackMouseEventData.hwndTrack = hWnd;
 				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
+				//ustaw kursor na "łapkę"
+				SetCursor(
+					LoadCursorW(
+						NULL,
+						IDC_HAND
+					)
+				);
 			}
 			break;
 		case WM_MOUSELEAVE:
