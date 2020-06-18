@@ -390,6 +390,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_MOUSELEAVE:
 			OutputDebugStringW(L"Opuszczono główne okno\n");
 			break;
+		case WM_MOUSEWHEEL:
+			{
+				const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
+				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
+				wsprintfW(debugString, debugStringFormat, (char)HIWORD(wParam), LOWORD(lParam), HIWORD(lParam));
+				OutputDebugStringW(debugString);
+			}
+			HIWORD(wParam);
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
