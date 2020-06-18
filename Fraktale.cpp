@@ -310,7 +310,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					(windowData->previousWidth != windowData->newWidth)
 					||
 					(windowData->previousHeight != windowData->newHeight)
-				)
+					)
 				{
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
 					windowData->fractalDrawing = new FractalDrawing(
@@ -333,7 +333,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				bool resizeNow = false;
 				if (wParam == SIZE_MAXIMIZED)
 				{
-					OutputDebugStringW(L"Zmaksymalizowano okno\n");					
+					OutputDebugStringW(L"Zmaksymalizowano okno\n");
 					resizeNow = true;
 				}
 				else if (wParam == SIZE_RESTORED)
@@ -372,6 +372,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 			}
+		case WM_MOUSEMOVE:
+			{
+				const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
+				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
+				wsprintfW(debugString, debugStringFormat, LOWORD(lParam),HIWORD(lParam), wParam);
+				OutputDebugStringW(debugString);
+			}
+			break;
+		case WM_MOUSELEAVE:
+			OutputDebugStringW(L"Opuszczono główne okno\n");
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
