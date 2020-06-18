@@ -74,6 +74,7 @@ struct FractalWindowData
 	unsigned short newWidth;
 	unsigned short newHeight;
 	bool isListeningToMouseLeaveEvent;
+	bool isCursorAlreadyInside;
 };
 
 struct FractalFormDialogData
@@ -386,16 +387,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				trackMouseEventData.hwndTrack = hWnd;
 				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
 				//ustaw kursor na "łapkę"
-				SetCursor(
-					LoadCursorW(
-						NULL,
-						IDC_HAND
-					)
-				);
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				if (!windowData->isCursorAlreadyInside)
+				{
+					windowData->isCursorAlreadyInside = true;
+					SetCursor(
+						LoadCursorW(
+							NULL,
+							IDC_HAND
+						)
+					);
+				}
 			}
 			break;
 		case WM_MOUSELEAVE:
 			OutputDebugStringW(L"Opuszczono główne okno\n");
+			{
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				windowData->isCursorAlreadyInside = false;
+			}
 			break;
 		case WM_MOUSEWHEEL:
 			{
