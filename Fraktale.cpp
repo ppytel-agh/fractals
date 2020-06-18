@@ -73,8 +73,8 @@ struct FractalWindowData
 	unsigned short previousHeight;
 	unsigned short newWidth;
 	unsigned short newHeight;
-	bool isListeningToMouseLeaveEvent;
-	bool isCursorAlreadyInside;
+	bool isFractalImageMoved;
+	POINT* lastPointerPosition;
 };
 
 struct FractalFormDialogData
@@ -378,7 +378,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
-				wsprintfW(debugString, debugStringFormat, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
+				int mouseX = GET_X_LPARAM(lParam);
+				int mouseY = GET_Y_LPARAM(lParam);
+				wsprintfW(debugString, debugStringFormat, mouseX, mouseY, wParam);
 				OutputDebugStringW(debugString);
 				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
 				TRACKMOUSEEVENT trackMouseEventData = {};
@@ -386,13 +388,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				trackMouseEventData.dwFlags = TME_LEAVE;
 				trackMouseEventData.hwndTrack = hWnd;
 				BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
+				//przesuwanie fraktala
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				if (windowData->isFractalImageMoved)
+				{
+					int deltaX = mouseX - windowData->lastPointerPosition->x;
+					int deltaY = mouseY - windowData->lastPointerPosition->y;
+					const WCHAR fractalMoveDebugStringFormat[] = L"Przesunięcie fraktala - (%d, %d)\n";
+					LPWSTR fractalMoveDebugString = new WCHAR[sizeof(fractalMoveDebugStringFormat) + 16];
+					wsprintfW(fractalMoveDebugString, fractalMoveDebugStringFormat, deltaX, deltaY);
+					OutputDebugStringW(fractalMoveDebugString);
+				}
 			}
 			break;
 		case WM_MOUSELEAVE:
 			OutputDebugStringW(L"Opuszczono główne okno\n");
 			{
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				windowData->isCursorAlreadyInside = false;
+				windowData->isFractalImageMoved = false;
+				{
+					delete windowData->lastPointerPosition;
+					windowData->lastPointerPosition = NULL;
+				}
 			}
 			break;
 		case WM_MOUSEWHEEL:
@@ -405,18 +422,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_LBUTTONDOWN:
 			OutputDebugStringW(L"Wciśnięto lewy przycisk myszy\n");
+			//rozpocznij "przesuwanie" fraktala
+			{
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				windowData->isFractalImageMoved = true;
+				windowData->lastPointerPosition = new POINT{};
+				windowData->lastPointerPosition->x = GET_X_LPARAM(lParam);
+				windowData->lastPointerPosition->y = GET_Y_LPARAM(lParam);
+			}
 			break;
 		case WM_LBUTTONUP:
 			OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");
+			{
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				windowData->isFractalImageMoved = false;
+				if (windowData->lastPointerPosition != NULL)
+				{
+					delete windowData->lastPointerPosition;
+					windowData->lastPointerPosition = NULL;
+				}
+			}
 			break;
 		case WM_SETCURSOR:
 			//ustaw kursor na "łapkę"
-			SetCursor(
-				LoadCursorW(
-					NULL,
-					IDC_HAND
-				)
-			);
+			{
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				if (windowData->isFractalImageMoved)
+				{
+					SetCursor(
+						LoadCursorW(
+							NULL,
+							IDC_UPARROW
+						)
+					);
+				}
+				else
+				{
+					SetCursor(
+						LoadCursorW(
+							NULL,
+							IDC_HAND
+						)
+					);
+				}
+			}			
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
