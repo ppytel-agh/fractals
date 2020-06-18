@@ -1122,7 +1122,25 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 void WindowDrawing::moveRender(short x, short y)
 {
 	this->offsetX += x;
+	unsigned short maxOffsetX = this->width/2;
+	if (this->offsetX > maxOffsetX)
+	{
+		this->offsetX = maxOffsetX;
+	}
+	else if (this->offsetX < -maxOffsetX)
+	{
+		this->offsetX = -maxOffsetX;
+	}
 	this->offsetY += y;
+	unsigned short maxOffsetY = this->height / 2;
+	if (this->offsetY > maxOffsetY)
+	{
+		this->offsetY = maxOffsetY;
+	}
+	else if (this->offsetY < -maxOffsetY)
+	{
+		this->offsetY = -maxOffsetY;
+	}
 }
 
 void WindowDrawing::resetOffset(void)
