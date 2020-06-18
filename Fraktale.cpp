@@ -48,6 +48,8 @@ private:
 	HBITMAP bitmap;
 	unsigned short width;
 	unsigned short height;
+	short offsetX;
+	short offsetY;
 public:
 	WindowDrawing(
 		HWND window,
@@ -59,6 +61,8 @@ public:
 	~WindowDrawing();
 	HDC getWindowDrawingBuffer(void);
 	void redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS);
+	void moveRender(short x, short y);
+	void resetOffset(void);
 };
 
 Fractal getDragonFractal(void);
@@ -399,6 +403,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					LPWSTR fractalMoveDebugString = new WCHAR[sizeof(fractalMoveDebugStringFormat) + 16];
 					wsprintfW(fractalMoveDebugString, fractalMoveDebugStringFormat, deltaX, deltaY);
 					OutputDebugStringW(fractalMoveDebugString);
+					//przesuń obraz fraktala
+					FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
+					dialogData->fractalBuffer->moveRender(deltaX, deltaY);
+					InvalidateRect(
+						hWnd,
+						NULL,
+						FALSE
+					);
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
 					windowData->lastPointerPosition->y = mouseY;
@@ -996,6 +1008,8 @@ WindowDrawing::WindowDrawing(HWND window, unsigned short width, unsigned short h
 		whiteBrush
 	);
 	ReleaseDC(window, windowDC);
+	this->offsetX = 0;
+	this->offsetY = 0;
 }
 
 WindowDrawing::WindowDrawing(const WindowDrawing& original)
@@ -1019,6 +1033,8 @@ WindowDrawing::WindowDrawing(const WindowDrawing& original)
 		SRCCOPY
 	);
 	ReleaseDC(this->windowHandle, windowDC);
+	this->offsetX = original.offsetX;
+	this->offsetY = original.offsetY;
 }
 
 WindowDrawing& WindowDrawing::operator=(const WindowDrawing& original)
@@ -1042,6 +1058,8 @@ WindowDrawing& WindowDrawing::operator=(const WindowDrawing& original)
 		SRCCOPY
 	);
 	ReleaseDC(this->windowHandle, windowDC);
+	this->offsetX = original.offsetX;
+	this->offsetY = original.offsetY;
 	return *this;
 }
 
@@ -1058,15 +1076,57 @@ HDC WindowDrawing::getWindowDrawingBuffer(void)
 
 void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 {
-	BitBlt(
+	int sourceX = 0;
+	int sourceY = 0;
+	int copiedWidth = 0;
+	int copiedHeight = 0;
+	int destinationX = 0;
+	int destinationY = 0;
+	if (this->offsetX < 0)
+	{
+		copiedWidth = this->width + this->offsetX;
+		sourceX = -this->offsetX;
+	}
+	else
+	{
+		destinationX = this->offsetX;
+		copiedWidth = this->width - this->offsetX;
+	}
+	if (this->offsetY < 0)
+	{
+		copiedHeight = this->height + this->offsetY;
+		sourceY = -this->offsetY;
+	}
+	else
+	{
+		destinationY = this->offsetY;
+		copiedHeight = this->height - this->offsetY;
+	}
+	BOOL result = BitBlt(
 		wmPaintDC,
-		0,
-		0,
-		width,
-		height,
+		destinationX,
+		destinationY,
+		copiedWidth,
+		copiedHeight,
 		windowClientCompatibleDC,
-		0,
-		0,
+		sourceX,
+		sourceY,
 		SRCCOPY
 	);
+	if (!result)
+	{
+		OutputDebugStringW(L"Nie udało się narysować bitmapy\n");
+	}
+}
+
+void WindowDrawing::moveRender(short x, short y)
+{
+	this->offsetX += x;
+	this->offsetY += y;
+}
+
+void WindowDrawing::resetOffset(void)
+{
+	this->offsetX = 0;
+	this->offsetY = 0;
 }
