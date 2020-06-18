@@ -377,7 +377,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
-				wsprintfW(debugString, debugStringFormat, LOWORD(lParam),HIWORD(lParam), wParam);
+				wsprintfW(debugString, debugStringFormat, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
 				OutputDebugStringW(debugString);
 				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
 				TRACKMOUSEEVENT trackMouseEventData = {};
@@ -394,10 +394,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
-				wsprintfW(debugString, debugStringFormat, (char)HIWORD(wParam), LOWORD(lParam), HIWORD(lParam));
+				wsprintfW(debugString, debugStringFormat, GET_WHEEL_DELTA_WPARAM(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				OutputDebugStringW(debugString);
 			}
-			HIWORD(wParam);
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
