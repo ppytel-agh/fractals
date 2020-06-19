@@ -102,6 +102,8 @@ void parseImportAndPutIntoForm(
 	FractalDefinitionForm* fractalForm
 );
 
+void debugLastError(void);
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -997,6 +999,15 @@ void parseImportAndPutIntoForm(
 	}
 }
 
+void debugLastError(void)
+{
+	DWORD lastError = GetLastError();
+	WCHAR errorMessageFormat[] = L"ostatni błąd - %d\n";
+	LPWSTR errorString = new WCHAR[sizeof(errorMessageFormat) + 8];
+	wsprintfW(errorString, errorMessageFormat, lastError);
+	OutputDebugStringW(errorString);
+}
+
 FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)
 {
 	this->clientWidth = clientWidth;
@@ -1202,6 +1213,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		else
 		{
 			destinationWidth = this->width - this->offsetX;
+			destinationX = this->offsetX;
 		}
 		int copiedWidth = destinationWidth / this->scaleRatio;
 		if (this->offsetY < 0)
@@ -1216,6 +1228,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		else
 		{
 			destinationHeight = this->height - this->offsetY;
+			destinationY = this->offsetY;
 		}
 		int copiedHeight = destinationHeight / this->scaleRatio;
 		result = StretchBlt(
@@ -1235,6 +1248,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 	if (!result)
 	{
 		OutputDebugStringW(L"Nie udało się narysować bitmapy\n");
+		debugLastError();
 	}
 }
 
