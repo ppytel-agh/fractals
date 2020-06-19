@@ -412,7 +412,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					InvalidateRect(
 						hWnd,
 						NULL,
-						TRUE
+						FALSE
 					);
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
@@ -1151,7 +1151,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		if (this->offsetX < 0)
 		{
 			sourceX = -this->offsetX / this->scaleRatio;
-			destinationWidth = this->width + this->offsetX;
+			destinationWidth = this->width - this->offsetX;
 			if (destinationWidth > this->width)
 			{
 				destinationWidth = this->width;
@@ -1165,7 +1165,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		if (this->offsetY < 0)
 		{
 			sourceY = -this->offsetY / this->scaleRatio;
-			destinationHeight = this->height + this->offsetY;
+			destinationHeight = this->height - this->offsetY;
 			if (destinationHeight > this->height)
 			{
 				destinationHeight = this->height;
@@ -1244,10 +1244,10 @@ void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, u
 	wcscat_s(scaleRationDebugMessage, floatToString(this->scaleRatio));
 	OutputDebugStringW(scaleRationDebugMessage);
 
-	short referenceToOffsetX = this->offsetX - referencePointX;
-	short referenceToOffsetY = this->offsetX - referencePointX;
-	short scaledVectorX = referenceToOffsetX * this->scaleRatio;
-	short scaledVectorY = referenceToOffsetY * this->scaleRatio;
-	this->offsetX = referencePointX + scaledVectorX;
-	this->offsetY = referencePointX + scaledVectorY;
+	//short referenceToOffsetX = this->offsetX - referencePointX;
+	//short referenceToOffsetY = this->offsetX - referencePointX;
+	//short scaledVectorX = referenceToOffsetX * this->scaleRatio;
+	//short scaledVectorY = referenceToOffsetY * this->scaleRatio;
+	//this->offsetX = referencePointX + scaledVectorX;
+	//this->offsetY = referencePointX + scaledVectorY;
 }
