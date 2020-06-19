@@ -472,10 +472,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				OutputDebugStringW(debugString);
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
-				dialogData->fractalBuffer->scale(
-					wheelDelta,
+				POINT mousePosition = {
 					positionX,
 					positionY
+				};
+				ScreenToClient(
+					hWnd,
+					&mousePosition
+				);
+				dialogData->fractalBuffer->scale(
+					wheelDelta,
+					mousePosition.x,
+					mousePosition.y
 				);
 				InvalidateRect(
 					hWnd,
@@ -1277,9 +1285,10 @@ void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, u
 
 	short referenceToOffsetX = this->offsetX - referencePointX;
 	short referenceToOffsetY = this->offsetY - referencePointY;
-	float ratioChange = (this->scaleRatio / previousScaleRatio);
-	short scaledVectorX = referenceToOffsetX * ratioChange;
-	short scaledVectorY = referenceToOffsetY * ratioChange;
+	float originalReferenceToOffsetX = (float)referenceToOffsetX / previousScaleRatio;
+	float originalReferenceToOffsetY = (float)referenceToOffsetY / previousScaleRatio;
+	short scaledVectorX = (short)(originalReferenceToOffsetX * this->scaleRatio);
+	short scaledVectorY = (short)(originalReferenceToOffsetY * this->scaleRatio);
 	this->offsetX = referencePointX + scaledVectorX;
 	this->offsetY = referencePointY + scaledVectorY;
 }
