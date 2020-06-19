@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <ctime>
 #include "FractalsGUI.h"
-#include <math.h>
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
@@ -1238,25 +1237,32 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 void WindowDrawing::moveRender(short x, short y)
 {
 	this->offsetX += x;
-	float maxOffsetDivider = 2 / cbrt(this->scaleRatio);
-	unsigned short maxOffsetX = (this->width * this->scaleRatio) / maxOffsetDivider;
+	unsigned short maxOffsetX = this->width / 2;
 	if (this->offsetX > maxOffsetX)
 	{
 		this->offsetX = maxOffsetX;
 	}
-	else if (this->offsetX < -maxOffsetX)
+	else
 	{
-		this->offsetX = -maxOffsetX;
+		short minOffsetX = maxOffsetX - (this->width * this->scaleRatio);
+		if (this->offsetX < minOffsetX)
+		{
+			this->offsetX = minOffsetX;
+		}
 	}
 	this->offsetY += y;
-	unsigned short maxOffsetY = (this->height*this->scaleRatio) / maxOffsetDivider;
+	unsigned short maxOffsetY = this->height / 2;
 	if (this->offsetY > maxOffsetY)
 	{
 		this->offsetY = maxOffsetY;
 	}
-	else if (this->offsetY < -maxOffsetY)
+	else
 	{
-		this->offsetY = -maxOffsetY;
+		short minOffsetY = maxOffsetY - (this->height * this->scaleRatio);
+		if (this->offsetY < minOffsetY)
+		{
+			this->offsetY = minOffsetY;
+		}
 	}
 }
 
