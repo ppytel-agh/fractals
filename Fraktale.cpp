@@ -1030,6 +1030,10 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 				blackBrush
 			);
 		}
+		RECT frameRect = {};
+		frameRect.right = this->clientWidth;
+		frameRect.bottom = this->clientHeight;
+		FrameRect(clientHdc, &frameRect, blackBrush);
 	}
 }
 
