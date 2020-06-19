@@ -50,6 +50,8 @@ private:
 	unsigned short height;
 	short offsetX;
 	short offsetY;
+	float scaleRatio;
+	const static float maxScaleRatio;
 public:
 	WindowDrawing(
 		HWND window,
@@ -63,6 +65,7 @@ public:
 	void redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS);
 	void moveRender(short x, short y);
 	void resetOffset(void);
+	void scale(short promilePoints, unsigned short referencePointX, unsigned short referencePointY);
 };
 
 Fractal getDragonFractal(void);
@@ -246,7 +249,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
-				// TODO: Add any drawing code that uses hdc here...				
+				// TODO: Add any drawing code that uses hdc here...			
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
 				if (dialogData->fractalBuffer != NULL)
@@ -409,7 +412,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					InvalidateRect(
 						hWnd,
 						NULL,
-						FALSE
+						TRUE
 					);
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
@@ -432,8 +435,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
-				wsprintfW(debugString, debugStringFormat, GET_WHEEL_DELTA_WPARAM(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+				char wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+				unsigned short positionX = GET_X_LPARAM(lParam);
+				unsigned short positionY = GET_Y_LPARAM(lParam);
+				wsprintfW(debugString, debugStringFormat, wheelDelta, positionX, positionY);
 				OutputDebugStringW(debugString);
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
+				dialogData->fractalBuffer->scale(
+					wheelDelta,
+					positionX,
+					positionY
+				);
+				InvalidateRect(
+					hWnd,
+					NULL,
+					TRUE
+				);
 			}
 			break;
 		case WM_LBUTTONDOWN:
@@ -766,7 +784,7 @@ void updateFractal(
 	InvalidateRect(
 		windowHandle,
 		NULL,
-		FALSE
+		TRUE
 	);
 }
 
@@ -987,6 +1005,8 @@ unsigned short FractalDrawing::getClientHeight(void)
 	return this->clientHeight;
 }
 
+const float WindowDrawing::maxScaleRatio = 6.0f;
+
 WindowDrawing::WindowDrawing(HWND window, unsigned short width, unsigned short height)
 {
 	this->windowHandle = window;
@@ -1010,6 +1030,7 @@ WindowDrawing::WindowDrawing(HWND window, unsigned short width, unsigned short h
 	ReleaseDC(window, windowDC);
 	this->offsetX = 0;
 	this->offsetY = 0;
+	this->scaleRatio = 1.0f;
 }
 
 WindowDrawing::WindowDrawing(const WindowDrawing& original)
@@ -1035,6 +1056,7 @@ WindowDrawing::WindowDrawing(const WindowDrawing& original)
 	ReleaseDC(this->windowHandle, windowDC);
 	this->offsetX = original.offsetX;
 	this->offsetY = original.offsetY;
+	this->scaleRatio = original.scaleRatio;
 }
 
 WindowDrawing& WindowDrawing::operator=(const WindowDrawing& original)
@@ -1060,6 +1082,7 @@ WindowDrawing& WindowDrawing::operator=(const WindowDrawing& original)
 	ReleaseDC(this->windowHandle, windowDC);
 	this->offsetX = original.offsetX;
 	this->offsetY = original.offsetY;
+	this->scaleRatio = original.scaleRatio;
 	return *this;
 }
 
@@ -1075,44 +1098,98 @@ HDC WindowDrawing::getWindowDrawingBuffer(void)
 }
 
 void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
-{
-	int sourceX = 0;
-	int sourceY = 0;
-	int copiedWidth = 0;
-	int copiedHeight = 0;
-	int destinationX = 0;
-	int destinationY = 0;
-	if (this->offsetX < 0)
+{	
+	BOOL result = false;
+	if (this->scaleRatio == 1.0f)
 	{
-		copiedWidth = this->width + this->offsetX;
-		sourceX = -this->offsetX;
+		int sourceX = 0;
+		int sourceY = 0;
+		int copiedWidth = 0;
+		int copiedHeight = 0;
+		int destinationX = 0;
+		int destinationY = 0;
+		if (this->offsetX < 0)
+		{
+			copiedWidth = this->width + this->offsetX;
+			sourceX = -this->offsetX;
+		}
+		else
+		{
+			destinationX = this->offsetX;
+			copiedWidth = this->width - this->offsetX;
+		}
+		if (this->offsetY < 0)
+		{
+			copiedHeight = this->height + this->offsetY;
+			sourceY = -this->offsetY;
+		}
+		else
+		{
+			destinationY = this->offsetY;
+			copiedHeight = this->height - this->offsetY;
+		}
+		result = BitBlt(
+			wmPaintDC,
+			destinationX,
+			destinationY,
+			copiedWidth,
+			copiedHeight,
+			windowClientCompatibleDC,
+			sourceX,
+			sourceY,
+			SRCCOPY
+		);
 	}
 	else
 	{
-		destinationX = this->offsetX;
-		copiedWidth = this->width - this->offsetX;
+		int sourceX = 0;
+		int sourceY = 0;
+		int destinationX = 0;
+		int destinationY = 0;
+		int destinationWidth = 0;
+		int destinationHeight = 0;
+		if (this->offsetX < 0)
+		{
+			sourceX = -this->offsetX / this->scaleRatio;
+			destinationWidth = this->width + this->offsetX;
+			if (destinationWidth > this->width)
+			{
+				destinationWidth = this->width;
+			}
+		}
+		else
+		{
+			destinationWidth = this->width - this->offsetX;
+		}
+		int copiedWidth = destinationWidth / this->scaleRatio;
+		if (this->offsetY < 0)
+		{
+			sourceY = -this->offsetY / this->scaleRatio;
+			destinationHeight = this->height + this->offsetY;
+			if (destinationHeight > this->height)
+			{
+				destinationHeight = this->height;
+			}
+		}
+		else
+		{
+			destinationHeight = this->height - this->offsetY;
+		}
+		int copiedHeight = destinationHeight / this->scaleRatio;
+		result = StretchBlt(
+			wmPaintDC,
+			destinationX,
+			destinationY,
+			destinationWidth,
+			destinationHeight,
+			windowClientCompatibleDC,
+			sourceX,
+			sourceY,
+			copiedWidth,
+			copiedHeight,
+			SRCCOPY
+		);
 	}
-	if (this->offsetY < 0)
-	{
-		copiedHeight = this->height + this->offsetY;
-		sourceY = -this->offsetY;
-	}
-	else
-	{
-		destinationY = this->offsetY;
-		copiedHeight = this->height - this->offsetY;
-	}
-	BOOL result = BitBlt(
-		wmPaintDC,
-		destinationX,
-		destinationY,
-		copiedWidth,
-		copiedHeight,
-		windowClientCompatibleDC,
-		sourceX,
-		sourceY,
-		SRCCOPY
-	);
 	if (!result)
 	{
 		OutputDebugStringW(L"Nie udało się narysować bitmapy\n");
@@ -1122,7 +1199,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 void WindowDrawing::moveRender(short x, short y)
 {
 	this->offsetX += x;
-	unsigned short maxOffsetX = this->width/2;
+	unsigned short maxOffsetX = (this->width*this->scaleRatio)/2;
 	if (this->offsetX > maxOffsetX)
 	{
 		this->offsetX = maxOffsetX;
@@ -1132,7 +1209,7 @@ void WindowDrawing::moveRender(short x, short y)
 		this->offsetX = -maxOffsetX;
 	}
 	this->offsetY += y;
-	unsigned short maxOffsetY = this->height / 2;
+	unsigned short maxOffsetY = (this->height*this->scaleRatio) / 2;
 	if (this->offsetY > maxOffsetY)
 	{
 		this->offsetY = maxOffsetY;
@@ -1147,4 +1224,30 @@ void WindowDrawing::resetOffset(void)
 {
 	this->offsetX = 0;
 	this->offsetY = 0;
+}
+
+void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, unsigned short referencePointY)
+{
+	this->scaleRatio += ((float)(promilePoints) / 1000.0f);
+	//nie oddalaj poniżej skali 1.0
+	if (this->scaleRatio < 1.0f)
+	{
+		this->scaleRatio = 1.0f;
+	}
+	else if (this->scaleRatio > this->maxScaleRatio)
+	{
+		this->scaleRatio = this->maxScaleRatio;
+	}
+	const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
+	WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
+	wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
+	wcscat_s(scaleRationDebugMessage, floatToString(this->scaleRatio));
+	OutputDebugStringW(scaleRationDebugMessage);
+
+	short referenceToOffsetX = this->offsetX - referencePointX;
+	short referenceToOffsetY = this->offsetX - referencePointX;
+	short scaledVectorX = referenceToOffsetX * this->scaleRatio;
+	short scaledVectorY = referenceToOffsetY * this->scaleRatio;
+	this->offsetX = referencePointX + scaledVectorX;
+	this->offsetY = referencePointX + scaledVectorY;
 }
