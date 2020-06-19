@@ -1258,6 +1258,7 @@ void WindowDrawing::resetOffset(void)
 
 void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, unsigned short referencePointY)
 {
+	float previousScaleRatio = this->scaleRatio;
 	this->scaleRatio += ((float)(promilePoints) / 1000.0f);
 	//nie oddalaj poniżej skali 1.0
 	if (this->scaleRatio < 1.0f)
@@ -1274,10 +1275,11 @@ void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, u
 	wcscat_s(scaleRationDebugMessage, floatToString(this->scaleRatio));
 	OutputDebugStringW(scaleRationDebugMessage);
 
-	//short referenceToOffsetX = this->offsetX - referencePointX;
-	//short referenceToOffsetY = this->offsetX - referencePointX;
-	//short scaledVectorX = referenceToOffsetX * this->scaleRatio;
-	//short scaledVectorY = referenceToOffsetY * this->scaleRatio;
-	//this->offsetX = referencePointX + scaledVectorX;
-	//this->offsetY = referencePointX + scaledVectorY;
+	short referenceToOffsetX = this->offsetX - referencePointX;
+	short referenceToOffsetY = this->offsetY - referencePointY;
+	float ratioChange = (this->scaleRatio / previousScaleRatio);
+	short scaledVectorX = referenceToOffsetX * ratioChange;
+	short scaledVectorY = referenceToOffsetY * ratioChange;
+	this->offsetX = referencePointX + scaledVectorX;
+	this->offsetY = referencePointY + scaledVectorY;
 }
