@@ -249,13 +249,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
-				// TODO: Add any drawing code that uses hdc here...			
+				// TODO: Add any drawing code that uses hdc here...	
+
+				//bufor obrazu zapobiegający miganiu
+				RECT clientArea;
+				GetClientRect(hWnd, &clientArea);
+				HDC screenBuffer = CreateCompatibleDC(hdc);
+				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, clientArea.right, clientArea.bottom);
+				SelectObject(screenBuffer, screenCompatibleBitmap);
+				HBRUSH backgroundBrush = (HBRUSH) GetClassLongW(
+					hWnd,
+					GCL_HBRBACKGROUND
+				);
+				FillRect(
+					screenBuffer,
+					&clientArea,
+					backgroundBrush
+				);
+
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
 				if (dialogData->fractalBuffer != NULL)
 				{
-					dialogData->fractalBuffer->redrawWindow(hdc, ps);
+					dialogData->fractalBuffer->redrawWindow(screenBuffer, ps);
 				}
+
+				//skopiuj bufor na ekran
+				BitBlt(
+					hdc,
+					0,
+					0,
+					clientArea.right,
+					clientArea.bottom,
+					screenBuffer,
+					0,
+					0,
+					SRCCOPY
+				);
 				EndPaint(hWnd, &ps);
 			}
 			break;
@@ -450,7 +480,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				InvalidateRect(
 					hWnd,
 					NULL,
-					TRUE
+					FALSE
 				);
 			}
 			break;
@@ -784,7 +814,7 @@ void updateFractal(
 	InvalidateRect(
 		windowHandle,
 		NULL,
-		TRUE
+		FALSE
 	);
 }
 
