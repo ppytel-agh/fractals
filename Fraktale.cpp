@@ -27,8 +27,6 @@ struct FractalWindowData
 	bool isMinimized;
 	unsigned short previousWidth;
 	unsigned short previousHeight;
-	unsigned short newWidth;
-	unsigned short newHeight;
 	bool isFractalImageMoved;
 	POINT* lastPointerPosition;
 };
@@ -298,16 +296,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				OutputDebugStringW(L"Koniec zmiany rozmiaru\n");
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				windowData->isResizedManually = false;
+				RECT newSize;
+				GetClientRect(hWnd, &newSize);
 				if (
-					(windowData->previousWidth != windowData->newWidth)
+					(windowData->previousWidth != newSize.right)
 					||
-					(windowData->previousHeight != windowData->newHeight)
+					(windowData->previousHeight != newSize.bottom)
 					)
 				{
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
 					windowData->fractalDrawing = new FractalDrawing(
-						windowData->newWidth,
-						windowData->newHeight
+						newSize.right,
+						newSize.bottom
 					);
 					updateFractal(
 						hWnd,
@@ -319,9 +319,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_SIZE:
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				short newWidth = LOWORD(lParam);
-				short newHeight = HIWORD(lParam);
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);				
 				bool resizeNow = false;
 				if (wParam == SIZE_MAXIMIZED)
 				{
@@ -333,8 +331,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (windowData->isResizedManually)
 					{
 						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
-						windowData->newWidth = newWidth;
-						windowData->newHeight = newHeight;
 					}
 					else if (windowData->isMinimized)
 					{
@@ -353,6 +349,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (resizeNow)
 				{
+					short newWidth = LOWORD(lParam);
+					short newHeight = HIWORD(lParam);
 					windowData->fractalDrawing = new FractalDrawing(
 						newWidth,
 						newHeight
