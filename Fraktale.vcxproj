@@ -143,6 +143,7 @@
     <ClInclude Include="Fractals.h" />
     <ClInclude Include="FractalsGDI.h" />
     <ClInclude Include="FractalsGUI.h" />
+    <ClInclude Include="fraktale-misc.h" />
     <ClInclude Include="Fraktale.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="gdi-wrapper.h" />
@@ -155,6 +156,7 @@
     <ClCompile Include="Fractals.cpp" />
     <ClCompile Include="FractalsGDI.cpp" />
     <ClCompile Include="FractalsGUI.cpp" />
+    <ClCompile Include="fraktale-misc.cpp" />
     <ClCompile Include="Fraktale.cpp" />
     <ClCompile Include="gdi-wrapper.cpp" />
     <ClCompile Include="string-processing.cpp" />

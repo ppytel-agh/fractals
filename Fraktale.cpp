@@ -18,8 +18,6 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
 
-Fractal getDragonFractal(void);
-
 struct FractalWindowData
 {
 	HWND dialogWindowHandle;
@@ -695,47 +693,6 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 			break;
 	}
 	return (INT_PTR)FALSE;
-}
-
-Fractal getDragonFractal(void)
-{
-	const unsigned char dragonFractalRowsNumber = 2;
-	AffineTransformationRow dragonFractalRows[dragonFractalRowsNumber] = {
-				AffineTransformationRow(
-					18,
-					AffineTransformation(
-						-0.4f,
-						0.0f,
-						-1.0f,
-						0.0f,
-						-0.4f,
-						0.1f
-					)
-				),
-				AffineTransformationRow(
-					82,
-					AffineTransformation(
-						0.76f,
-						-0.4f,
-						0.0f,
-						0.4f,
-						0.76f,
-						0.0f
-					)
-				)
-	};
-	return Fractal(
-		AffineTransformationRowsGroup(
-			dragonFractalRows,
-			dragonFractalRowsNumber
-		),
-		FractalClipping(
-			-1.3f,
-			0.6f,
-			-0.9f,
-			0.45f
-		)
-	);
 }
 
 void updateFractal(

@@ -45,6 +45,9 @@
     <ClInclude Include="debug-helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fraktale-misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fraktale.cpp">
@@ -66,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="debug-helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fraktale-misc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
