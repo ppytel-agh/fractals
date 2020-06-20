@@ -185,6 +185,8 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int destinationY = 0;
 		int destinationWidth = 0;
 		int destinationHeight = 0;
+		int scaledWidth = this->width * this->scaleRatio;
+		int scaledHeight = this->height * this->scaleRatio;
 		if (this->offsetX < 0)
 		{
 			sourceX = -this->offsetX / this->scaleRatio;
