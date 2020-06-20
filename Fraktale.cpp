@@ -331,13 +331,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (windowData->isResizedManually)
 					{
 						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
-						RECT fractalRect = {};
-						fractalRect.right = windowData->previousWidth;
-						fractalRect.bottom = windowData->previousHeight;
-						ValidateRect(
-							hWnd,
-							&fractalRect
-						);
 					}
 					else if (windowData->isMinimized)
 					{
