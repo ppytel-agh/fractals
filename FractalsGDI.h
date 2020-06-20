@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Fractals.h"
-#include <windef.h>
+#include <windows.h>
 
 class FractalDrawing
 {

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include "FractalsGUI.h"
+#include "FractalsGDI.h"
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
