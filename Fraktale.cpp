@@ -9,6 +9,7 @@
 #include "FractalsGUI.h"
 #include "FractalsGDI.h"
 #include "gdi-wrapper.h"
+#include "fraktale-misc.h"
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
@@ -43,11 +44,6 @@ void updateFractal(
 	HWND windowHandle,
 	HWND dialogHandle,
 	FractalWindowData* windowData
-);
-
-void parseImportAndPutIntoForm(
-	WCHAR* textBuffer,
-	FractalDefinitionForm* fractalForm
 );
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -668,11 +664,20 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									minBufferSize
 								);
 								HWND fractalFormDialogHandle = GetWindow(hDlg, GW_OWNER);
-								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);
-								parseImportAndPutIntoForm(
+								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);								
+								Fractal** fractalFromPdf = new Fractal*;
+								if (parseFractalFromPDF(
 									textBuffer,
-									dialogData->fractalUI->getFractalDefinitionForm()
-								);
+									fractalFromPdf
+								))
+								{
+									dialogData->fractalUI->getFractalDefinitionForm()->setValue(
+										**fractalFromPdf
+									);
+									delete *fractalFromPdf;
+									fractalFromPdf = NULL;
+								}
+								delete fractalFromPdf;
 								delete[] textBuffer;
 								DestroyWindow(hDlg);
 								return (INT_PTR)TRUE;
@@ -731,175 +736,4 @@ void updateFractal(
 		NULL,
 		FALSE
 	);
-}
-
-void parseImportAndPutIntoForm(
-	WCHAR* textBuffer,
-	FractalDefinitionForm* fractalForm
-)
-{
-	//policz liczbę linii tekstu
-	WCHAR newline[] = L"\r\n";
-	unsigned char newlineLength = wcslen(newline);
-	WCHAR* substringPointer = textBuffer;
-	int numberOfLines = 1;
-	while (substringPointer = wcsstr(substringPointer, newline))
-	{
-		substringPointer += newlineLength;
-		numberOfLines++;
-	}
-	//utwórz tablicę z linijkami
-	unsigned char* lineLengths = new unsigned char[numberOfLines];
-	WCHAR** linesArray = new WCHAR * [numberOfLines];
-	substringPointer = textBuffer;
-	for (unsigned char i = 0; i < (numberOfLines - 1); i++)
-	{
-		WCHAR* lineStart = substringPointer;
-		substringPointer = wcsstr(substringPointer, newline);
-		unsigned char lineLength = (unsigned char)(substringPointer - lineStart);
-		linesArray[i] = new WCHAR[lineLength + 1];
-		memcpy((void*)linesArray[i], (void*)lineStart, sizeof(WCHAR) * lineLength);
-		linesArray[i][lineLength] = L'\0';
-		substringPointer += newlineLength;
-		lineLengths[i] = lineLength;
-	}
-	//ostatnia linijka
-	unsigned char lastLineLength = wcslen(substringPointer);
-	linesArray[numberOfLines - 1] = new WCHAR[lastLineLength + 1];
-	memcpy((void*)linesArray[numberOfLines - 1], (void*)substringPointer, sizeof(WCHAR) * (lastLineLength + 1));
-	//iteracja linijek
-	for (unsigned char i = 0; i < numberOfLines; i++)
-	{
-		WCHAR* line = linesArray[i];
-		char x = 'd';
-	}
-	//walidacja nagłówków
-	if (numberOfLines > 2)
-	{
-		int firstLineComparisonResult = wcscmp(linesArray[0], L"prawdopodobieństwo");
-		int secondLineComparisonResult = wcscmp(linesArray[1], L"Współczynniki odwzorowania");
-		if ((firstLineComparisonResult == 0) && (secondLineComparisonResult == 0))
-		{
-			//waliacja wierszy
-			const unsigned char numberOfLinesPerRow = 7;
-			unsigned char expectedNumberOfRows = (numberOfLines - 2) / numberOfLinesPerRow;
-			AffineTransformationRow* transformationRowsArray = (AffineTransformationRow*)malloc(sizeof(AffineTransformationRow) * expectedNumberOfRows);
-			for (unsigned char i = 0; i < expectedNumberOfRows; i++)
-			{
-				unsigned char probabilityRow = 2 + (i * 7);
-				unsigned char probLineLength = wcslen(linesArray[probabilityRow]);
-				unsigned char probability = 0;
-				float paramValues[6] = {};
-				if (linesArray[probabilityRow][probLineLength - 1] == L'%')
-				{
-					probability = (unsigned char)_wtoi(linesArray[probabilityRow]);
-				}
-				else
-				{
-					return;
-				}
-				for (unsigned char j = 97; j <= 102; j++)
-				{
-					WCHAR letter = (WCHAR)(char)(j);
-					unsigned char lineIndex = 2 + (i * 7) + (j - 96);
-					unsigned char lineLength = wcslen(linesArray[probabilityRow]);
-					if (lineLength >= 2)
-					{
-						if (linesArray[lineIndex][0] == letter && linesArray[lineIndex][1] == L'=')
-						{
-							paramValues[j - 97] = _wtof((WCHAR*)&linesArray[lineIndex][2]);
-						}
-						else
-						{
-							return;
-						}
-					}
-					else
-					{
-						return;
-					}
-				}
-				AffineTransformation transformation(
-					paramValues[0],
-					paramValues[1],
-					paramValues[2],
-					paramValues[3],
-					paramValues[4],
-					paramValues[5]
-				);
-				transformationRowsArray[i] = AffineTransformationRow(
-					probability,
-					transformation
-				);
-			}
-			AffineTransformationRowsGroup rowsGroup(
-				transformationRowsArray,
-				expectedNumberOfRows
-			);
-			free(transformationRowsArray);
-			LPCWSTR lastLineParts[] = {
-			   L"zakres wyświetlanych punktów na ekranie: xmin=",
-			   L"; xmax=",
-			   L"; ymin=",
-			   L"; ymax=",
-			};
-			const unsigned char noParts = sizeof(lastLineParts) / sizeof(LPCWSTR);
-			LPWSTR lastLine = linesArray[numberOfLines - 1];
-			LPWSTR substring = lastLine;
-			LPWSTR nextSubstring = NULL;
-			float clippingParts[noParts] = {};
-			for (unsigned char i = 0; i < (noParts - 1); i++)
-			{
-				substring = wcsstr(substring, lastLineParts[i]);
-				if (substring != NULL)
-				{
-					nextSubstring = wcsstr(substring, lastLineParts[i + 1]);
-					if (nextSubstring != NULL)
-					{
-						unsigned char lastLinePartLen = wcslen(lastLineParts[i]);
-						unsigned char clippingPartLength = (unsigned char)(nextSubstring - substring) - lastLinePartLen;
-						LPWSTR clippingPartSubstring = substring + lastLinePartLen;
-						LPWSTR clippingPartString = new WCHAR[clippingPartLength + 1];
-						memcpy(clippingPartString, clippingPartSubstring, sizeof(WCHAR) * clippingPartLength);
-						clippingPartString[clippingPartLength] = L'\0';
-						//zastąp przecinek kropką
-						WCHAR* delimiterPointer = wcsrchr(clippingPartString, L',');
-						*delimiterPointer = L'.';
-						float conversionResult = _wtof(clippingPartString);
-						clippingParts[i] = conversionResult;
-					}
-					else
-					{
-						return;
-					}
-				}
-				else
-				{
-					return;
-				}
-
-			}
-			//unsigned char lastLineLength = wcslen(lastLine);
-			unsigned char lastPartIndex = noParts - 1;
-			unsigned char lastPartLength = wcslen(lastLineParts[lastPartIndex]);
-			LPWSTR lastPartSubstring = nextSubstring + lastPartLength;
-			LPWSTR lastPartString = new WCHAR[lastPartLength + 1];
-			memcpy(lastPartString, lastPartSubstring, sizeof(WCHAR) * lastPartLength);
-			lastPartString[lastPartLength] = L'\0';
-			WCHAR* delimiterPointer = wcsrchr(lastPartString, L',');
-			*delimiterPointer = L'.';
-			clippingParts[lastPartIndex] = (float)_wtof(lastPartString);
-			FractalClipping clipping(
-				clippingParts[0],
-				clippingParts[1],
-				clippingParts[2],
-				clippingParts[3]
-			);
-			Fractal importedFractal(
-				rowsGroup,
-				clipping
-			);
-			fractalForm->setValue(importedFractal);
-		}
-	}
 }
