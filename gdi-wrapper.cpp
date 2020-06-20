@@ -107,25 +107,25 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int copiedHeight = 0;
 		int destinationX = 0;
 		int destinationY = 0;
-		if (repaintOffsetX < 0)
+		if (this->offsetX < 0)
 		{
-			copiedWidth = repaintWidth + repaintOffsetX;
-			sourceX = -repaintOffsetX;
+			copiedWidth = this->width + this->offsetX;
+			sourceX = -this->offsetX;
 		}
 		else
 		{
-			destinationX = wmPaintPS.rcPaint.left;
-			copiedWidth = repaintWidth - repaintOffsetX;
+			destinationX = this->offsetX;
+			copiedWidth = this->width - this->offsetX;
 		}
-		if (repaintOffsetY < 0)
+		if (this->offsetY < 0)
 		{
-			copiedHeight = repaintHeight + repaintOffsetY;
-			sourceY = -repaintOffsetY;
+			copiedHeight = this->height + this->offsetY;
+			sourceY = -this->offsetY;
 		}
 		else
 		{
-			destinationY = wmPaintPS.rcPaint.top;
-			copiedHeight = repaintHeight - repaintOffsetY;
+			destinationY = this->offsetY;
+			copiedHeight = this->height - this->offsetY;
 		}
 		result = BitBlt(
 			wmPaintDC,
@@ -147,34 +147,34 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int destinationY = 0;
 		int destinationWidth = 0;
 		int destinationHeight = 0;
-		if (repaintOffsetX < 0)
+		if (this->offsetX < 0)
 		{
-			sourceX = -repaintOffsetX / this->scaleRatio;
-			destinationWidth = repaintWidth - repaintOffsetX;
-			if (destinationWidth > repaintWidth)
+			sourceX = -this->offsetX / this->scaleRatio;
+			destinationWidth = this->width - this->offsetX;
+			if (destinationWidth > this->width)
 			{
-				destinationWidth = repaintWidth;
+				destinationWidth = this->width;
 			}
 		}
 		else
 		{
-			destinationWidth = repaintWidth - repaintOffsetX;
-			destinationX = repaintOffsetX;
+			destinationWidth = this->width - this->offsetX;
+			destinationX = this->offsetX;
 		}
 		int copiedWidth = destinationWidth / this->scaleRatio;
-		if (repaintOffsetY < 0)
+		if (this->offsetY < 0)
 		{
-			sourceY = -repaintOffsetY / this->scaleRatio;
-			destinationHeight = repaintHeight - repaintOffsetY;
-			if (destinationHeight > repaintHeight)
+			sourceY = -this->offsetY / this->scaleRatio;
+			destinationHeight = this->height - this->offsetY;
+			if (destinationHeight > this->height)
 			{
-				destinationHeight = repaintHeight;
+				destinationHeight = this->height;
 			}
 		}
 		else
 		{
-			destinationHeight = repaintHeight - repaintOffsetY;
-			destinationY = repaintOffsetY;
+			destinationHeight = this->height - this->offsetY;
+			destinationY = this->offsetY;
 		}
 		int copiedHeight = destinationHeight / this->scaleRatio;
 		result = StretchBlt(
