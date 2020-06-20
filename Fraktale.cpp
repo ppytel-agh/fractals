@@ -470,24 +470,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_SETCURSOR:
 			//ustaw kursor na "łapkę"
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				if (windowData->isFractalImageMoved)
+				POINT cursorClientPosition = {};
+				GetCursorPos(&cursorClientPosition);
+				ScreenToClient(hWnd, &cursorClientPosition);
+				RECT clientArea = {};
+				GetClientRect(hWnd, &clientArea);
+				if (
+					(cursorClientPosition.x >= 0 && cursorClientPosition.x <= clientArea.right)
+					&&
+					(cursorClientPosition.y >= 0 && cursorClientPosition.y <= clientArea.bottom)
+				)
 				{
-					SetCursor(
-						LoadCursorW(
-							NULL,
-							IDC_UPARROW
-						)
-					);
+					FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+					if (windowData->isFractalImageMoved)
+					{
+						SetCursor(
+							LoadCursorW(
+								NULL,
+								IDC_UPARROW
+							)
+						);
+					}
+					else
+					{
+						SetCursor(
+							LoadCursorW(
+								NULL,
+								IDC_HAND
+							)
+						);
+					}
 				}
 				else
 				{
-					SetCursor(
-						LoadCursorW(
-							NULL,
-							IDC_HAND
-						)
-					);
+					//jeżeli kursor jest poza obszarem client to wyświetl domyslny
+					return DefWindowProc(hWnd, message, wParam, lParam);
 				}
 			}			
 			break;
