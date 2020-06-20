@@ -95,6 +95,10 @@ HDC WindowDrawing::getWindowDrawingBuffer(void)
 void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 {
 	BOOL result = false;
+	int repaintOffsetX = this->offsetX - wmPaintPS.rcPaint.left;
+	int repaintOffsetY = this->offsetY - wmPaintPS.rcPaint.top;
+	unsigned int repaintWidth = wmPaintPS.rcPaint.right - wmPaintPS.rcPaint.left;
+	unsigned int repaintHeight = wmPaintPS.rcPaint.bottom - wmPaintPS.rcPaint.top;
 	if (this->scaleRatio == 1.0f)
 	{
 		int sourceX = 0;
@@ -103,25 +107,63 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int copiedHeight = 0;
 		int destinationX = 0;
 		int destinationY = 0;
-		if (this->offsetX < 0)
+		if (repaintOffsetX < 0)
 		{
-			copiedWidth = this->width + this->offsetX;
-			sourceX = -this->offsetX;
+			//lewa krawędź obrazka wystaje za lewą krawędź obszaru rysowania
+			copiedWidth = this->width + repaintOffsetX;
+			if (copiedWidth <= 0)
+			{
+				//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
+				OutputDebugStringW(L"bitmapa poza lewą krawędzią");
+				return;
+			}
+			else if (copiedWidth > repaintWidth)
+			{
+				//ogranicz kopiwany obszar do obszaru rysowania
+				copiedWidth = repaintWidth;
+			}
+			sourceX = -repaintOffsetX;
 		}
 		else
 		{
-			destinationX = this->offsetX;
-			copiedWidth = this->width - this->offsetX;
+			//lewa krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+			if (this->offsetX >= wmPaintPS.rcPaint.right)
+			{
+				//obrazek znajduje się w całości poza prawą krawędzia
+				OutputDebugStringW(L"bitmapa poza prawą krawędzią");
+				return;
+			}
+			destinationX = repaintOffsetX;
+			copiedWidth = repaintWidth - repaintOffsetX;
 		}
-		if (this->offsetY < 0)
+		if (repaintOffsetY < 0)
 		{
-			copiedHeight = this->height + this->offsetY;
-			sourceY = -this->offsetY;
+			//górna krawędź obrazka wystaje poza obszar rysowania
+			copiedHeight = this->height + repaintOffsetY;
+			if (copiedHeight <= 0)
+			{
+				//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
+				OutputDebugStringW(L"bitmapa poza górną krawędzią");
+				return;
+			}
+			else if (copiedHeight > repaintHeight)
+			{
+				//ogranicz kopiwany obszar do obszaru rysowania
+				copiedHeight = repaintHeight;
+			}
+			sourceY = -repaintOffsetY;
 		}
 		else
 		{
-			destinationY = this->offsetY;
-			copiedHeight = this->height - this->offsetY;
+			//górna krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+			if (this->offsetY >= wmPaintPS.rcPaint.bottom)
+			{
+				//obrazek znajduje się w całości poza dolną krawędzia
+				OutputDebugStringW(L"bitmapa poza dolną krawędzią");
+				return;
+			}
+			destinationY = repaintOffsetY;
+			copiedHeight = repaintHeight - repaintOffsetY;
 		}
 		result = BitBlt(
 			wmPaintDC,
@@ -143,36 +185,38 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int destinationY = 0;
 		int destinationWidth = 0;
 		int destinationHeight = 0;
-		if (this->offsetX < 0)
+		int scaledWidth = this->width * this->scaleRatio;
+		int scaledHeight = this->height * this->scaleRatio;
+		if (repaintOffsetX < 0)
 		{
-			sourceX = -this->offsetX / this->scaleRatio;
-			destinationWidth = this->width - this->offsetX;
-			if (destinationWidth > this->width)
+			sourceX = -repaintOffsetX / this->scaleRatio;
+			destinationWidth = scaledWidth + repaintOffsetX;
+			if (destinationWidth > repaintWidth)
 			{
-				destinationWidth = this->width;
+				destinationWidth = repaintWidth;
 			}
 		}
 		else
 		{
-			destinationWidth = this->width - this->offsetX;
-			destinationX = this->offsetX;
+			destinationWidth = repaintWidth - repaintOffsetX;
+			destinationX = repaintOffsetX;
 		}
-		int copiedWidth = destinationWidth / this->scaleRatio;
-		if (this->offsetY < 0)
+		int copiedWidth = destinationWidth / this->scaleRatio + 1;
+		if (repaintOffsetY < 0)
 		{
-			sourceY = -this->offsetY / this->scaleRatio;
-			destinationHeight = this->height - this->offsetY;
-			if (destinationHeight > this->height)
+			sourceY = -repaintOffsetY / this->scaleRatio;
+			destinationHeight = scaledHeight + repaintOffsetY;
+			if (destinationHeight > repaintHeight)
 			{
-				destinationHeight = this->height;
+				destinationHeight = repaintHeight;
 			}
 		}
 		else
 		{
-			destinationHeight = this->height - this->offsetY;
-			destinationY = this->offsetY;
+			destinationHeight = repaintHeight - repaintOffsetY;
+			destinationY = repaintOffsetY;
 		}
-		int copiedHeight = destinationHeight / this->scaleRatio;
+		int copiedHeight = destinationHeight / this->scaleRatio + 1;
 		result = StretchBlt(
 			wmPaintDC,
 			destinationX,

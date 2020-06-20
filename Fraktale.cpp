@@ -27,8 +27,6 @@ struct FractalWindowData
 	bool isMinimized;
 	unsigned short previousWidth;
 	unsigned short previousHeight;
-	unsigned short newWidth;
-	unsigned short newHeight;
 	bool isFractalImageMoved;
 	POINT* lastPointerPosition;
 };
@@ -194,20 +192,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
 				// TODO: Add any drawing code that uses hdc here...	
+				OutputDebugStringW(L"Obszar odrysowania: ");
+				debugRectangle(&ps.rcPaint);
+				OutputDebugStringW(L"\n");
 
-				//bufor obrazu zapobiegający miganiu
-				RECT clientArea;
-				GetClientRect(hWnd, &clientArea);
+				//bufor obrazu zapobiegający miganiu				
 				HDC screenBuffer = CreateCompatibleDC(hdc);
-				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, clientArea.right, clientArea.bottom);
+				//bufor ma rozmiar obszaru do odmalowania
+				int bufferBitmapWidth = ps.rcPaint.right - ps.rcPaint.left;
+				int bufferBitmapHeight = ps.rcPaint.bottom - ps.rcPaint.top;
+				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, bufferBitmapWidth, bufferBitmapHeight);
 				SelectObject(screenBuffer, screenCompatibleBitmap);
 				HBRUSH backgroundBrush = (HBRUSH) GetClassLongW(
 					hWnd,
 					GCL_HBRBACKGROUND
 				);
+				//wypełnij bufor bielą
+				RECT backgroundArea = {};
+				backgroundArea.right = bufferBitmapWidth;
+				backgroundArea.bottom = bufferBitmapHeight;
 				FillRect(
 					screenBuffer,
-					&clientArea,
+					&backgroundArea,
 					backgroundBrush
 				);
 
@@ -221,10 +227,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//skopiuj bufor na ekran
 				BitBlt(
 					hdc,
-					0,
-					0,
-					clientArea.right,
-					clientArea.bottom,
+					ps.rcPaint.left,
+					ps.rcPaint.top,
+					bufferBitmapWidth,
+					bufferBitmapHeight,
 					screenBuffer,
 					0,
 					0,
@@ -241,6 +247,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				PostQuitMessage(0);
 				break;
 			}
+			break;
 		case WM_CREATE:
 			{
 				//utwórz dialog box z formulrzem
@@ -289,16 +296,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				OutputDebugStringW(L"Koniec zmiany rozmiaru\n");
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				windowData->isResizedManually = false;
+				RECT newSize;
+				GetClientRect(hWnd, &newSize);
 				if (
-					(windowData->previousWidth != windowData->newWidth)
+					(windowData->previousWidth != newSize.right)
 					||
-					(windowData->previousHeight != windowData->newHeight)
+					(windowData->previousHeight != newSize.bottom)
 					)
 				{
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
 					windowData->fractalDrawing = new FractalDrawing(
-						windowData->newWidth,
-						windowData->newHeight
+						newSize.right,
+						newSize.bottom
 					);
 					updateFractal(
 						hWnd,
@@ -310,9 +319,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_SIZE:
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				short newWidth = LOWORD(lParam);
-				short newHeight = HIWORD(lParam);
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);				
 				bool resizeNow = false;
 				if (wParam == SIZE_MAXIMIZED)
 				{
@@ -324,8 +331,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (windowData->isResizedManually)
 					{
 						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
-						windowData->newWidth = newWidth;
-						windowData->newHeight = newHeight;
 					}
 					else if (windowData->isMinimized)
 					{
@@ -344,6 +349,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (resizeNow)
 				{
+					short newWidth = LOWORD(lParam);
+					short newHeight = HIWORD(lParam);
 					windowData->fractalDrawing = new FractalDrawing(
 						newWidth,
 						newHeight
@@ -355,14 +362,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 			}
+			break;
 		case WM_MOUSEMOVE:
 			{
-				const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
-				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
 				int mouseX = GET_X_LPARAM(lParam);
 				int mouseY = GET_Y_LPARAM(lParam);
+				/*const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
+				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];				
 				wsprintfW(debugString, debugStringFormat, mouseX, mouseY, wParam);
-				OutputDebugStringW(debugString);
+				OutputDebugStringW(debugString);*/
 				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
 				TRACKMOUSEEVENT trackMouseEventData = {};
 				trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);
@@ -462,24 +470,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_SETCURSOR:
 			//ustaw kursor na "łapkę"
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				if (windowData->isFractalImageMoved)
+				POINT cursorClientPosition = {};
+				GetCursorPos(&cursorClientPosition);
+				ScreenToClient(hWnd, &cursorClientPosition);
+				RECT clientArea = {};
+				GetClientRect(hWnd, &clientArea);
+				if (
+					(cursorClientPosition.x >= 0 && cursorClientPosition.x <= clientArea.right)
+					&&
+					(cursorClientPosition.y >= 0 && cursorClientPosition.y <= clientArea.bottom)
+				)
 				{
-					SetCursor(
-						LoadCursorW(
-							NULL,
-							IDC_UPARROW
-						)
-					);
+					FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+					if (windowData->isFractalImageMoved)
+					{
+						SetCursor(
+							LoadCursorW(
+								NULL,
+								IDC_UPARROW
+							)
+						);
+					}
+					else
+					{
+						SetCursor(
+							LoadCursorW(
+								NULL,
+								IDC_HAND
+							)
+						);
+					}
 				}
 				else
 				{
-					SetCursor(
-						LoadCursorW(
-							NULL,
-							IDC_HAND
-						)
-					);
+					//jeżeli kursor jest poza obszarem client to wyświetl domyslny
+					return DefWindowProc(hWnd, message, wParam, lParam);
 				}
 			}			
 			break;
