@@ -194,6 +194,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
 				// TODO: Add any drawing code that uses hdc here...	
+				OutputDebugStringW(L"Obszar odrysowania: ");
+				debugRectangle(&ps.rcPaint);
+				OutputDebugStringW(L"\n");
 
 				//bufor obrazu zapobiegający miganiu
 				RECT clientArea;
