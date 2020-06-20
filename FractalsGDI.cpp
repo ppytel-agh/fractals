@@ -18,6 +18,7 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 		Point currentPoint;
 		Point pointPrim;
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+		COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
 		for (int i = 0; i < 100000; i++)
 		{
 			RECT drawingPoint;
@@ -27,10 +28,11 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 			drawingPoint.bottom = drawingPoint.top + 1;
 			pointPrim = fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
 			currentPoint = pointPrim;
-			FillRect(
+			SetPixel(
 				clientHdc,
-				&drawingPoint,
-				blackBrush
+				kalkulatorPikseli.getPixelX(currentPoint.GetX()),
+				kalkulatorPikseli.getPixelY(currentPoint.GetY()),
+				blackColor
 			);
 		}
 		RECT frameRect = {};
