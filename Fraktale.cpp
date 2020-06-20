@@ -52,8 +52,6 @@ void parseImportAndPutIntoForm(
 	FractalDefinitionForm* fractalForm
 );
 
-void debugLastError(void);
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -947,13 +945,4 @@ void parseImportAndPutIntoForm(
 			fractalForm->setValue(importedFractal);
 		}
 	}
-}
-
-void debugLastError(void)
-{
-	DWORD lastError = GetLastError();
-	WCHAR errorMessageFormat[] = L"ostatni błąd - %d\n";
-	LPWSTR errorString = new WCHAR[sizeof(errorMessageFormat) + 8];
-	wsprintfW(errorString, errorMessageFormat, lastError);
-	OutputDebugStringW(errorString);
 }

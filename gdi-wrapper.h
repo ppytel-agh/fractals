@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Windows.h>
+#include "string-processing.h"
+#include "debug-helper.h"
 
 /*
 	Klasa wrapująca bufor GDI rysowanego okna.

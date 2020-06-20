@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="debug-helper.h" />
     <ClInclude Include="Fractals.h" />
     <ClInclude Include="FractalsGDI.h" />
     <ClInclude Include="FractalsGUI.h" />
@@ -150,6 +151,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="debug-helper.cpp" />
     <ClCompile Include="Fractals.cpp" />
     <ClCompile Include="FractalsGDI.cpp" />
     <ClCompile Include="FractalsGUI.cpp" />

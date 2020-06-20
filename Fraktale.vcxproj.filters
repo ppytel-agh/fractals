@@ -42,6 +42,9 @@
     <ClInclude Include="gdi-wrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="debug-helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fraktale.cpp">
@@ -60,6 +63,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gdi-wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="debug-helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
