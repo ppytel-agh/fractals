@@ -249,6 +249,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				PostQuitMessage(0);
 				break;
 			}
+			break;
 		case WM_CREATE:
 			{
 				//utwórz dialog box z formulrzem
@@ -363,6 +364,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 			}
+			break;
 		case WM_MOUSEMOVE:
 			{
 				int mouseX = GET_X_LPARAM(lParam);
