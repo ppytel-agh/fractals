@@ -134,17 +134,32 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 			destinationX = repaintOffsetX;
 			copiedWidth = repaintWidth - repaintOffsetX;
 		}
-		if (this->offsetY < 0)
+		if (repaintOffsetY < 0)
 		{
-			//górna krawędź obrazka wystaje poza górną krawędź okna
-			copiedHeight = this->height + this->offsetY;
-			sourceY = -this->offsetY;
+			//górna krawędź obrazka wystaje poza obszar rysowania
+			copiedHeight = this->height + repaintOffsetY;
+			if (copiedHeight <= 0)
+			{
+				//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
+				return;
+			}
+			else if (copiedHeight > repaintHeight)
+			{
+				//ogranicz kopiwany obszar do obszaru rysowania
+				copiedHeight = repaintHeight;
+			}
+			sourceY = -repaintOffsetY;
 		}
 		else
 		{
-			//górna krawędź obrazka zaczyna się wewnątrz okna
-			destinationY = this->offsetY;
-			copiedHeight = this->height - this->offsetY;
+			//górna krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+			if (this->offsetY >= wmPaintPS.rcPaint.bottom)
+			{
+				//obrazek znajduje się w całości poza dolną krawędzia
+				return;
+			}
+			destinationY = repaintOffsetX;
+			copiedHeight = repaintHeight - repaintOffsetY;
 		}
 		result = BitBlt(
 			wmPaintDC,
