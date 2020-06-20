@@ -331,6 +331,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (windowData->isResizedManually)
 					{
 						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
+						RECT fractalRect = {};
+						fractalRect.right = windowData->previousWidth;
+						fractalRect.bottom = windowData->previousHeight;
+						ValidateRect(
+							hWnd,
+							&fractalRect
+						);
 					}
 					else if (windowData->isMinimized)
 					{
@@ -362,11 +369,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 			}
-			return true;
-			break;
-		//przechwytuję, żeby nie odrysowywało okna
-		case WM_SIZING:
-			return true;
 			break;
 		case WM_MOUSEMOVE:
 			{
