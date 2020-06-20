@@ -236,6 +236,45 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		OutputDebugStringW(L"Nie udało się narysować bitmapy\n");
 		debugLastError();
 	}
+	else
+	{
+		HDC colorBitmapDC = CreateCompatibleDC(wmPaintDC);
+		HBITMAP colorBitmap = CreateCompatibleBitmap(
+			wmPaintDC,
+			repaintWidth,
+			repaintHeight
+		);
+		SelectObject(colorBitmapDC, colorBitmap);
+		srand(rand()*time(NULL));
+		HBRUSH colorBrush = CreateSolidBrush(
+			(COLORREF) RGB(
+				rand()%256,
+				rand()%256,
+				rand()%256,
+			)
+		);
+		RECT colorMaskRect = {};
+		colorMaskRect.right = repaintWidth;
+		colorMaskRect.bottom = repaintHeight;
+		FillRect(
+			colorBitmapDC,
+			&colorMaskRect,
+			colorBrush
+		);
+		BitBlt(
+			wmPaintDC,
+			0,
+			0,
+			repaintWidth,
+			repaintHeight,
+			colorBitmapDC,
+			0,
+			0,
+			SRCPAINT
+		);
+		DeleteDC(colorBitmapDC);
+		DeleteObject(colorBitmap);
+	}
 }
 
 void WindowDrawing::moveRender(short x, short y)
