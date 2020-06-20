@@ -107,23 +107,42 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int copiedHeight = 0;
 		int destinationX = 0;
 		int destinationY = 0;
-		if (this->offsetX < 0)
+		if (repaintOffsetX < 0)
 		{
-			copiedWidth = this->width + this->offsetX;
-			sourceX = -this->offsetX;
+			//lewa krawędź obrazka wystaje za lewą krawędź obszaru rysowania
+			copiedWidth = this->width + repaintOffsetX;
+			if (copiedWidth <= 0)
+			{
+				//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
+				return;
+			}
+			else if (copiedWidth > repaintWidth)
+			{
+				//ogranicz kopiwany obszar do obszaru rysowania
+				copiedWidth = repaintWidth;
+			}
+			sourceX = -repaintOffsetX;
 		}
 		else
 		{
-			destinationX = this->offsetX;
-			copiedWidth = this->width - this->offsetX;
+			//lewa krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+			if (this->offsetX >= wmPaintPS.rcPaint.right)
+			{
+				//obrazek znajduje się w całości poza prawą krawędzia
+				return;
+			}
+			destinationX = repaintOffsetX;
+			copiedWidth = repaintWidth - repaintOffsetX;
 		}
 		if (this->offsetY < 0)
 		{
+			//górna krawędź obrazka wystaje poza górną krawędź okna
 			copiedHeight = this->height + this->offsetY;
 			sourceY = -this->offsetY;
 		}
 		else
 		{
+			//górna krawędź obrazka zaczyna się wewnątrz okna
 			destinationY = this->offsetY;
 			copiedHeight = this->height - this->offsetY;
 		}
