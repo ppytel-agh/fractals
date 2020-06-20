@@ -162,7 +162,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 				OutputDebugStringW(L"bitmapa poza dolną krawędzią");
 				return;
 			}
-			destinationY = repaintOffsetX;
+			destinationY = repaintOffsetY;
 			copiedHeight = repaintHeight - repaintOffsetY;
 		}
 		result = BitBlt(
