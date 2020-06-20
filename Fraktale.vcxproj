@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Fractals.h" />
+    <ClInclude Include="FractalsGDI.h" />
     <ClInclude Include="FractalsGUI.h" />
     <ClInclude Include="Fraktale.h" />
     <ClInclude Include="framework.h" />
@@ -149,6 +150,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fractals.cpp" />
+    <ClCompile Include="FractalsGDI.cpp" />
     <ClCompile Include="FractalsGUI.cpp" />
     <ClCompile Include="Fraktale.cpp" />
     <ClCompile Include="string-processing.cpp" />
