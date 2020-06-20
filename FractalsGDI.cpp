@@ -1,7 +1,7 @@
 #include "FractalsGDI.h"
 #include <WinUser.h>
 #include <wingdi.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)
 {

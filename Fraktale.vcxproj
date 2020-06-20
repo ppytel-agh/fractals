@@ -88,6 +88,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -139,20 +140,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="debug-helper.h" />
+    <ClInclude Include="fractale-misc.h" />
     <ClInclude Include="Fractals.h" />
     <ClInclude Include="FractalsGDI.h" />
     <ClInclude Include="FractalsGUI.h" />
     <ClInclude Include="Fraktale.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="GDIWrapper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="string-processing.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="debug-helper.cpp" />
+    <ClCompile Include="fractale-misc.cpp" />
     <ClCompile Include="Fractals.cpp" />
     <ClCompile Include="FractalsGDI.cpp" />
     <ClCompile Include="FractalsGUI.cpp" />
     <ClCompile Include="Fraktale.cpp" />
+    <ClCompile Include="GDIWrapper.cpp" />
     <ClCompile Include="string-processing.cpp" />
   </ItemGroup>
   <ItemGroup>
