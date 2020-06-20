@@ -187,36 +187,36 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int destinationHeight = 0;
 		int scaledWidth = this->width * this->scaleRatio;
 		int scaledHeight = this->height * this->scaleRatio;
-		if (this->offsetX < 0)
+		if (repaintOffsetX < 0)
 		{
-			sourceX = -this->offsetX / this->scaleRatio;
-			destinationWidth = this->width - this->offsetX;
-			if (destinationWidth > this->width)
+			sourceX = -repaintOffsetX / this->scaleRatio;
+			destinationWidth = scaledWidth + repaintOffsetX;
+			if (destinationWidth > repaintWidth)
 			{
-				destinationWidth = this->width;
+				destinationWidth = repaintWidth;
 			}
 		}
 		else
 		{
-			destinationWidth = this->width - this->offsetX;
-			destinationX = this->offsetX;
+			destinationWidth = repaintWidth - repaintOffsetX;
+			destinationX = repaintOffsetX;
 		}
-		int copiedWidth = destinationWidth / this->scaleRatio;
-		if (this->offsetY < 0)
+		int copiedWidth = destinationWidth / this->scaleRatio + 1;
+		if (repaintOffsetY < 0)
 		{
-			sourceY = -this->offsetY / this->scaleRatio;
-			destinationHeight = this->height - this->offsetY;
-			if (destinationHeight > this->height)
+			sourceY = -repaintOffsetY / this->scaleRatio;
+			destinationHeight = scaledHeight + repaintOffsetY;
+			if (destinationHeight > repaintHeight)
 			{
-				destinationHeight = this->height;
+				destinationHeight = repaintHeight;
 			}
 		}
 		else
 		{
-			destinationHeight = this->height - this->offsetY;
-			destinationY = this->offsetY;
+			destinationHeight = repaintHeight - repaintOffsetY;
+			destinationY = repaintOffsetY;
 		}
-		int copiedHeight = destinationHeight / this->scaleRatio;
+		int copiedHeight = destinationHeight / this->scaleRatio + 1;
 		result = StretchBlt(
 			wmPaintDC,
 			destinationX,
