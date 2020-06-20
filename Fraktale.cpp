@@ -362,6 +362,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 			}
+			return true;
+			break;
+		//przechwytuję, żeby nie odrysowywało okna
+		case WM_SIZING:
+			return true;
 			break;
 		case WM_MOUSEMOVE:
 			{
