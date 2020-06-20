@@ -198,19 +198,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				debugRectangle(&ps.rcPaint);
 				OutputDebugStringW(L"\n");
 
-				//bufor obrazu zapobiegający miganiu
-				RECT clientArea;
-				GetClientRect(hWnd, &clientArea);
+				//bufor obrazu zapobiegający miganiu				
 				HDC screenBuffer = CreateCompatibleDC(hdc);
-				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, clientArea.right, clientArea.bottom);
+				//bufor ma rozmiar obszaru do odmalowania
+				int bufferBitmapWidth = ps.rcPaint.right - ps.rcPaint.left;
+				int bufferBitmapHeight = ps.rcPaint.bottom - ps.rcPaint.top;
+				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, bufferBitmapWidth, bufferBitmapHeight);
 				SelectObject(screenBuffer, screenCompatibleBitmap);
 				HBRUSH backgroundBrush = (HBRUSH) GetClassLongW(
 					hWnd,
 					GCL_HBRBACKGROUND
 				);
+				//wypełnij bufor bielą
+				RECT backgroundArea = {};
+				backgroundArea.right = bufferBitmapWidth;
+				backgroundArea.bottom = bufferBitmapHeight;
 				FillRect(
 					screenBuffer,
-					&clientArea,
+					&backgroundArea,
 					backgroundBrush
 				);
 
@@ -224,10 +229,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//skopiuj bufor na ekran
 				BitBlt(
 					hdc,
-					0,
-					0,
-					clientArea.right,
-					clientArea.bottom,
+					ps.rcPaint.left,
+					ps.rcPaint.top,
+					bufferBitmapWidth,
+					bufferBitmapHeight,
 					screenBuffer,
 					0,
 					0,

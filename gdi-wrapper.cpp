@@ -95,6 +95,10 @@ HDC WindowDrawing::getWindowDrawingBuffer(void)
 void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 {
 	BOOL result = false;
+	int repaintOffsetX = this->offsetX - wmPaintPS.rcPaint.left;
+	int repaintOffsetY = this->offsetY - wmPaintPS.rcPaint.top;
+	unsigned int repaintWidth = wmPaintPS.rcPaint.right - wmPaintPS.rcPaint.left;
+	unsigned int repaintHeight = wmPaintPS.rcPaint.bottom - wmPaintPS.rcPaint.top;
 	if (this->scaleRatio == 1.0f)
 	{
 		int sourceX = 0;
@@ -103,25 +107,25 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int copiedHeight = 0;
 		int destinationX = 0;
 		int destinationY = 0;
-		if (this->offsetX < 0)
+		if (repaintOffsetX < 0)
 		{
-			copiedWidth = this->width + this->offsetX;
-			sourceX = -this->offsetX;
+			copiedWidth = repaintWidth + repaintOffsetX;
+			sourceX = -repaintOffsetX;
 		}
 		else
 		{
-			destinationX = this->offsetX;
-			copiedWidth = this->width - this->offsetX;
+			destinationX = wmPaintPS.rcPaint.left;
+			copiedWidth = repaintWidth - repaintOffsetX;
 		}
-		if (this->offsetY < 0)
+		if (repaintOffsetY < 0)
 		{
-			copiedHeight = this->height + this->offsetY;
-			sourceY = -this->offsetY;
+			copiedHeight = repaintHeight + repaintOffsetY;
+			sourceY = -repaintOffsetY;
 		}
 		else
 		{
-			destinationY = this->offsetY;
-			copiedHeight = this->height - this->offsetY;
+			destinationY = wmPaintPS.rcPaint.top;
+			copiedHeight = repaintHeight - repaintOffsetY;
 		}
 		result = BitBlt(
 			wmPaintDC,
@@ -143,34 +147,34 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 		int destinationY = 0;
 		int destinationWidth = 0;
 		int destinationHeight = 0;
-		if (this->offsetX < 0)
+		if (repaintOffsetX < 0)
 		{
-			sourceX = -this->offsetX / this->scaleRatio;
-			destinationWidth = this->width - this->offsetX;
-			if (destinationWidth > this->width)
+			sourceX = -repaintOffsetX / this->scaleRatio;
+			destinationWidth = repaintWidth - repaintOffsetX;
+			if (destinationWidth > repaintWidth)
 			{
-				destinationWidth = this->width;
+				destinationWidth = repaintWidth;
 			}
 		}
 		else
 		{
-			destinationWidth = this->width - this->offsetX;
-			destinationX = this->offsetX;
+			destinationWidth = repaintWidth - repaintOffsetX;
+			destinationX = repaintOffsetX;
 		}
 		int copiedWidth = destinationWidth / this->scaleRatio;
-		if (this->offsetY < 0)
+		if (repaintOffsetY < 0)
 		{
-			sourceY = -this->offsetY / this->scaleRatio;
-			destinationHeight = this->height - this->offsetY;
-			if (destinationHeight > this->height)
+			sourceY = -repaintOffsetY / this->scaleRatio;
+			destinationHeight = repaintHeight - repaintOffsetY;
+			if (destinationHeight > repaintHeight)
 			{
-				destinationHeight = this->height;
+				destinationHeight = repaintHeight;
 			}
 		}
 		else
 		{
-			destinationHeight = this->height - this->offsetY;
-			destinationY = this->offsetY;
+			destinationHeight = repaintHeight - repaintOffsetY;
+			destinationY = repaintOffsetY;
 		}
 		int copiedHeight = destinationHeight / this->scaleRatio;
 		result = StretchBlt(
