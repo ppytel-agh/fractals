@@ -365,12 +365,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		case WM_MOUSEMOVE:
 			{
-				const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
-				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
 				int mouseX = GET_X_LPARAM(lParam);
 				int mouseY = GET_Y_LPARAM(lParam);
+				/*const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
+				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];				
 				wsprintfW(debugString, debugStringFormat, mouseX, mouseY, wParam);
-				OutputDebugStringW(debugString);
+				OutputDebugStringW(debugString);*/
 				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
 				TRACKMOUSEEVENT trackMouseEventData = {};
 				trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);

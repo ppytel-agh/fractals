@@ -114,6 +114,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 			if (copiedWidth <= 0)
 			{
 				//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
+				OutputDebugStringW(L"bitmapa poza lewą krawędzią");
 				return;
 			}
 			else if (copiedWidth > repaintWidth)
@@ -129,6 +130,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 			if (this->offsetX >= wmPaintPS.rcPaint.right)
 			{
 				//obrazek znajduje się w całości poza prawą krawędzia
+				OutputDebugStringW(L"bitmapa poza prawą krawędzią");
 				return;
 			}
 			destinationX = repaintOffsetX;
@@ -141,6 +143,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 			if (copiedHeight <= 0)
 			{
 				//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
+				OutputDebugStringW(L"bitmapa poza górną krawędzią");
 				return;
 			}
 			else if (copiedHeight > repaintHeight)
@@ -156,6 +159,7 @@ void WindowDrawing::redrawWindow(HDC wmPaintDC, PAINTSTRUCT& wmPaintPS)
 			if (this->offsetY >= wmPaintPS.rcPaint.bottom)
 			{
 				//obrazek znajduje się w całości poza dolną krawędzia
+				OutputDebugStringW(L"bitmapa poza dolną krawędzią");
 				return;
 			}
 			destinationY = repaintOffsetX;
