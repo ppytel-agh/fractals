@@ -269,15 +269,26 @@ bool Fractal::isValid(void)
 	return transformationRowsGroup.isValid();
 }
 
-AffineTransformation Fractal::getAffineTransformation(int randomValue)
+AffineTransformation Fractal::getAffineTransformation(
+	int randomValue,
+	unsigned char* selectedRow
+)
 {
 	unsigned char percentageValue = randomValue % 100;
 	for (unsigned char i = 0;i < this->numberOfProbabilities; i++)
 	{
 		if (percentageValue < this->probabilityAssociations[i])
 		{
+			if (selectedRow != nullptr)
+			{
+				*selectedRow = i;
+			}
 			return this->transformationRowsGroup.getAffineTransformation(i).getTransformation();
 		}
+	}
+	if (selectedRow != nullptr)
+	{
+		*selectedRow = this->numberOfProbabilities;
 	}
 	return this->transformationRowsGroup.getAffineTransformation(this->numberOfProbabilities).getTransformation();
 }
@@ -290,6 +301,11 @@ FractalClipping Fractal::getClipping(void)
 AffineTransformationRowsGroup Fractal::getTransformationRows(void)
 {
 	return this->transformationRowsGroup;
+}
+
+unsigned char Fractal::getNumberOfProbabilities(void)
+{
+	return this->numberOfProbabilities;
 }
 
 PixelCalculator::PixelCalculator(

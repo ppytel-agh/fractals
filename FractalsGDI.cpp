@@ -18,7 +18,21 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 		Point currentPoint;
 		Point pointPrim;
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-		COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
+		unsigned char noProbabilityRows = fractal.getNumberOfProbabilities() + 1;
+		COLORREF* colors = new COLORREF[noProbabilityRows];
+		for (unsigned char i = 0; i < noProbabilityRows; i++)
+		{
+			unsigned char rSeed = rand() % 256;
+			unsigned char gSeed = rand() % 256;
+			unsigned char bSeed = rand() % 256;
+			colors[i] = (COLORREF) RGB(
+				rSeed,
+				gSeed,
+				bSeed
+			);
+		}
+		unsigned char* selectedRow = new unsigned char;
+		*selectedRow = 0;
 		for (int i = 0; i < 100000; i++)
 		{
 			RECT drawingPoint;
@@ -26,13 +40,16 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 			drawingPoint.right = drawingPoint.left + 1;
 			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint.GetY());
 			drawingPoint.bottom = drawingPoint.top + 1;
-			pointPrim = fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+			pointPrim = fractal.getAffineTransformation(
+				rand(),
+				selectedRow
+			).calculatePrim(currentPoint);
 			currentPoint = pointPrim;
 			SetPixel(
 				clientHdc,
 				kalkulatorPikseli.getPixelX(currentPoint.GetX()),
 				kalkulatorPikseli.getPixelY(currentPoint.GetY()),
-				blackColor
+				colors[*selectedRow]
 			);
 		}
 		RECT frameRect = {};

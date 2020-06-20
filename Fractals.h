@@ -111,9 +111,13 @@ public:
 	~Fractal();
 	Fractal& operator= (const Fractal& rVal);
 	bool isValid(void);
-	AffineTransformation getAffineTransformation(int randomValue);
+	AffineTransformation getAffineTransformation(
+		int randomValue,
+		unsigned char* selectedRow = nullptr
+	);
 	FractalClipping getClipping(void);
 	AffineTransformationRowsGroup getTransformationRows(void);
+	unsigned char getNumberOfProbabilities(void);
 };
 
 class PixelCalculator
