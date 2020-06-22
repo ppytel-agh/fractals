@@ -15,7 +15,8 @@ public:
 	);
 	void drawFractal(
 		Fractal fractal,
-		HDC clientHdc
+		HDC clientHdc,
+		float scale = 1.0f
 	);
 	unsigned short getClientWidth(void);
 	unsigned short getClientHeight(void);

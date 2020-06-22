@@ -6,17 +6,22 @@ FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short client
 	this->clientHeight = clientHeight;
 }
 
-void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
+void FractalDrawing::drawFractal(
+	Fractal fractal,
+	HDC clientHdc,
+	float scale
+)
 {
 	if (fractal.isValid())
 	{
+		unsigned short bitmapWidth = this->clientWidth * scale;
+		unsigned short bitmapHeight = this->clientHeight * scale;
 		PixelCalculator kalkulatorPikseli(
-			this->clientWidth,
-			this->clientHeight,
+			bitmapWidth,
+			bitmapHeight,
 			fractal.getClipping()
 		);
-		Point currentPoint;
-		Point pointPrim;
+		
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		unsigned char noProbabilityRows = fractal.getNumberOfProbabilities() + 1;
 		COLORREF* colors = new COLORREF[noProbabilityRows];
@@ -33,28 +38,34 @@ void FractalDrawing::drawFractal(Fractal fractal, HDC clientHdc)
 		}
 		unsigned char* selectedRow = new unsigned char;
 		*selectedRow = 0;
+		Point currentPoint;
+		unsigned char rSeed = rand() % 256;
+		unsigned char gSeed = rand() % 256;
+		unsigned char bSeed = rand() % 256;
+		COLORREF pixelColor = (COLORREF) RGB(
+			rSeed,
+			gSeed,
+			bSeed
+		);
 		for (int i = 0; i < 100000; i++)
-		{
-			RECT drawingPoint;
-			drawingPoint.left = kalkulatorPikseli.getPixelX(currentPoint.GetX());
-			drawingPoint.right = drawingPoint.left + 1;
-			drawingPoint.top = kalkulatorPikseli.getPixelY(currentPoint.GetY());
-			drawingPoint.bottom = drawingPoint.top + 1;
-			pointPrim = fractal.getAffineTransformation(
-				rand(),
-				selectedRow
-			).calculatePrim(currentPoint);
-			currentPoint = pointPrim;
+		{			
 			SetPixel(
 				clientHdc,
 				kalkulatorPikseli.getPixelX(currentPoint.GetX()),
 				kalkulatorPikseli.getPixelY(currentPoint.GetY()),
-				colors[*selectedRow]
+				pixelColor
 			);
+			currentPoint = fractal.getAffineTransformation(
+				rand(),
+				selectedRow
+			).calculatePrim(currentPoint);
+			pixelColor = colors[*selectedRow];
 		}
+		delete selectedRow;
+
 		RECT frameRect = {};
-		frameRect.right = this->clientWidth;
-		frameRect.bottom = this->clientHeight;
+		frameRect.right = bitmapWidth;
+		frameRect.bottom = bitmapHeight;
 		FrameRect(clientHdc, &frameRect, blackBrush);
 	}
 }
