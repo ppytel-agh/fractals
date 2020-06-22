@@ -36,6 +36,7 @@ struct FractalFormDialogData
 	FractalDrawingUI* fractalUI;
 	WindowDrawing* fractalBuffer;
 	HWND importDialogWindowHandle;
+	float drawingScale;
 };
 
 void updateFractal(
@@ -432,16 +433,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hWnd,
 					&mousePosition
 				);
-				dialogData->fractalBuffer->scale(
-					wheelDelta,
-					mousePosition.x,
-					mousePosition.y
-				);
-				InvalidateRect(
-					hWnd,
-					NULL,
-					FALSE
-				);
+				float currentScale = dialogData->drawingScale;
+				//zaktualizuj skalę o przesunięcie kółka myszy
+				dialogData->drawingScale += ((float)(wheelDelta) / 1000.0f);
+				//nie oddalaj poniżej skali 1.0
+				if (dialogData->drawingScale < 1.0f)
+				{
+					dialogData->drawingScale = 1.0f;
+				}
+				else if (dialogData->drawingScale > 6.0f)
+				{
+					dialogData->drawingScale = 6.0f;
+				}
+				if (currentScale != dialogData->drawingScale)
+				{
+					dialogData->fractalBuffer->scale(
+						wheelDelta,
+						mousePosition.x,
+						mousePosition.y
+					);
+					InvalidateRect(
+						hWnd,
+						NULL,
+						FALSE
+					);
+				}				
 			}
 			break;
 		case WM_LBUTTONDOWN:
@@ -572,6 +588,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				//zapisz dane w oknie
 				FractalFormDialogData* dialogData = new FractalFormDialogData{};
 				dialogData->fractalUI = formTest;
+				dialogData->drawingScale = 1.0f;
 				SetWindowLongW(
 					hDlg,
 					GWL_USERDATA,
@@ -725,6 +742,9 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 	return (INT_PTR)FALSE;
 }
 
+/*
+	Funkcja aktualizuje bufor okna nowymi pikselami na podstawie wartości z formularza
+*/
 void updateFractal(
 	HWND windowHandle,
 	HWND dialogHandle,
