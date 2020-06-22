@@ -304,3 +304,95 @@ void WindowDrawing::scale(short promilePoints, unsigned short referencePointX, u
 	this->offsetX = referencePointX + scaledVectorX;
 	this->offsetY = referencePointY + scaledVectorY;
 }
+
+bool drawMovablePictureInRepaintBuffer(
+	const HDC bufferDC,
+	const RECT* repaintRect,
+	const MovablePicture* picture
+)
+{
+	int repaintOffsetX = picture->offsetX - repaintRect->left;
+	int repaintOffsetY = picture->offsetY - repaintRect->top;
+	unsigned int repaintWidth = repaintRect->right - repaintRect->left;
+	unsigned int repaintHeight = repaintRect->bottom - repaintRect->top;
+
+	int sourceX = 0;
+	int sourceY = 0;
+	int copiedWidth = 0;
+	int copiedHeight = 0;
+	int destinationX = 0;
+	int destinationY = 0;
+	if (repaintOffsetX < 0)
+	{
+		//lewa krawędź obrazka wystaje za lewą krawędź obszaru rysowania
+		copiedWidth = picture->width + repaintOffsetX;
+		if (copiedWidth <= 0)
+		{
+			//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
+			OutputDebugStringW(L"bitmapa poza lewą krawędzią");
+			return false;
+		}
+		else if (copiedWidth > repaintWidth)
+		{
+			//ogranicz kopiwany obszar do obszaru rysowania
+			copiedWidth = repaintWidth;
+		}
+		sourceX = -repaintOffsetX;
+	}
+	else
+	{
+		//lewa krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+		if (picture->offsetX >= repaintRect->right)
+		{
+			//obrazek znajduje się w całości poza prawą krawędzia
+			OutputDebugStringW(L"bitmapa poza prawą krawędzią");
+			return false;
+		}
+		destinationX = repaintOffsetX;
+		copiedWidth = repaintWidth - repaintOffsetX;
+	}
+	if (repaintOffsetY < 0)
+	{
+		//górna krawędź obrazka wystaje poza obszar rysowania
+		copiedHeight = picture->height + repaintOffsetY;
+		if (copiedHeight <= 0)
+		{
+			//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
+			OutputDebugStringW(L"bitmapa poza górną krawędzią");
+			return false;
+		}
+		else if (copiedHeight > repaintHeight)
+		{
+			//ogranicz kopiwany obszar do obszaru rysowania
+			copiedHeight = repaintHeight;
+		}
+		sourceY = -repaintOffsetY;
+	}
+	else
+	{
+		//górna krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+		if (picture->offsetY >= repaintRect->bottom)
+		{
+			//obrazek znajduje się w całości poza dolną krawędzia
+			OutputDebugStringW(L"bitmapa poza dolną krawędzią");
+			return false;
+		}
+		destinationY = repaintOffsetY;
+		copiedHeight = repaintHeight - repaintOffsetY;
+	}
+	HDC pictureDC = CreateCompatibleDC(bufferDC);
+	SelectObject(pictureDC, picture->bitmap);
+	bool result = BitBlt(
+		bufferDC,
+		destinationX,
+		destinationY,
+		copiedWidth,
+		copiedHeight,
+		pictureDC,
+		sourceX,
+		sourceY,
+		SRCCOPY
+	);
+	DeleteDC(pictureDC);	
+	return result;
+}

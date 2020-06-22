@@ -29,6 +29,8 @@ struct FractalWindowData
 	unsigned short previousHeight;
 	bool isFractalImageMoved;
 	POINT* lastPointerPosition;
+	Fractal* fractal;
+	MovablePicture* fractalImage;
 };
 
 struct FractalFormDialogData
@@ -205,7 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, bufferBitmapWidth, bufferBitmapHeight);
 				SelectObject(screenBuffer, screenCompatibleBitmap);
 				//wypełnij bufor kolorem tła
-				HBRUSH backgroundBrush = (HBRUSH) GetClassLongW(
+				HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
 					hWnd,
 					GCL_HBRBACKGROUND
 				);
@@ -220,10 +222,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				//przekaż bufor do obiektu, który odmaluje w nim fragment bitmapy fraktala
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
-				if (dialogData->fractalBuffer != NULL)
+				if (windowData->fractalImage != NULL)
 				{
-					dialogData->fractalBuffer->redrawWindow(screenBuffer, ps);
+					drawMovablePictureInRepaintBuffer(
+						screenBuffer,
+						&ps.rcPaint,
+						windowData->fractalImage
+					);
 				}
 
 				//skopiuj bufor na ekran
@@ -391,8 +396,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					wsprintfW(fractalMoveDebugString, fractalMoveDebugStringFormat, deltaX, deltaY);
 					OutputDebugStringW(fractalMoveDebugString);
 					//przesuń obraz fraktala
-					FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
-					dialogData->fractalBuffer->moveRender(deltaX, deltaY);
+					windowData->fractalImage->offsetX += deltaX;
+					windowData->fractalImage->offsetY += deltaY;
 					InvalidateRect(
 						hWnd,
 						NULL,
@@ -434,26 +439,58 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hWnd,
 					&mousePosition
 				);
-				float currentScale = dialogData->drawingScale;
+				float previousScaleRatio = windowData->fractalImage->scale;
 				//zaktualizuj skalę o przesunięcie kółka myszy
-				dialogData->drawingScale += ((float)(wheelDelta) / 1000.0f);
+				windowData->fractalImage->scale += ((float)(wheelDelta) / 1000.0f);
 				//nie oddalaj poniżej skali 1.0
-				if (dialogData->drawingScale < 1.0f)
+				if (windowData->fractalImage->scale < 1.0f)
 				{
-					dialogData->drawingScale = 1.0f;
+					windowData->fractalImage->scale = 1.0f;
 				}
-				else if (dialogData->drawingScale > 6.0f)
+				else if (windowData->fractalImage->scale > 6.0f)
 				{
-					dialogData->drawingScale = 6.0f;
+					windowData->fractalImage->scale = 6.0f;
 				}
-				if (currentScale != dialogData->drawingScale)
-				{
-					//przeskaluj obraz fraktala i odrysuj cały obszar okna
-					dialogData->fractalBuffer->scale(
-						wheelDelta,
-						mousePosition.x,
-						mousePosition.y
+				if (previousScaleRatio != windowData->fractalImage->scale)
+				{					
+					const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
+					WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
+					wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
+					wcscat_s(scaleRationDebugMessage, floatToString(windowData->fractalImage->scale));
+					OutputDebugStringW(scaleRationDebugMessage);
+
+					//wylicz nowy offset obrazu
+					short referenceToOffsetX = windowData->fractalImage->offsetX - mousePosition.x;
+					short referenceToOffsetY = windowData->fractalImage->offsetY - mousePosition.y;
+					float originalReferenceToOffsetX = (float)referenceToOffsetX / previousScaleRatio;
+					float originalReferenceToOffsetY = (float)referenceToOffsetY / previousScaleRatio;
+					short scaledVectorX = (short)(originalReferenceToOffsetX * windowData->fractalImage->scale);
+					short scaledVectorY = (short)(originalReferenceToOffsetY * windowData->fractalImage->scale);
+					windowData->fractalImage->offsetX = mousePosition.x + scaledVectorX;
+					windowData->fractalImage->offsetY = mousePosition.y + scaledVectorY;
+
+					//utwórz nową bitmapę fraktala
+					DeleteObject(windowData->fractalImage->bitmap);
+					HDC windowDC = GetDC(hWnd);
+					RECT clientRect = {};
+					GetClientRect(hWnd, &clientRect);
+					windowData->fractalImage->bitmap = CreateCompatibleBitmap(
+						windowDC,
+						clientRect.right * windowData->fractalImage->scale,
+						clientRect.bottom * windowData->fractalImage->scale
 					);
+					HDC fractalDrawingDC = CreateCompatibleDC(windowDC);
+					//DC okna już nie jest potrzebne
+					ReleaseDC(hWnd, windowDC);
+					SelectObject(
+						fractalDrawingDC,
+						windowData->fractalImage->bitmap
+					);
+					//rysuj bitmapę fraktala
+
+					//to DC już nie będzie potrzebne
+					DeleteDC(fractalDrawingDC);
+
 					InvalidateRect(
 						hWnd,
 						NULL,
