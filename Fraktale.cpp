@@ -786,7 +786,19 @@ void updateFractal(
 		);
 		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
 		SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
-		ReleaseDC(windowHandle, windowDeviceContext);
+		RECT bitmapRect;
+		bitmapRect.right = windowData->fractalImage->width;
+		bitmapRect.bottom = windowData->fractalImage->height;
+		HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
+			windowHandle,
+			GCL_HBRBACKGROUND
+		);
+		//wypełnij bitmapę kolorem tła
+		FillRect(
+			fractalDrawingDC,
+			&bitmapRect,
+			backgroundBrush
+		);
 		PixelCalculator fractalPixelCalculator(
 			windowData->fractalImage->width,
 			windowData->fractalImage->height,
@@ -807,5 +819,7 @@ void updateFractal(
 				FALSE
 			);
 		}
+		DeleteDC(fractalDrawingDC);
+		ReleaseDC(windowHandle, windowDeviceContext);
 	}
 }

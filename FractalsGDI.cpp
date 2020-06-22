@@ -131,6 +131,7 @@ bool drawFractal(Fractal fractal, HDC clientHdc, unsigned short bitmapWidth, uns
 		}
 		delete selectedRow;
 
+		//dodaj ramkę
 		RECT frameRect = {};
 		frameRect.right = bitmapWidth;
 		frameRect.bottom = bitmapHeight;
