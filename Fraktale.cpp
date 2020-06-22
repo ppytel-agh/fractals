@@ -30,6 +30,8 @@ struct FractalWindowData
 	POINT* lastPointerPosition;
 	Fractal* fractal;
 	MovablePicture* fractalImage;
+	Point** calculatedFractalPoints;
+	unsigned int numberOfCalculatedPoints;
 };
 
 struct FractalFormDialogData
@@ -635,6 +637,25 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							return FALSE;
 						}
 						Fractal providedFractal = fractalForm->getValue();
+						//usuń poprzednią tablicę punktów
+						if (fractalWindowData->calculatedFractalPoints != NULL)
+						{
+							for (unsigned int i = 0; i < fractalWindowData->numberOfCalculatedPoints; i++)
+							{
+								delete fractalWindowData->calculatedFractalPoints[i];
+							}
+							delete[] fractalWindowData->calculatedFractalPoints;
+						}
+						const unsigned int numberOfPointsToCalculate = 100000;
+						//wykalkuluj nowe punkty
+						fractalWindowData->calculatedFractalPoints = new Point * [numberOfPointsToCalculate];
+						Point currentPoint;			
+						for (unsigned int i = 0; i < numberOfPointsToCalculate; i++)
+						{
+							fractalWindowData->calculatedFractalPoints[i] = new Point(currentPoint);
+							currentPoint = providedFractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+						}
+
 						if (fractalWindowData->fractal != NULL)
 						{
 							delete fractalWindowData->fractal;
