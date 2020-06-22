@@ -824,11 +824,6 @@ void updateFractal(
 			&bitmapRect,
 			backgroundBrush
 		);
-		PixelCalculator fractalPixelCalculator(
-			windowData->fractalImage->width,
-			windowData->fractalImage->height,
-			windowData->fractal->getClipping()
-		);
 		//narysuj piksele na bitmapie
 		if (drawFractalV2(
 			&windowData->fractal->getClipping(),
