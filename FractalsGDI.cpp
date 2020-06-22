@@ -1,4 +1,6 @@
 #include "FractalsGDI.h"
+#include <chrono>
+#include <sstream>
 
 FractalDrawing::FractalDrawing(unsigned short clientWidth, unsigned short clientHeight)
 {
@@ -21,7 +23,7 @@ void FractalDrawing::drawFractal(
 			bitmapHeight,
 			fractal.getClipping()
 		);
-		
+
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		unsigned char noProbabilityRows = fractal.getNumberOfProbabilities() + 1;
 		COLORREF* colors = new COLORREF[noProbabilityRows];
@@ -30,7 +32,7 @@ void FractalDrawing::drawFractal(
 			unsigned char rSeed = rand() % 256;
 			unsigned char gSeed = rand() % 256;
 			unsigned char bSeed = rand() % 256;
-			colors[i] = (COLORREF) RGB(
+			colors[i] = (COLORREF)RGB(
 				rSeed,
 				gSeed,
 				bSeed
@@ -42,13 +44,13 @@ void FractalDrawing::drawFractal(
 		unsigned char rSeed = rand() % 256;
 		unsigned char gSeed = rand() % 256;
 		unsigned char bSeed = rand() % 256;
-		COLORREF pixelColor = (COLORREF) RGB(
+		COLORREF pixelColor = (COLORREF)RGB(
 			rSeed,
 			gSeed,
 			bSeed
 		);
 		for (int i = 0; i < 100000; i++)
-		{			
+		{
 			SetPixel(
 				clientHdc,
 				kalkulatorPikseli.getPixelX(currentPoint.GetX()),
@@ -150,6 +152,8 @@ bool drawFractalV2(
 	unsigned short bitmapHeight
 )
 {
+	std::chrono::steady_clock::time_point bitmapDrawingStart = std::chrono::high_resolution_clock::now();
+
 	PixelCalculator kalkulatorPikseli(
 		bitmapWidth,
 		bitmapHeight,
@@ -174,5 +178,11 @@ bool drawFractalV2(
 	frameRect.right = bitmapWidth;
 	frameRect.bottom = bitmapHeight;
 	FrameRect(clientHdc, &frameRect, blackBrush);
+	//wyświetl czas rysowania pikseli
+	std::chrono::steady_clock::time_point bitmapDrawingEnd = std::chrono::high_resolution_clock::now();
+	std::chrono::microseconds bitmapDrawingTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapDrawingEnd - bitmapDrawingStart);
+	std::wstringstream debugString;
+	debugString << L"Czas rysowania pikseli bitmapy o rozmiarze " << bitmapWidth << L" na " << bitmapHeight << L" pikseli - " << bitmapDrawingTime.count() << L" qs\n";
+	OutputDebugStringW(debugString.str().c_str());
 	return true;
 }

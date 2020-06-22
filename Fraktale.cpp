@@ -10,6 +10,7 @@
 #include "FractalsGDI.h"
 #include "gdi-wrapper.h"
 #include "fraktale-misc.h"
+#include <chrono>
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
@@ -653,11 +654,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							delete[] fractalWindowData->calculatedFractalPoints;
 						}
 						const unsigned int numberOfPointsToCalculate = 100000;
+
+						std::chrono::steady_clock::time_point pointCalculationStart = std::chrono::high_resolution_clock::now();
 						//wykalkuluj nowe punkty
 						if (providedFractal.isValid())
 						{
 							fractalWindowData->calculatedFractalPoints = new Point * [numberOfPointsToCalculate];
-							Point currentPoint;			
+							Point currentPoint;
 							for (unsigned int i = 0; i < numberOfPointsToCalculate; i++)
 							{
 								fractalWindowData->calculatedFractalPoints[i] = new Point(currentPoint);
@@ -665,6 +668,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							}
 						}
 						fractalWindowData->numberOfCalculatedPoints = numberOfPointsToCalculate;
+
+						std::chrono::steady_clock::time_point pointCalculationEnd = std::chrono::high_resolution_clock::now();
+						std::chrono::microseconds pointCalculationDeltaMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(pointCalculationEnd - pointCalculationStart);
+						std::wstringstream debugString;
+						debugString << L"Czas kalkulacji " << numberOfPointsToCalculate << L" punktów fraktala - " << pointCalculationDeltaMicroseconds.count() << L" qs\n";
+						OutputDebugStringW(debugString.str().c_str());
+
 
 						fractalWindowData->fractalImage->offsetX = 0;
 						fractalWindowData->fractalImage->offsetY = 0;
@@ -804,6 +814,7 @@ void updateFractal(
 			DeleteObject(windowData->fractalImage->bitmap);
 			windowData->fractalImage->bitmap = NULL;
 		}
+		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
 		windowData->fractalImage->bitmap = CreateCompatibleBitmap(
 			windowDeviceContext,
 			windowData->fractalImage->width,
@@ -811,6 +822,13 @@ void updateFractal(
 		);
 		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
 		SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
+		//wyświetl czas tworzenia
+		std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
+		std::chrono::microseconds bitmapCreationTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart);
+		std::wstringstream debugString;
+		debugString << L"Czas tworzenia obiektu bitmapy o rozmiarze " << windowData->fractalImage->width << L" na " << windowData->fractalImage->height << L" pikseli - " << bitmapCreationTime.count() << L" qs\n";
+		OutputDebugStringW(debugString.str().c_str());
+
 		RECT bitmapRect;
 		bitmapRect.right = windowData->fractalImage->width;
 		bitmapRect.bottom = windowData->fractalImage->height;
