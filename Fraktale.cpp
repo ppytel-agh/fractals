@@ -663,6 +663,18 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					{
 						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
 						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
+						FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalWindowData->dialogWindowHandle, GWL_USERDATA);
+						FractalDefinitionForm* fractalForm = dialogData->fractalUI->getFractalDefinitionForm();
+						if (!fractalForm->isValid())
+						{
+							return FALSE;
+						}
+						Fractal providedFractal = fractalForm->getValue();
+						if (fractalWindowData->fractal != NULL)
+						{
+							delete fractalWindowData->fractal;
+						}
+						fractalWindowData->fractal = new Fractal(providedFractal);
 						updateFractal(
 							mainWindow,
 							hDlg,
@@ -790,26 +802,24 @@ void updateFractal(
 	FractalWindowData* windowData
 )
 {
-	//przekaż fraktal do głównego okna w celu przerysowania bufora
-	FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
-	if (dialogData->fractalBuffer != NULL)
-	{
-		delete dialogData->fractalBuffer;
-		dialogData->fractalBuffer = NULL;
-	}
-	dialogData->fractalBuffer = new WindowDrawing(
-		windowHandle,
-		windowData->fractalDrawing->getClientWidth(),
-		windowData->fractalDrawing->getClientHeight()
+	//utwórz nową bitmapę fraktala
+	HDC windowDeviceContext = GetDC(windowHandle);
+	RECT windowClientRect = {};
+	GetClientRect(windowHandle, &windowClientRect);
+	int fractalBitmapWidth = windowClientRect.right * windowData->fractalImage->scale;
+	int fractalBitmapHeight = windowClientRect.bottom * windowData->fractalImage->scale;
+	HBITMAP fractalBitmap = CreateCompatibleBitmap(
+		windowDeviceContext,
+		fractalBitmapWidth,
+		fractalBitmapHeight
 	);
-	//pobierz fraktal z formularza
-	//Fractal providedFractal = getDragonFractal();
-	FractalDefinitionForm* fractalForm = dialogData->fractalUI->getFractalDefinitionForm();
-	if (!fractalForm->isValid())
-	{
-		return;
-	}
-	Fractal providedFractal = fractalForm->getValue();
+	HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
+	ReleaseDC(windowHandle, windowDeviceContext);
+	PixelCalculator fractalPixelCalculator(
+		fractalBitmapWidth,
+		fractalBitmapHeight,
+		windowData->fractal->getClipping()
+	);
 	windowData->fractalDrawing->drawFractal(
 		providedFractal,
 		dialogData->fractalBuffer->getWindowDrawingBuffer()
