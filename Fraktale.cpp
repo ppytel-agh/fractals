@@ -648,19 +648,16 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						}
 						const unsigned int numberOfPointsToCalculate = 100000;
 						//wykalkuluj nowe punkty
-						fractalWindowData->calculatedFractalPoints = new Point * [numberOfPointsToCalculate];
-						Point currentPoint;			
-						for (unsigned int i = 0; i < numberOfPointsToCalculate; i++)
+						if (providedFractal.isValid())
 						{
-							fractalWindowData->calculatedFractalPoints[i] = new Point(currentPoint);
-							currentPoint = providedFractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+							fractalWindowData->calculatedFractalPoints = new Point * [numberOfPointsToCalculate];
+							Point currentPoint;			
+							for (unsigned int i = 0; i < numberOfPointsToCalculate; i++)
+							{
+								fractalWindowData->calculatedFractalPoints[i] = new Point(currentPoint);
+								currentPoint = providedFractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+							}
 						}
-
-						if (fractalWindowData->fractal != NULL)
-						{
-							delete fractalWindowData->fractal;
-						}
-						fractalWindowData->fractal = new Fractal(providedFractal);
 
 						fractalWindowData->fractalImage->offsetX = 0;
 						fractalWindowData->fractalImage->offsetY = 0;
