@@ -22,7 +22,6 @@ INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
 struct FractalWindowData
 {
 	HWND dialogWindowHandle;
-	FractalDrawing* fractalDrawing;
 	bool isResizedManually;
 	bool isMinimized;
 	unsigned short previousWidth;
@@ -36,14 +35,12 @@ struct FractalWindowData
 struct FractalFormDialogData
 {
 	FractalDrawingUI* fractalUI;
-	WindowDrawing* fractalBuffer;
 	HWND importDialogWindowHandle;
 	float drawingScale;
 };
 
 void updateFractal(
 	HWND windowHandle,
-	HWND dialogHandle,
 	FractalWindowData* windowData
 );
 
@@ -222,7 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				//przekaż bufor do obiektu, który odmaluje w nim fragment bitmapy fraktala
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				if (windowData->fractalImage != NULL)
+				if (windowData->fractalImage->bitmap != NULL)
 				{
 					drawMovablePictureInRepaintBuffer(
 						screenBuffer,
@@ -250,7 +247,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 
 				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				delete fractalWindowData->fractalDrawing;
 				PostQuitMessage(0);
 				break;
 			}
@@ -271,10 +267,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//dane okna
 				FractalWindowData* windowData = new FractalWindowData{};
 				windowData->dialogWindowHandle = dialogHandle;
-				windowData->fractalDrawing = new FractalDrawing(
-					createData->cx,
-					createData->cy
-				);
+				windowData->fractalImage = new MovablePicture{};
 				SetWindowLongW(
 					hWnd,
 					GWL_USERDATA,
@@ -312,13 +305,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					)
 				{
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
-					windowData->fractalDrawing = new FractalDrawing(
-						newSize.right,
-						newSize.bottom
-					);
+					windowData->fractalImage->offsetX = 0;
+					windowData->fractalImage->offsetY = 0;
+					windowData->fractalImage->scale = 1.0f;
 					updateFractal(
 						hWnd,
-						windowData->dialogWindowHandle,
 						windowData
 					);
 				}
@@ -326,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_SIZE:
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);				
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				bool resizeNow = false;
 				if (wParam == SIZE_MAXIMIZED)
 				{
@@ -356,15 +347,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (resizeNow)
 				{
-					short newWidth = LOWORD(lParam);
-					short newHeight = HIWORD(lParam);
-					windowData->fractalDrawing = new FractalDrawing(
-						newWidth,
-						newHeight
-					);
+					windowData->fractalImage->offsetX = 0;
+					windowData->fractalImage->offsetY = 0;
+					windowData->fractalImage->scale = 1.0f;
 					updateFractal(
 						hWnd,
-						windowData->dialogWindowHandle,
 						windowData
 					);
 				}
@@ -375,7 +362,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				int mouseX = GET_X_LPARAM(lParam);
 				int mouseY = GET_Y_LPARAM(lParam);
 				/*const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
-				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];				
+				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
 				wsprintfW(debugString, debugStringFormat, mouseX, mouseY, wParam);
 				OutputDebugStringW(debugString);*/
 				//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
@@ -452,7 +439,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->scale = 6.0f;
 				}
 				if (previousScaleRatio != windowData->fractalImage->scale)
-				{					
+				{
 					const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
 					WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
 					wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
@@ -469,34 +456,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetX = mousePosition.x + scaledVectorX;
 					windowData->fractalImage->offsetY = mousePosition.y + scaledVectorY;
 
-					//utwórz nową bitmapę fraktala
-					DeleteObject(windowData->fractalImage->bitmap);
-					HDC windowDC = GetDC(hWnd);
-					RECT clientRect = {};
-					GetClientRect(hWnd, &clientRect);
-					windowData->fractalImage->bitmap = CreateCompatibleBitmap(
-						windowDC,
-						clientRect.right * windowData->fractalImage->scale,
-						clientRect.bottom * windowData->fractalImage->scale
-					);
-					HDC fractalDrawingDC = CreateCompatibleDC(windowDC);
-					//DC okna już nie jest potrzebne
-					ReleaseDC(hWnd, windowDC);
-					SelectObject(
-						fractalDrawingDC,
-						windowData->fractalImage->bitmap
-					);
 					//rysuj bitmapę fraktala
-
-					//to DC już nie będzie potrzebne
-					DeleteDC(fractalDrawingDC);
-
-					InvalidateRect(
+					updateFractal(
 						hWnd,
-						NULL,
-						FALSE
+						windowData
 					);
-				}				
+				}
 			}
 			break;
 		case WM_LBUTTONDOWN:
@@ -534,7 +499,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					(cursorClientPosition.x >= 0 && cursorClientPosition.x <= clientArea.right)
 					&&
 					(cursorClientPosition.y >= 0 && cursorClientPosition.y <= clientArea.bottom)
-				)
+					)
 				{
 					FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 					if (windowData->isFractalImageMoved)
@@ -561,7 +526,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//jeżeli kursor jest poza obszarem client to wyświetl domyslny
 					return DefWindowProc(hWnd, message, wParam, lParam);
 				}
-			}			
+			}
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -675,9 +640,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							delete fractalWindowData->fractal;
 						}
 						fractalWindowData->fractal = new Fractal(providedFractal);
+
+						fractalWindowData->fractalImage->offsetX = 0;
+						fractalWindowData->fractalImage->offsetY = 0;
+						fractalWindowData->fractalImage->scale = 1.0f;
+
 						updateFractal(
 							mainWindow,
-							hDlg,
 							fractalWindowData
 						);
 						return (INT_PTR)TRUE;
@@ -708,10 +677,6 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				//zniszcz obiekt formularza
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
 				delete dialogData->fractalUI;
-				if (dialogData->fractalBuffer != NULL)
-				{
-					delete dialogData->fractalBuffer;
-				}
 			}
 			break;
 		case WM_NOTIFY:
@@ -757,7 +722,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									minBufferSize
 								);
 								HWND fractalFormDialogHandle = GetWindow(hDlg, GW_OWNER);
-								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);								
+								FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalFormDialogHandle, GWL_USERDATA);
 								Fractal** fractalFromPdf = new Fractal*;
 								if (parseFractalFromPDF(
 									textBuffer,
@@ -767,7 +732,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 									dialogData->fractalUI->getFractalDefinitionForm()->setValue(
 										**fractalFromPdf
 									);
-									delete *fractalFromPdf;
+									delete* fractalFromPdf;
 									fractalFromPdf = NULL;
 								}
 								delete fractalFromPdf;
@@ -798,36 +763,49 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 */
 void updateFractal(
 	HWND windowHandle,
-	HWND dialogHandle,
 	FractalWindowData* windowData
 )
 {
-	//utwórz nową bitmapę fraktala
-	HDC windowDeviceContext = GetDC(windowHandle);
-	RECT windowClientRect = {};
-	GetClientRect(windowHandle, &windowClientRect);
-	int fractalBitmapWidth = windowClientRect.right * windowData->fractalImage->scale;
-	int fractalBitmapHeight = windowClientRect.bottom * windowData->fractalImage->scale;
-	HBITMAP fractalBitmap = CreateCompatibleBitmap(
-		windowDeviceContext,
-		fractalBitmapWidth,
-		fractalBitmapHeight
-	);
-	HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
-	ReleaseDC(windowHandle, windowDeviceContext);
-	PixelCalculator fractalPixelCalculator(
-		fractalBitmapWidth,
-		fractalBitmapHeight,
-		windowData->fractal->getClipping()
-	);
-	windowData->fractalDrawing->drawFractal(
-		providedFractal,
-		dialogData->fractalBuffer->getWindowDrawingBuffer()
-	);
-	//wywołaj przerysowanie okna
-	InvalidateRect(
-		windowHandle,
-		NULL,
-		FALSE
-	);
+	if (windowData->fractal != NULL)
+	{
+		//utwórz nową bitmapę fraktala
+		HDC windowDeviceContext = GetDC(windowHandle);
+		RECT windowClientRect = {};
+		GetClientRect(windowHandle, &windowClientRect);
+		windowData->fractalImage->width = windowClientRect.right * windowData->fractalImage->scale;
+		windowData->fractalImage->height = windowClientRect.bottom * windowData->fractalImage->scale;
+		if (windowData->fractalImage->bitmap != NULL)
+		{
+			DeleteObject(windowData->fractalImage->bitmap);
+			windowData->fractalImage->bitmap = NULL;
+		}
+		windowData->fractalImage->bitmap = CreateCompatibleBitmap(
+			windowDeviceContext,
+			windowData->fractalImage->width,
+			windowData->fractalImage->height
+		);
+		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
+		SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
+		ReleaseDC(windowHandle, windowDeviceContext);
+		PixelCalculator fractalPixelCalculator(
+			windowData->fractalImage->width,
+			windowData->fractalImage->height,
+			windowData->fractal->getClipping()
+		);
+		//narysuj piksele na bitmapie
+		if (drawFractal(
+			*windowData->fractal,
+			fractalDrawingDC,
+			windowData->fractalImage->width,
+			windowData->fractalImage->height
+		))
+		{
+			//wywołaj przerysowanie okna
+			InvalidateRect(
+				windowHandle,
+				NULL,
+				FALSE
+			);
+		}
+	}
 }

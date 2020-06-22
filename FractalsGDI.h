@@ -21,3 +21,10 @@ public:
 	unsigned short getClientWidth(void);
 	unsigned short getClientHeight(void);
 };
+
+bool drawFractal(
+	Fractal fractal,
+	HDC clientHdc,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);
