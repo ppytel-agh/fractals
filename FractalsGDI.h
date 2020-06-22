@@ -28,3 +28,12 @@ bool drawFractal(
 	unsigned short bitmapWidth,
 	unsigned short bitmapHeight
 );
+
+bool drawFractalV2(
+	const FractalClipping* clipping,
+	Point** calculatedFractalPoints,
+	unsigned int numberOfCalculatedPoints,
+	HDC clientHdc,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);

@@ -637,6 +637,12 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							return FALSE;
 						}
 						Fractal providedFractal = fractalForm->getValue();
+						if (fractalWindowData->fractal != NULL)
+						{
+							delete fractalWindowData->fractal;
+							fractalWindowData->fractal = NULL;
+						}
+						fractalWindowData->fractal = new Fractal(providedFractal);
 						//usuń poprzednią tablicę punktów
 						if (fractalWindowData->calculatedFractalPoints != NULL)
 						{
@@ -658,6 +664,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 								currentPoint = providedFractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
 							}
 						}
+						fractalWindowData->numberOfCalculatedPoints = numberOfPointsToCalculate;
 
 						fractalWindowData->fractalImage->offsetX = 0;
 						fractalWindowData->fractalImage->offsetY = 0;
@@ -823,8 +830,10 @@ void updateFractal(
 			windowData->fractal->getClipping()
 		);
 		//narysuj piksele na bitmapie
-		if (drawFractal(
-			*windowData->fractal,
+		if (drawFractalV2(
+			&windowData->fractal->getClipping(),
+			windowData->calculatedFractalPoints,
+			windowData->numberOfCalculatedPoints,
 			fractalDrawingDC,
 			windowData->fractalImage->width,
 			windowData->fractalImage->height

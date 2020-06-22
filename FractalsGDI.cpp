@@ -140,3 +140,39 @@ bool drawFractal(Fractal fractal, HDC clientHdc, unsigned short bitmapWidth, uns
 	}
 	return false;
 }
+
+bool drawFractalV2(
+	const FractalClipping* clipping,
+	Point** calculatedFractalPoints,
+	unsigned int numberOfCalculatedPoints,
+	HDC clientHdc,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+)
+{
+	PixelCalculator kalkulatorPikseli(
+		bitmapWidth,
+		bitmapHeight,
+		*clipping
+	);
+
+	COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
+	for (int i = 0; i < numberOfCalculatedPoints; i++)
+	{
+		Point currentPoint = *calculatedFractalPoints[i];
+		SetPixel(
+			clientHdc,
+			kalkulatorPikseli.getPixelX(currentPoint.GetX()),
+			kalkulatorPikseli.getPixelY(currentPoint.GetY()),
+			blackColor
+		);
+	}
+
+	//dodaj ramkę
+	HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+	RECT frameRect = {};
+	frameRect.right = bitmapWidth;
+	frameRect.bottom = bitmapHeight;
+	FrameRect(clientHdc, &frameRect, blackBrush);
+	return true;
+}
