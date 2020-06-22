@@ -204,11 +204,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				int bufferBitmapHeight = ps.rcPaint.bottom - ps.rcPaint.top;
 				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, bufferBitmapWidth, bufferBitmapHeight);
 				SelectObject(screenBuffer, screenCompatibleBitmap);
+				//wypełnij bufor kolorem tła
 				HBRUSH backgroundBrush = (HBRUSH) GetClassLongW(
 					hWnd,
 					GCL_HBRBACKGROUND
 				);
-				//wypełnij bufor bielą
 				RECT backgroundArea = {};
 				backgroundArea.right = bufferBitmapWidth;
 				backgroundArea.bottom = bufferBitmapHeight;
@@ -218,6 +218,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					backgroundBrush
 				);
 
+				//przekaż bufor do obiektu, który odmaluje w nim fragment bitmapy fraktala
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(windowData->dialogWindowHandle, GWL_USERDATA);
 				if (dialogData->fractalBuffer != NULL)
@@ -447,6 +448,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (currentScale != dialogData->drawingScale)
 				{
+					//przeskaluj obraz fraktala i odrysuj cały obszar okna
 					dialogData->fractalBuffer->scale(
 						wheelDelta,
 						mousePosition.x,
