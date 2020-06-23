@@ -834,7 +834,6 @@ void updateFractal(
 		std::wstringstream debugString;
 		debugString << L"Czas tworzenia obiektu bitmapy o rozmiarze " << windowData->fractalImage->width << L" na " << windowData->fractalImage->height << L" pikseli - " << bitmapCreationTime.count() << L" qs\n";
 		OutputDebugStringW(debugString.str().c_str());
-
 		//narysuj piksele na bitmapie
 		if (drawFractalV2(
 			&windowData->fractal->getClipping(),
@@ -863,8 +862,8 @@ void updateFractal(
 			//dodaj ramkę
 			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
 			RECT frameRect = {};
-			frameRect.right = fractalBitmap->bmWidth;
-			frameRect.bottom = fractalBitmap->bmHeight;
+			frameRect.right = windowData->fractalImage->width;
+			frameRect.right = windowData->fractalImage->height;
 			FrameRect(fractalDrawingDC, &frameRect, blackBrush);
 			//wywołaj przerysowanie okna
 			InvalidateRect(
@@ -874,6 +873,9 @@ void updateFractal(
 			);
 			DeleteDC(fractalDrawingDC);
 			ReleaseDC(windowHandle, windowDeviceContext);
-		}	
+		}
+		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
+		delete[] fractalBitmap->bmBits;
+		delete fractalBitmap;
 	}
 }
