@@ -15,8 +15,25 @@ public:
 	);
 	void drawFractal(
 		Fractal fractal,
-		HDC clientHdc
+		HDC clientHdc,
+		float scale = 1.0f
 	);
 	unsigned short getClientWidth(void);
 	unsigned short getClientHeight(void);
 };
+
+bool drawFractal(
+	Fractal fractal,
+	HDC clientHdc,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);
+
+bool drawFractalV2(
+	const FractalClipping* clipping,
+	Point** calculatedFractalPoints,
+	unsigned int numberOfCalculatedPoints,
+	BITMAP* clientBitmap,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);

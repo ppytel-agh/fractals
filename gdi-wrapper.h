@@ -37,3 +37,30 @@ public:
 	void resetOffset(void);
 	void scale(short promilePoints, unsigned short referencePointX, unsigned short referencePointY);
 };
+
+class WindowBuffer
+{
+private:
+	HBITMAP bufferBitmap;
+	HDC deviceContext;
+public:
+	WindowBuffer(
+		HWND windowHandle
+	);
+};
+
+struct MovablePicture
+{
+	HBITMAP bitmap;
+	unsigned short width;
+	unsigned short height;
+	short offsetX;
+	short offsetY;
+	float scale;
+};
+
+bool drawMovablePictureInRepaintBuffer(
+	const HDC bufferDC,
+	const RECT* repaintRect,
+	const MovablePicture* picture
+);
