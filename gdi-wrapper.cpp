@@ -380,16 +380,8 @@ bool drawMovablePictureInRepaintBuffer(
 		destinationY = repaintOffsetY;
 		copiedHeight = repaintHeight - repaintOffsetY;
 	}
-	/*BITMAP bitmapData = {};
-	GetObjectW(
-		picture->bitmap,
-		sizeof(BITMAP),
-		&bitmapData
-	);*/
-	HDC pictureDC = CreateCompatibleDC(bufferDC);
+	HDC pictureDC = CreateCompatibleDC(bufferDC);	
 	SelectObject(pictureDC, picture->bitmap);
-	SetTextColor(bufferDC, RGB(0, 0, 0));
-	SetBkColor(bufferDC, GetBkColor(bufferDC));
 	bool result = BitBlt(
 		bufferDC,
 		destinationX,

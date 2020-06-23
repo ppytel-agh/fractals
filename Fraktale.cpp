@@ -211,6 +211,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hWnd,
 					GCL_HBRBACKGROUND
 				);
+				LOGBRUSH bgBrushData;
+				GetObjectW(
+					backgroundBrush,
+					sizeof(LOGBRUSH),
+					&bgBrushData
+				);
 				RECT backgroundArea = {};
 				backgroundArea.right = bufferBitmapWidth;
 				backgroundArea.bottom = bufferBitmapHeight;
@@ -223,7 +229,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//przekaż bufor do obiektu, który odmaluje w nim fragment bitmapy fraktala
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				if (windowData->fractalImage->bitmap != NULL)
-				{
+				{										
 					drawMovablePictureInRepaintBuffer(
 						screenBuffer,
 						&ps.rcPaint,
@@ -231,6 +237,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					);
 				}
 
+				
 				//skopiuj bufor na ekran
 				BitBlt(
 					hdc,
@@ -813,13 +820,13 @@ void updateFractal(
 		BITMAP* fractalBitmap = new BITMAP{};
 		fractalBitmap->bmWidth = windowData->fractalImage->width;
 		fractalBitmap->bmHeight = windowData->fractalImage->height;
-		unsigned short bytesPerRow = ceil(windowData->fractalImage->width / 16)*2;//segment wiersza to 16 bitów
+		unsigned short bytesPerRow = ceil(windowData->fractalImage->width / 16.0f)*2;//segment wiersza to 16 bitów
 		fractalBitmap->bmWidthBytes = bytesPerRow;
 		fractalBitmap->bmPlanes = 1;
 		fractalBitmap->bmBitsPixel = 1;
 		unsigned int numberOfBytesForData = bytesPerRow * fractalBitmap->bmHeight;
 		fractalBitmap->bmBits = new BYTE[numberOfBytesForData];
-		ZeroMemory(fractalBitmap->bmBits, numberOfBytesForData);
+		FillMemory(fractalBitmap->bmBits, numberOfBytesForData, 255);//aby bitmapa była biała musi być wypełniona jedynkami
 		
 		//wyświetl czas tworzenia
 		std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();

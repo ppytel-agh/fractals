@@ -171,8 +171,9 @@ bool drawFractalV2(
 		unsigned int byteIndex = pixelBitIndex / 8;
 		unsigned char offsetInByte = (pixelBitIndex % 8);
 		unsigned char moveToTheLeft = (7 - offsetInByte);
-		BYTE pixelByteValue = (1 << moveToTheLeft); // ofset bitu w bajcie
-		bitmapBytes[byteIndex] |= pixelByteValue; //ustaw bit w bajcie
+		BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
+
+		bitmapBytes[byteIndex] &= pixelByteValue; //ustaw bit w bajcie, zmieniono na end aby połączyć wszystkie zera
 	}
 	
 	//wyświetl czas rysowania pikseli
