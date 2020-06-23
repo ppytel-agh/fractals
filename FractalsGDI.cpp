@@ -147,7 +147,7 @@ bool drawFractalV2(
 	const FractalClipping* clipping,
 	Point** calculatedFractalPoints,
 	unsigned int numberOfCalculatedPoints,
-	HDC clientHdc,
+	BITMAP* clientBitmap,
 	unsigned short bitmapWidth,
 	unsigned short bitmapHeight
 )
@@ -160,24 +160,21 @@ bool drawFractalV2(
 		*clipping
 	);
 
+	BYTE* bitmapBytes = (BYTE*)clientBitmap->bmBits;
 	COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
 	for (int i = 0; i < numberOfCalculatedPoints; i++)
 	{
 		Point currentPoint = *calculatedFractalPoints[i];
-		SetPixel(
-			clientHdc,
-			kalkulatorPikseli.getPixelX(currentPoint.GetX()),
-			kalkulatorPikseli.getPixelY(currentPoint.GetY()),
-			blackColor
-		);
+		unsigned short pixelX = kalkulatorPikseli.getPixelX(currentPoint.GetX());
+		unsigned short pixelY = kalkulatorPikseli.getPixelY(currentPoint.GetY());
+		unsigned int pixelBitIndex = ((pixelY - 1) * clientBitmap->bmWidthBytes * 8) + (pixelX - 1);
+		unsigned int byteIndex = pixelBitIndex / 8;
+		unsigned char offsetInByte = (pixelBitIndex % 8);
+		unsigned char moveToTheLeft = (7 - offsetInByte);
+		BYTE pixelByteValue = (1 << moveToTheLeft); // ofset bitu w bajcie
+		bitmapBytes[byteIndex] |= pixelByteValue; //ustaw bit w bajcie
 	}
-
-	//dodaj ramkę
-	HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-	RECT frameRect = {};
-	frameRect.right = bitmapWidth;
-	frameRect.bottom = bitmapHeight;
-	FrameRect(clientHdc, &frameRect, blackBrush);
+	
 	//wyświetl czas rysowania pikseli
 	std::chrono::steady_clock::time_point bitmapDrawingEnd = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds bitmapDrawingTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapDrawingEnd - bitmapDrawingStart);

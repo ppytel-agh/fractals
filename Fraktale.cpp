@@ -803,25 +803,24 @@ void updateFractal(
 {
 	if (windowData->fractal != NULL)
 	{
-		//utwórz nową bitmapę fraktala
-		HDC windowDeviceContext = GetDC(windowHandle);
+		//utwórz nową bitmapę fraktala		
 		RECT windowClientRect = {};
 		GetClientRect(windowHandle, &windowClientRect);
 		windowData->fractalImage->width = windowClientRect.right * windowData->fractalImage->scale;
 		windowData->fractalImage->height = windowClientRect.bottom * windowData->fractalImage->scale;
-		if (windowData->fractalImage->bitmap != NULL)
-		{
-			DeleteObject(windowData->fractalImage->bitmap);
-			windowData->fractalImage->bitmap = NULL;
-		}
+		
 		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
-		windowData->fractalImage->bitmap = CreateCompatibleBitmap(
-			windowDeviceContext,
-			windowData->fractalImage->width,
-			windowData->fractalImage->height
-		);
-		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
-		SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
+		BITMAP* fractalBitmap = new BITMAP{};
+		fractalBitmap->bmWidth = windowData->fractalImage->width;
+		fractalBitmap->bmHeight = windowData->fractalImage->height;
+		unsigned short bytesPerRow = ceil(windowData->fractalImage->width / 16)*2;//segment wiersza to 16 bitów
+		fractalBitmap->bmWidthBytes = bytesPerRow;
+		fractalBitmap->bmPlanes = 1;
+		fractalBitmap->bmBitsPixel = 1;
+		unsigned int numberOfBytesForData = bytesPerRow * fractalBitmap->bmHeight;
+		fractalBitmap->bmBits = new BYTE[numberOfBytesForData];
+		ZeroMemory(fractalBitmap->bmBits, numberOfBytesForData);
+		
 		//wyświetl czas tworzenia
 		std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
 		std::chrono::microseconds bitmapCreationTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart);
@@ -829,37 +828,45 @@ void updateFractal(
 		debugString << L"Czas tworzenia obiektu bitmapy o rozmiarze " << windowData->fractalImage->width << L" na " << windowData->fractalImage->height << L" pikseli - " << bitmapCreationTime.count() << L" qs\n";
 		OutputDebugStringW(debugString.str().c_str());
 
-		RECT bitmapRect;
-		bitmapRect.right = windowData->fractalImage->width;
-		bitmapRect.bottom = windowData->fractalImage->height;
-		HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
-			windowHandle,
-			GCL_HBRBACKGROUND
-		);
-		//wypełnij bitmapę kolorem tła
-		FillRect(
-			fractalDrawingDC,
-			&bitmapRect,
-			backgroundBrush
-		);
 		//narysuj piksele na bitmapie
 		if (drawFractalV2(
 			&windowData->fractal->getClipping(),
 			windowData->calculatedFractalPoints,
 			windowData->numberOfCalculatedPoints,
-			fractalDrawingDC,
+			fractalBitmap,
 			windowData->fractalImage->width,
 			windowData->fractalImage->height
 		))
 		{
+			if (windowData->fractalImage->bitmap != NULL)
+			{
+				DeleteObject(windowData->fractalImage->bitmap);
+				windowData->fractalImage->bitmap = NULL;
+			}
+			HDC windowDeviceContext = GetDC(windowHandle);			
+			windowData->fractalImage->bitmap = CreateBitmapIndirect(
+				fractalBitmap
+			);
+			if (windowData->fractalImage->bitmap == NULL)
+			{
+				debugLastError();
+			}
+			HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);			
+			SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
+			//dodaj ramkę
+			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+			RECT frameRect = {};
+			frameRect.right = fractalBitmap->bmWidth;
+			frameRect.bottom = fractalBitmap->bmHeight;
+			FrameRect(fractalDrawingDC, &frameRect, blackBrush);
 			//wywołaj przerysowanie okna
 			InvalidateRect(
 				windowHandle,
 				NULL,
 				FALSE
 			);
-		}
-		DeleteDC(fractalDrawingDC);
-		ReleaseDC(windowHandle, windowDeviceContext);
+			DeleteDC(fractalDrawingDC);
+			ReleaseDC(windowHandle, windowDeviceContext);
+		}	
 	}
 }
