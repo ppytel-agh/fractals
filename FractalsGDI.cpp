@@ -162,8 +162,11 @@ bool drawFractalV2(
 
 	BYTE* bitmapBytes = (BYTE*)clientBitmap->bmBits;
 	COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
-	for (int i = 0; i < numberOfCalculatedPoints; i++)
-	{
+	concurrency::parallel_for(
+		(unsigned int) 0,
+		numberOfCalculatedPoints,
+		(unsigned int) 1,
+		[&](int i){
 		Point currentPoint = *calculatedFractalPoints[i];
 		unsigned short pixelX = kalkulatorPikseli.getPixelX(currentPoint.GetX());
 		unsigned short pixelY = kalkulatorPikseli.getPixelY(currentPoint.GetY());
@@ -175,7 +178,8 @@ bool drawFractalV2(
 
 		bitmapBytes[byteIndex] &= pixelByteValue; //ustaw bit w bajcie, zmieniono na end aby połączyć wszystkie zera
 	}
-	
+	);
+
 	//wyświetl czas rysowania pikseli
 	std::chrono::steady_clock::time_point bitmapDrawingEnd = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds bitmapDrawingTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapDrawingEnd - bitmapDrawingStart);

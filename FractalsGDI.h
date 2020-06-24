@@ -2,6 +2,7 @@
 
 #include "Fractals.h"
 #include <windows.h>
+#include <ppl.h>
 
 class FractalDrawing
 {
