@@ -866,7 +866,7 @@ void updateFractal(
 			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
 			RECT frameRect = {};
 			frameRect.right = windowData->fractalImage->width;
-			frameRect.right = windowData->fractalImage->height;
+			frameRect.bottom = windowData->fractalImage->height;
 			FrameRect(fractalDrawingDC, &frameRect, blackBrush);
 			//wywołaj przerysowanie okna
 			InvalidateRect(
