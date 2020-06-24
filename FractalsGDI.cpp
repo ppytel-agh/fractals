@@ -162,6 +162,7 @@ bool drawFractalV2(
 
 	BYTE* bitmapBytes = (BYTE*)clientBitmap->bmBits;
 	COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
+	unsigned short bitsInBitmapScanline = clientBitmap->bmWidthBytes * 8;
 	concurrency::parallel_for(
 		(unsigned int) 0,
 		numberOfCalculatedPoints,
@@ -170,13 +171,12 @@ bool drawFractalV2(
 		Point currentPoint = *calculatedFractalPoints[i];
 		unsigned short pixelX = kalkulatorPikseli.getPixelX(currentPoint.GetX());
 		unsigned short pixelY = kalkulatorPikseli.getPixelY(currentPoint.GetY());
-		unsigned int pixelBitIndex = ((pixelY - 1) * clientBitmap->bmWidthBytes * 8) + (pixelX - 1);
-		unsigned int byteIndex = pixelBitIndex / 8;
-		unsigned char offsetInByte = (pixelBitIndex % 8);
-		unsigned char moveToTheLeft = (7 - offsetInByte);
-		BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
-
-		bitmapBytes[byteIndex] &= pixelByteValue; //ustaw bit w bajcie, zmieniono na end aby połączyć wszystkie zera
+		markMonochromeBitmapPixelBlack(
+			bitsInBitmapScanline,
+			bitmapBytes,
+			pixelX,
+			pixelY
+		);
 	}
 	);
 

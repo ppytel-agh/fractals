@@ -3,6 +3,7 @@
 #include "Fractals.h"
 #include <windows.h>
 #include <ppl.h>
+#include "gdi-wrapper.h"
 
 class FractalDrawing
 {
