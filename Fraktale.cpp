@@ -922,6 +922,15 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 		);
 
 		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
+		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
+		if (windowData->fractalBitmap != NULL)
+		{
+			if (windowData->fractalBitmap->bmBits != NULL)
+			{
+				delete[] windowData->fractalBitmap->bmBits;
+			}
+			delete windowData->fractalBitmap;
+		}
 		BITMAP* fractalBitmap = new BITMAP{};
 		windowData->fractalBitmap = fractalBitmap;
 		fractalBitmap->bmWidth = windowData->fractalImage->width;
@@ -975,10 +984,7 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 			//wywołaj przerysowanie okna
 			DeleteDC(fractalDrawingDC);
 			RefreshViewport(windowData);
-		}
-		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
-		delete[] fractalBitmap->bmBits;
-		delete fractalBitmap;
+		}		
 		return 0;
 	}
 	return 1;
