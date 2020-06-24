@@ -19,6 +19,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
+DLGPROC ImportDialogProcedure;
 
 struct FractalWindowData
 {
@@ -168,6 +169,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
+		case WM_CREATE:
+			{
+				//utwórz dialog box z formulrzem
+				HWND dialogHandle = CreateDialog(
+					(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+					MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
+					hWnd,
+					(DLGPROC)FractalFormDialogProc
+				);
+				ShowWindow(dialogHandle, SW_SHOW);
+				//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
+				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
+				CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
+				//dane okna
+				FractalWindowData* windowData = new FractalWindowData{};
+				windowData->dialogWindowHandle = dialogHandle;
+				windowData->fractalImage = new MovablePicture{};
+				SetWindowLongW(
+					hWnd,
+					GWL_USERDATA,
+					(LONG)windowData
+				);
+			}
+			break;
 		case WM_COMMAND:
 			{
 				int wmId = LOWORD(wParam);
@@ -260,30 +285,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				PostQuitMessage(0);
 				break;
 			}
-			break;
-		case WM_CREATE:
-			{
-				//utwórz dialog box z formulrzem
-				HWND dialogHandle = CreateDialog(
-					(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
-					MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
-					hWnd,
-					(DLGPROC)FractalFormDialogProc
-				);
-				ShowWindow(dialogHandle, SW_SHOW);
-				//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
-				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
-				CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
-				//dane okna
-				FractalWindowData* windowData = new FractalWindowData{};
-				windowData->dialogWindowHandle = dialogHandle;
-				windowData->fractalImage = new MovablePicture{};
-				SetWindowLongW(
-					hWnd,
-					GWL_USERDATA,
-					(LONG)windowData
-				);
-			}
+			break;		
 		case WM_KEYDOWN:
 			if (wParam == VK_ESCAPE || wParam == VK_RETURN)
 			{
