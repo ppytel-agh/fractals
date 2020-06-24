@@ -293,6 +293,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_ENTERSIZEMOVE:
+			//przechwytujemy początek zmiany rozmiaru okna, aby ustawić flagę "w trakcie zmiany rozmiaru"
 			{
 				OutputDebugStringW(L"Początek zmiany rozmiaru\n");
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
@@ -304,6 +305,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_EXITSIZEMOVE:
+			//Jeżeli rozmiar okna jest inny niż przedtem, to zaktualizuj bitmapę fraktala pod nowy wymiar
 			{
 				OutputDebugStringW(L"Koniec zmiany rozmiaru\n");
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
@@ -328,6 +330,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_SIZE:
+			//maksymalizowanie i przywracanie rozmiaru okna powinny skutkować odrysowaniem bitmapy fraktala
 			{
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				bool resizeNow = false;
@@ -370,6 +373,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_MOUSEMOVE:
+			//jeżeli użytkownik przesuwa myszą z wciśniętym przyciskiem to należy przesuwać bitmapę względem viewportu
 			{
 				int mouseX = GET_X_LPARAM(lParam);
 				int mouseY = GET_Y_LPARAM(lParam);
@@ -409,6 +413,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_MOUSELEAVE:
+			//reset flagi poruszania bitmapy
 			OutputDebugStringW(L"Opuszczono główne okno\n");
 			{
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
@@ -420,6 +425,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_MOUSEWHEEL:
+			//za pomocą kółka myszy można zoomować bitmapę fraktala
 			{
 				const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
@@ -477,6 +483,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_LBUTTONDOWN:
+			//początek przesuwania bitmapy
 			OutputDebugStringW(L"Wciśnięto lewy przycisk myszy\n");
 			//rozpocznij "przesuwanie" fraktala
 			{
@@ -488,6 +495,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_LBUTTONUP:
+			//koniec przesuwania bitmapy
 			OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");
 			{
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
@@ -500,7 +508,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_SETCURSOR:
-			//ustaw kursor na "łapkę"
+			//ustaw kursor na "łapkę" jeśli jest wskazywany viewport
 			{
 				POINT cursorClientPosition = {};
 				GetCursorPos(&cursorClientPosition);
@@ -634,10 +642,18 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				}
 				if (dialogData->fractalUI->getRenderButton()->isCommandFromControl(lParam))
 				{
-					//przycisk "Renderuj"
+					//przycisk "Renderuj"					
 					WORD notificationCode = HIWORD(wParam);
 					if (notificationCode == BN_CLICKED)
 					{
+						/*
+							Po naciśnięciu tego przycisku należy pobrać obiekt fraktala z formularza.
+							Jeżeli ten obiekt jest poprawny, to należy wykalkulować jego punkty
+							w przestrzeni matematycznej i odpowiednie piksele dla bitmapy.
+							W tym miejscu można przekazać operacje do osobnego wątku, tak aby kalkulacja punktów nie
+							blokowała innych komunikatów.
+
+						*/
 						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
 						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
 						FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalWindowData->dialogWindowHandle, GWL_USERDATA);
@@ -803,7 +819,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 }
 
 /*
-	Funkcja aktualizuje bufor okna nowymi pikselami na podstawie wartości z formularza
+	Funkcja aktualizuje bitmapę fraktala nowymi pikselami na podstawie wartości z formularza
 */
 void updateFractal(
 	HWND windowHandle,
