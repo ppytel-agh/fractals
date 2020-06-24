@@ -26,15 +26,6 @@ DWORD WINAPI CalculateFractalPointsThread(LPVOID);
 //inicjalizacja nowej bitmapy i wypełnienie jej punktami, które zostały już skalkulowane
 DWORD WINAPI CalculateFractalBitmapThread(LPVOID);
 
-void DrawPointOnFractalBitmap(
-	Point pointToDraw,
-	PixelCalculator* pixelCalculator,
-	unsigned short bitmapBitsPerScanline,
-	BYTE* bitmapBytes,
-	std::chrono::steady_clock::time_point lastPainingTS,
-	HWND windowHandle
-);
-
 //komunikat kalkulacji piksela
 const unsigned short WM_CALCULATE_POINT_PIXEL = WM_APP + 0x0001;
 //nasłuchiwanie na pojawienie się nowych punktów dla bitmapy
@@ -74,6 +65,9 @@ void updateFractal(
 	HWND windowHandle,
 	FractalWindowData* windowData
 );
+
+void RefreshFractalBitmap(FractalWindowData* windowData);
+void RefreshViewport(FractalWindowData* windowData);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -350,7 +344,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;					
+					windowData->fractalImage->scale = 1.0f;
 					CreateThread(
 						NULL,
 						0,
@@ -358,7 +352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						windowData,
 						0,
 						NULL
-					);					
+					);
 				}
 			}
 			break;
@@ -397,7 +391,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;					
+					windowData->fractalImage->scale = 1.0f;
 					CreateThread(
 						NULL,
 						0,
@@ -438,11 +432,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//przesuń obraz fraktala
 					windowData->fractalImage->offsetX += deltaX;
 					windowData->fractalImage->offsetY += deltaY;
-					InvalidateRect(
-						hWnd,
-						NULL,
-						FALSE
-					);
+					RefreshViewport(windowData);
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
 					windowData->lastPointerPosition->y = mouseY;
@@ -890,10 +880,10 @@ DWORD __stdcall CalculateFractalPointsThread(LPVOID dataAddress)
 				NULL,
 				(LPARAM)fractalWindowData->calculatedFractalPoints[i]
 			);
+			fractalWindowData->numberOfCalculatedPoints = i + 1;
 		}
 		PostThreadMessageW(drawPointRTThreadId, WM_QUIT, 0, 0);
 	}
-	fractalWindowData->numberOfCalculatedPoints = numberOfPointsToCalculate;
 
 	std::chrono::steady_clock::time_point pointCalculationEnd = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds pointCalculationDeltaMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(pointCalculationEnd - pointCalculationStart);
@@ -933,6 +923,7 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 
 		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
 		BITMAP* fractalBitmap = new BITMAP{};
+		windowData->fractalBitmap = fractalBitmap;
 		fractalBitmap->bmWidth = windowData->fractalImage->width;
 		fractalBitmap->bmHeight = windowData->fractalImage->height;
 		unsigned short bytesPerRow = ceil(windowData->fractalImage->width / 16.0f) * 2;//segment wiersza to 16 bitów
@@ -969,9 +960,7 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 			HDC windowDeviceContext = GetDC(windowHandle);
 			HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
 			ReleaseDC(windowHandle, windowDeviceContext);
-			windowData->fractalImage->bitmap = CreateBitmapIndirect(
-				fractalBitmap
-			);
+			RefreshFractalBitmap(windowData);
 			if (windowData->fractalImage->bitmap == NULL)
 			{
 				debugLastError();
@@ -984,13 +973,8 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 			frameRect.bottom = windowData->fractalImage->height;
 			FrameRect(fractalDrawingDC, &frameRect, blackBrush);
 			//wywołaj przerysowanie okna
-			InvalidateRect(
-				windowHandle,
-				NULL,
-				FALSE
-			);
 			DeleteDC(fractalDrawingDC);
-
+			RefreshViewport(windowData);
 		}
 		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
 		delete[] fractalBitmap->bmBits;
@@ -1000,40 +984,11 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 	return 1;
 }
 
-void DrawPointOnFractalBitmap
-(
-	Point pointToDraw,
-	PixelCalculator* pixelCalculator,
-	unsigned short bitmapBitsPerScanline,
-	BYTE* bitmapBytes,
-	std::chrono::steady_clock::time_point lastPainingTS,
-	HWND windowHandle
-)
-{
-	unsigned short pixelX = pixelCalculator->getPixelX(pointToDraw.GetX());
-	unsigned short pixelY = pixelCalculator->getPixelY(pointToDraw.GetY());
-	markMonochromeBitmapPixelBlack(
-		bitmapBitsPerScanline,
-		bitmapBytes,
-		pixelX,
-		pixelY
-	);
-
-	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(lastPainingTS - std::chrono::high_resolution_clock::now()).count();
-	if (noMillisecondsSinceLastPainting >= 16)
-	{
-		InvalidateRect(
-			windowHandle,
-			NULL,
-			FALSE
-		);
-	}
-}
-
 DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 {
 	FractalWindowData* windowData = (FractalWindowData*)dataAddress;
 	MSG msg;
+	bool bitmapInitialized = false;
 	while (GetMessageW(&msg, (HWND)-1, 0, 0))
 	{
 		switch (msg.message)
@@ -1042,15 +997,38 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 				return 0;
 			case WM_CALCULATE_POINT_PIXEL:
 				{
-					Point pointToProcess = *(Point*)msg.lParam;
-					DrawPointOnFractalBitmap(
-						pointToProcess,
-						windowData->pixelCalculator,
-						windowData->fractalBitmapBitsPerScanline,
-						windowData->fractalBitmapBytes,
-						windowData->lastPainingTS,
-						windowData->windowHandle
-					);
+					if (bitmapInitialized)
+					{
+						Point pointToProcess = *(Point*)msg.lParam;
+						unsigned short pixelX = windowData->pixelCalculator->getPixelX(pointToProcess.GetX());
+						unsigned short pixelY = windowData->pixelCalculator->getPixelY(pointToProcess.GetY());
+						markMonochromeBitmapPixelBlack(
+							windowData->fractalBitmapBitsPerScanline,
+							windowData->fractalBitmapBytes,
+							pixelX,
+							pixelY
+						);
+						RefreshFractalBitmap(windowData);
+						RefreshViewport(windowData);
+					}
+					else
+					{
+						if (windowData->fractalBitmapBytes != NULL)
+						{
+							//skopiuj piksele, które już zostały zapisane
+							drawFractalV2(
+								&windowData->fractal->getClipping(),
+								windowData->calculatedFractalPoints,
+								windowData->numberOfCalculatedPoints,
+								windowData->fractalBitmap,
+								windowData->fractalImage->width,
+								windowData->fractalImage->height
+							);
+							RefreshFractalBitmap(windowData);
+							RefreshViewport(windowData);
+							bitmapInitialized = true;
+						}
+					}
 				}
 				break;
 		}
@@ -1058,93 +1036,25 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 	return 0;
 }
 
-/*
-	Funkcja aktualizuje bitmapę fraktala nowymi pikselami na podstawie wartości z formularza
-*/
-void updateFractal(
-	HWND windowHandle,
-	FractalWindowData* windowData
-)
+void RefreshFractalBitmap(FractalWindowData* windowData)
 {
-	if (windowData->fractal != NULL)
+	if (windowData->fractalBitmap != NULL)
 	{
-		//utwórz nową bitmapę fraktala		
-		RECT windowClientRect = {};
-		GetClientRect(windowHandle, &windowClientRect);
-		windowData->fractalImage->width = windowClientRect.right * windowData->fractalImage->scale;
-		windowData->fractalImage->height = windowClientRect.bottom * windowData->fractalImage->scale;
+		windowData->fractalImage->bitmap = CreateBitmapIndirect(
+			windowData->fractalBitmap
+		);
+	}
+}
 
-		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
-		if (windowData->fractalBitmap != NULL)
-		{
-			//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
-			if (windowData->fractalBitmap->bmBits != NULL)
-			{
-				delete[] windowData->fractalBitmap->bmBits;
-				windowData->fractalBitmap->bmBits = NULL;
-			}
-			delete windowData->fractalBitmap;
-			windowData->fractalBitmap = NULL;
-		}
-		windowData->fractalBitmap = new BITMAP{};
-		BITMAP* fractalBitmap = windowData->fractalBitmap;
-		fractalBitmap->bmWidth = windowData->fractalImage->width;
-		fractalBitmap->bmHeight = windowData->fractalImage->height;
-		unsigned short bytesPerRow = ceil(windowData->fractalImage->width / 16.0f) * 2;//segment wiersza to 16 bitów
-		fractalBitmap->bmWidthBytes = bytesPerRow;
-		fractalBitmap->bmPlanes = 1;
-		fractalBitmap->bmBitsPixel = 1;
-		unsigned int numberOfBytesForData = bytesPerRow * fractalBitmap->bmHeight;
-		fractalBitmap->bmBits = new BYTE[numberOfBytesForData];
-		FillMemory(fractalBitmap->bmBits, numberOfBytesForData, 255);//aby bitmapa była biała musi być wypełniona jedynkami
-
-		//wyświetl czas tworzenia
-		std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
-		std::chrono::microseconds bitmapCreationTime = std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart);
-		std::wstringstream debugString;
-		debugString << L"Czas tworzenia obiektu bitmapy o rozmiarze " << windowData->fractalImage->width << L" na " << windowData->fractalImage->height << L" pikseli - " << bitmapCreationTime.count() << L" qs\n";
-		OutputDebugStringW(debugString.str().c_str());
-		//narysuj piksele na bitmapie
-		if (drawFractalV2(
-			&windowData->fractal->getClipping(),
-			windowData->calculatedFractalPoints,
-			windowData->numberOfCalculatedPoints,
-			fractalBitmap,
-			windowData->fractalImage->width,
-			windowData->fractalImage->height
-		))
-		{
-			if (windowData->fractalImage->bitmap != NULL)
-			{
-				DeleteObject(windowData->fractalImage->bitmap);
-				windowData->fractalImage->bitmap = NULL;
-			}
-			HDC windowDeviceContext = GetDC(windowHandle);
-			HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
-			ReleaseDC(windowHandle, windowDeviceContext);
-			windowData->fractalImage->bitmap = CreateBitmapIndirect(
-				fractalBitmap
-			);
-			if (windowData->fractalImage->bitmap == NULL)
-			{
-				debugLastError();
-			}
-			SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
-			//dodaj ramkę
-			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-			RECT frameRect = {};
-			frameRect.right = windowData->fractalImage->width;
-			frameRect.bottom = windowData->fractalImage->height;
-			FrameRect(fractalDrawingDC, &frameRect, blackBrush);
-			//wywołaj przerysowanie okna
-			InvalidateRect(
-				windowHandle,
-				NULL,
-				FALSE
-			);
-			DeleteDC(fractalDrawingDC);
-
-		}
-
+void RefreshViewport(FractalWindowData* windowData)
+{
+	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - windowData->lastPainingTS).count();
+	if (noMillisecondsSinceLastPainting >= 16)
+	{		
+		InvalidateRect(
+			windowData->windowHandle,
+			NULL,
+			FALSE
+		);
 	}
 }
