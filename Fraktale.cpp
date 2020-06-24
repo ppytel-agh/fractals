@@ -42,6 +42,7 @@ DWORD WINAPI DrawFractalBitmapPointsRT(LPVOID);
 
 struct FractalWindowData
 {
+	HWND windowHandle;
 	HWND dialogWindowHandle;
 	bool isResizedManually;
 	bool isMinimized;
@@ -60,12 +61,6 @@ struct FractalWindowData
 	BYTE* fractalBitmapBytes;
 	DWORD calculateFractalPointsThreadId;
 	DWORD createFractalBitmapThreadId;
-};
-
-struct ThreadData
-{
-	FractalWindowData* windowData;
-	HWND windowHandle;
 };
 
 struct FractalFormDialogData
@@ -216,6 +211,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
 				//dane okna
 				FractalWindowData* windowData = new FractalWindowData{};
+				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
 				windowData->fractalImage = new MovablePicture{};
 				SetWindowLongW(
@@ -354,15 +350,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;
-					ThreadData data;
-					data.windowData = windowData;
-					data.windowHandle = hWnd;
+					windowData->fractalImage->scale = 1.0f;					
 					CreateThread(
 						NULL,
 						0,
 						CalculateFractalBitmapThread,
-						&data,
+						windowData,
 						0,
 						NULL
 					);					
@@ -404,15 +397,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;
-					ThreadData data;
-					data.windowData = windowData;
-					data.windowHandle = hWnd;
+					windowData->fractalImage->scale = 1.0f;					
 					CreateThread(
 						NULL,
 						0,
 						CalculateFractalBitmapThread,
-						&data,
+						windowData,
 						0,
 						NULL
 					);
@@ -521,15 +511,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetX = mousePosition.x + scaledVectorX;
 					windowData->fractalImage->offsetY = mousePosition.y + scaledVectorY;
 
-					//rysuj bitmapę fraktala
-					ThreadData data;
-					data.windowData = windowData;
-					data.windowHandle = hWnd;
+					//rysuj bitmapę fraktala					
 					CreateThread(
 						NULL,
 						0,
 						CalculateFractalBitmapThread,
-						&data,
+						windowData,
 						0,
 						NULL
 					);
@@ -833,8 +820,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 
 DWORD __stdcall CalculateFractalPointsThread(LPVOID dataAddress)
 {
-	ThreadData* data = (ThreadData*)dataAddress;
-	FractalWindowData* fractalWindowData = data->windowData;
+	FractalWindowData* fractalWindowData = (FractalWindowData*)dataAddress;
 	FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(fractalWindowData->dialogWindowHandle, GWL_USERDATA);
 	FractalDefinitionForm* fractalForm = dialogData->fractalUI->getFractalDefinitionForm();
 	if (!fractalForm->isValid())
@@ -925,11 +911,10 @@ DWORD __stdcall CalculateFractalPointsThread(LPVOID dataAddress)
 
 DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 {
-	ThreadData* data = (ThreadData*)dataAddress;
-	FractalWindowData* windowData = data->windowData;
+	FractalWindowData* windowData = (FractalWindowData*)dataAddress;
 	if (windowData->fractal != NULL)
 	{
-		HWND windowHandle = data->windowHandle;
+		HWND windowHandle = windowData->windowHandle;
 		//utwórz nową bitmapę fraktala		
 		RECT windowClientRect = {};
 		GetClientRect(windowHandle, &windowClientRect);
@@ -1047,7 +1032,7 @@ void DrawPointOnFractalBitmap
 
 DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 {
-	ThreadData data = *(ThreadData*)dataAddress;
+	FractalWindowData* windowData = (FractalWindowData*)dataAddress;
 	MSG msg;
 	while (GetMessageW(&msg, (HWND)-1, 0, 0))
 	{
@@ -1060,11 +1045,11 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 					Point pointToProcess = *(Point*)msg.lParam;
 					DrawPointOnFractalBitmap(
 						pointToProcess,
-						data.windowData->pixelCalculator,
-						data.windowData->fractalBitmapBitsPerScanline,
-						data.windowData->fractalBitmapBytes,
-						data.windowData->lastPainingTS,
-						data.windowHandle
+						windowData->pixelCalculator,
+						windowData->fractalBitmapBitsPerScanline,
+						windowData->fractalBitmapBytes,
+						windowData->lastPainingTS,
+						windowData->windowHandle
 					);
 				}
 				break;
