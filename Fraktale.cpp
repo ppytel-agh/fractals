@@ -851,15 +851,16 @@ void updateFractal(
 				DeleteObject(windowData->fractalImage->bitmap);
 				windowData->fractalImage->bitmap = NULL;
 			}
-			HDC windowDeviceContext = GetDC(windowHandle);			
+			HDC windowDeviceContext = GetDC(windowHandle);		
+			HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
+			ReleaseDC(windowHandle, windowDeviceContext);
 			windowData->fractalImage->bitmap = CreateBitmapIndirect(
 				fractalBitmap
 			);
 			if (windowData->fractalImage->bitmap == NULL)
 			{
 				debugLastError();
-			}
-			HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);			
+			}			
 			SelectObject(fractalDrawingDC, windowData->fractalImage->bitmap);
 			//dodaj ramkę
 			HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -874,7 +875,7 @@ void updateFractal(
 				FALSE
 			);
 			DeleteDC(fractalDrawingDC);
-			ReleaseDC(windowHandle, windowDeviceContext);
+			
 		}
 		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
 		delete[] fractalBitmap->bmBits;
