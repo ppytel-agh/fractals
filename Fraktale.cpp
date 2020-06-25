@@ -148,16 +148,37 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
-		bool isDialog = IsDialogMessage(dialogHandle, &msg);
-		if (fractalDialogData->importDialogWindowHandle != NULL)
+		if (msg.message == WM_BITMAP_UPDATED)
 		{
-			isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
+			DWORD bitmapThreadId = msg.wParam;
+			FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(mainWindowHandle, GWL_USERDATA);
+			HBITMAP currentBitmapHandle = windowData->fractalImage->bitmap;
+			PostThreadMessageW(
+				bitmapThreadId,
+				WM_PUT_BITMAP_IN_HANDLE,
+				0,
+				(LPARAM)&windowData->fractalImage->bitmap
+			);
+			//WaitOnAddress(&windowData->fractalImage->bitmap, &currentBitmapHandle, 1, INFINITE);
+			InvalidateRect(
+				mainWindowHandle,
+				NULL,
+				FALSE
+			);
 		}
-		if (!isTranslated && !isDialog)
+		else
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+			bool isDialog = IsDialogMessage(dialogHandle, &msg);
+			if (fractalDialogData->importDialogWindowHandle != NULL)
+			{
+				isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
+			}
+			if (!isTranslated && !isDialog)
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
 	}
 
@@ -285,6 +306,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_PAINT:
 			{
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
 				// TODO: Add any drawing code that uses hdc here...	
@@ -320,7 +342,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				);
 
 				//przekaż bufor do obiektu, który odmaluje w nim fragment bitmapy fraktala
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+
 				if (windowData->fractalImage->bitmap != NULL)
 				{
 					drawMovablePictureInRepaintBuffer(
@@ -638,18 +660,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//jeżeli kursor jest poza obszarem client to wyświetl domyslny
 					return DefWindowProc(hWnd, message, wParam, lParam);
 				}
-			}
-			break;
-		case WM_BITMAP_UPDATED:
-			{
-				DWORD bitmapThreadId = wParam;
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				PostThreadMessageW(
-					bitmapThreadId,
-					WM_PUT_BITMAP_IN_HANDLE,
-					0,
-					(LPARAM)&windowData->fractalImage->bitmap
-				);
 			}
 			break;
 		default:
@@ -1368,8 +1378,14 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 				operationState++;
 				break;
 			case 2: //alokacja bajtów dla pikseli
-				unsigned int noBytesRequired = monochromeBitmap.bmWidthBytes * monochromeBitmap.bmHeight;
-				monochromeBitmap.bmBits = pixelBytes = new BYTE[noBytesRequired];
+				{
+					unsigned int noBytesRequired = monochromeBitmap.bmWidthBytes * monochromeBitmap.bmHeight;
+					monochromeBitmap.bmBits = pixelBytes = new BYTE[noBytesRequired];
+					FillMemory(pixelBytes, noBytesRequired, 255);
+					operationState++;
+				}
+				break;
+			case 3:
 				//narysuj piksele, które zostały zakomunikowane przed utworzeniem tablicy
 				concurrency::parallel_for(
 					(unsigned int)0,
