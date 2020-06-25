@@ -31,6 +31,16 @@ const unsigned short WM_CALCULATE_POINT_PIXEL = WM_APP + 0x0001;
 //nasłuchiwanie na pojawienie się nowych punktów dla bitmapy
 DWORD WINAPI DrawFractalBitmapPointsRT(LPVOID);
 
+//nowa funkcja wątku do kalkulacji punktów fraktala
+const unsigned short WM_PROCESS_NEW_POINT = WM_APP + 2;
+struct CalculateFractalPointsThreadData
+{
+	Fractal fractal;
+	unsigned int maxNumberOfPoints;
+	DWORD callbackThreadId;
+};
+DWORD FractalPointsThread(LPVOID);
+
 struct FractalWindowData
 {
 	HWND windowHandle;
@@ -1081,6 +1091,21 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 		}
 	}
 	return 0;
+}
+
+DWORD FractalPointsThread(LPVOID dataStackAddress)
+{
+	CalculateFractalPointsThreadData operationData = {};
+	memcpy(&operationData, dataStackAddress, sizeof(CalculateFractalPointsThreadData));
+	WakeByAddressSingle(dataStackAddress);
+	if (operationData.fractal.isValid())
+	{
+
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 void RefreshFractalBitmap(FractalWindowData* windowData)
