@@ -11,6 +11,7 @@
 #include "gdi-wrapper.h"
 #include "fraktale-misc.h"
 #include <chrono>
+#include <vector>
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
@@ -27,12 +28,12 @@ DWORD WINAPI CalculateFractalPointsThread(LPVOID);
 DWORD WINAPI CalculateFractalBitmapThread(LPVOID);
 
 //komunikat kalkulacji piksela
-const unsigned short WM_CALCULATE_POINT_PIXEL = WM_APP + 0x0001;
+const UINT WM_CALCULATE_POINT_PIXEL = WM_APP + 1;
 //nasłuchiwanie na pojawienie się nowych punktów dla bitmapy
 DWORD WINAPI DrawFractalBitmapPointsRT(LPVOID);
 
 //nowa funkcja wątku do kalkulacji punktów fraktala
-const unsigned short WM_PROCESS_NEW_POINT = WM_APP + 2;
+const UINT WM_PROCESS_NEW_POINT = WM_APP + 2;
 struct CalculateFractalPointsThreadData
 {
 	Fractal fractal;
@@ -40,6 +41,25 @@ struct CalculateFractalPointsThreadData
 	DWORD callbackThreadId;
 };
 DWORD FractalPointsThread(LPVOID);
+
+struct BitmapPixel
+{
+	unsigned short x;
+	unsigned short y;
+};
+struct MonochromaticBitmapThreadData
+{
+	unsigned short width;
+	unsigned short height;
+};
+const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
+DWORD MonochromaticBitmapThread(LPVOID);
+
+void MarkMononochromeBitmapAsText(
+	BitmapPixel pixel,
+	unsigned short bitsPerScanline,
+	BYTE* pixelBytes
+);
 
 struct FractalWindowData
 {
@@ -1145,6 +1165,7 @@ DWORD FractalPointsThread(LPVOID dataStackAddress)
 			case 1: //alokacja pamięci dla punktów
 				{
 					fractalPoints = new Point * [operationData.maxNumberOfPoints];
+					numberOfCalculatedPoints++;
 					operationState++;
 				}
 				break;
@@ -1163,7 +1184,7 @@ DWORD FractalPointsThread(LPVOID dataStackAddress)
 						);
 						currentPointIndex++;
 					}
-					else 
+					else
 					{
 						operationState++;
 					}
@@ -1172,6 +1193,101 @@ DWORD FractalPointsThread(LPVOID dataStackAddress)
 		}
 
 	}
+}
+
+DWORD MonochromaticBitmapThread(LPVOID inputPointer)
+{
+	MonochromaticBitmapThreadData operationData = *(MonochromaticBitmapThreadData*)inputPointer;
+	WakeByAddressSingle(inputPointer);
+	unsigned char operationState = 0;
+	BITMAP monochromeBitmap = BITMAP{};
+	unsigned short bitsPerScanline = 0;
+	BYTE* pixelBytes = NULL;
+	std::vector<BitmapPixel> awaitingPixels;
+	MSG msg;
+	while (1)
+	{
+		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
+		{
+			switch (msg.message)
+			{
+				case WM_QUIT:
+					if (pixelBytes != NULL)
+					{
+						delete[] pixelBytes;
+					}
+					return 0;
+				case WM_MARK_PIXEL_AS_TEXT: //dorysuj kolejny piksel do bitmapy					
+					BitmapPixel pixel = {};
+					pixel.x = LOWORD(msg.wParam);
+					pixel.y = HIWORD(msg.wParam);
+					if (pixelBytes == NULL)
+					{
+						//przechwyć i zapisz do czasu utworzenia tablicy bajtów
+						awaitingPixels.push_back(pixel);
+					}
+					else
+					{				
+						MarkMononochromeBitmapAsText(
+							pixel,
+							bitsPerScanline,
+							pixelBytes
+						);
+					}
+			}
+		}
+		switch (operationState)
+		{
+			case 0: //ustawianie zmiennych bitmapy			
+				monochromeBitmap.bmPlanes = 1;
+				monochromeBitmap.bmBitsPixel = 1;
+				monochromeBitmap.bmHeight = operationData.height;
+				monochromeBitmap.bmWidth = operationData.width;
+				operationState++;
+				break;
+			case 1: //wyliczanie zmiennych bitmapy
+				monochromeBitmap.bmWidthBytes = ceil(operationData.width / 16.0f) * 2;
+				bitsPerScanline = monochromeBitmap.bmWidthBytes * 8;
+				operationState++;
+				break;
+			case 2: //alokacja bajtów dla pikseli
+				unsigned int noBytesRequired = monochromeBitmap.bmWidthBytes * monochromeBitmap.bmHeight;
+				monochromeBitmap.bmBits = pixelBytes = new BYTE[noBytesRequired];
+				//narysuj piksele, które zostały zakomunikowane przed utworzeniem tablicy
+				concurrency::parallel_for(
+					(unsigned int)0,
+					awaitingPixels.size(),
+					(unsigned int)1,
+					[&](unsigned int i)
+					{
+						MarkMononochromeBitmapAsText(
+							awaitingPixels[i],
+							bitsPerScanline,
+							pixelBytes
+						);
+					}
+				);
+				operationState++;
+				break;
+		}
+
+	}
+}
+
+void MarkMononochromeBitmapAsText(
+	BitmapPixel pixel,
+	unsigned short bitsPerScanline,
+	BYTE* pixelBytes
+)
+{
+	unsigned int pixelBitIndex = (pixel.y * bitsPerScanline) + pixel.x;
+	unsigned int byteIndex = pixelBitIndex / 8;
+	unsigned char offsetInByte = (pixelBitIndex % 8);
+	unsigned char moveToTheLeft = (7 - offsetInByte);
+	BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
+	BYTE currentByteValue = pixelBytes[byteIndex];
+	BYTE newByteValue = currentByteValue & pixelByteValue;
+	pixelBytes[byteIndex] = newByteValue;
 }
 
 void RefreshFractalBitmap(FractalWindowData* windowData)
