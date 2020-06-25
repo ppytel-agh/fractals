@@ -53,6 +53,7 @@ struct MonochromaticBitmapThreadData
 	unsigned short height;
 };
 const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
+const UINT WM_PUT_BITMAP_IN_HANDLE = WM_APP + 4;
 DWORD MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
@@ -1205,6 +1206,8 @@ DWORD MonochromaticBitmapThread(LPVOID inputPointer)
 	BYTE* pixelBytes = NULL;
 	std::vector<BitmapPixel> awaitingPixels;
 	MSG msg;
+	HBITMAP bitmapHandle = NULL;
+	bool updateHandle = true;
 	while (1)
 	{
 		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
@@ -1233,7 +1236,26 @@ DWORD MonochromaticBitmapThread(LPVOID inputPointer)
 							bitsPerScanline,
 							pixelBytes
 						);
+						updateHandle = true;
 					}
+					break;
+				case WM_PUT_BITMAP_IN_HANDLE:
+					HBITMAP* bitmapHandlePointer = (HBITMAP*)msg.lParam;
+					if (pixelBytes != NULL)
+					{
+						if (updateHandle)
+						{
+							bitmapHandle = CreateBitmapIndirect(&monochromeBitmap);
+							updateHandle = false;
+						}
+						*bitmapHandlePointer = bitmapHandle;
+					}
+					else
+					{
+						//jeżeli bitmapa nie została jeszcze utworzona zakomunikuj, że wskaźnik został zmieniony
+						WakeByAddressSingle(bitmapHandlePointer);
+					}
+					break;
 			}
 		}
 		switch (operationState)
@@ -1265,6 +1287,7 @@ DWORD MonochromaticBitmapThread(LPVOID inputPointer)
 							bitsPerScanline,
 							pixelBytes
 						);
+						updateHandle = true;
 					}
 				);
 				operationState++;
