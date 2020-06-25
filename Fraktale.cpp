@@ -62,6 +62,16 @@ void MarkMononochromeBitmapAsText(
 	BYTE* pixelBytes
 );
 
+struct FractalPixelsCalculatorThreadData
+{
+	unsigned short bitmapWidth;
+	unsigned short bitmapHeight;
+	FractalClipping clipping;
+	DWORD bitmapThreadId;
+};
+DWORD FractalPixelsCalculatorThread(LPVOID);
+//const UINT WM_CALCULATE_PIXEL_FOR_POINT = WM_APP + 5;
+
 struct FractalWindowData
 {
 	HWND windowHandle;
@@ -1311,6 +1321,42 @@ void MarkMononochromeBitmapAsText(
 	BYTE currentByteValue = pixelBytes[byteIndex];
 	BYTE newByteValue = currentByteValue & pixelByteValue;
 	pixelBytes[byteIndex] = newByteValue;
+}
+
+DWORD FractalPixelsCalculatorThread(LPVOID inputPointer)
+{
+	FractalPixelsCalculatorThreadData operationData = *(FractalPixelsCalculatorThreadData*)inputPointer;
+	WakeByAddressSingle(inputPointer);
+
+	PixelCalculator pixelCalculator(
+		operationData.bitmapWidth,
+		operationData.bitmapHeight,
+		operationData.clipping
+	);
+	std::vector<BitmapPixel>calculatedPixels;
+	MSG msg;
+	while (GetMessageW(&msg, (HWND)-1, 0, 0))
+	{
+		switch (msg.message)
+		{
+			case WM_QUIT:
+				return 0;
+			case WM_PROCESS_NEW_POINT:
+				Point** pointsArray = (Point**)msg.lParam;
+				BitmapPixel pixel = {};
+				pixel.x = pixelCalculator.getPixelX(pointsArray[msg.wParam]->GetX());
+				pixel.y = pixelCalculator.getPixelY(pointsArray[msg.wParam]->GetY());
+				WPARAM wParam = MAKEWPARAM(pixel.x, pixel.y);
+				PostThreadMessageW(
+					operationData.bitmapThreadId,
+					WM_MARK_PIXEL_AS_TEXT,
+					wParam,
+					0
+				);
+				calculatedPixels.push_back(pixel);
+				break;
+		}
+	}
 }
 
 void RefreshFractalBitmap(FractalWindowData* windowData)
