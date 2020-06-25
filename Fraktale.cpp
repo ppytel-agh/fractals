@@ -12,6 +12,8 @@
 #include "fraktale-misc.h"
 #include <chrono>
 #include <vector>
+#include <synchapi.h>
+#pragma comment(lib, "Synchronization.lib")
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
@@ -51,9 +53,11 @@ struct MonochromaticBitmapThreadData
 {
 	unsigned short width;
 	unsigned short height;
+	DWORD notifyAboutBitmapUpdateThread;
 };
 const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
 const UINT WM_PUT_BITMAP_IN_HANDLE = WM_APP + 4;
+const UINT WM_BITMAP_UPDATED = WM_APP + 5;
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
@@ -70,7 +74,6 @@ struct FractalPixelsCalculatorThreadData
 	DWORD bitmapThreadId;
 };
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
-//const UINT WM_CALCULATE_PIXEL_FOR_POINT = WM_APP + 5;
 
 struct FractalWindowData
 {
@@ -637,6 +640,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			break;
+		case WM_BITMAP_UPDATED:
+			{
+				DWORD bitmapThreadId = wParam;
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				PostThreadMessageW(
+					bitmapThreadId,
+					WM_PUT_BITMAP_IN_HANDLE,
+					0,
+					(LPARAM)&windowData->fractalImage->bitmap
+				);
+			}
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -748,14 +763,68 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
 						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
 						*fractalWindowData->fractalPointsHandle = NULL;
+
+						if (fractalWindowData->createFractalBitmapThreadId != NULL)
+						{
+							PostThreadMessageW(fractalWindowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
+							fractalWindowData->createFractalBitmapThreadId = NULL;
+						}
+						if (fractalWindowData->calculateFractalPixelsThreadId != NULL)
+						{
+							PostThreadMessageW(fractalWindowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
+							fractalWindowData->calculateFractalPixelsThreadId = NULL;
+						}
 						if (fractalWindowData->calculateFractalPointsThreadId != NULL)
 						{
 							PostThreadMessageW(fractalWindowData->calculateFractalPointsThreadId, WM_QUIT, 0, 0);
 							fractalWindowData->calculateFractalPointsThreadId = NULL;
 						}
+
+						Fractal fractalFromForm = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+						fractalWindowData->fractalImage->scale = 1.0f;
+						fractalWindowData->fractalImage->offsetX = 0;
+						fractalWindowData->fractalImage->offsetY = 0;
+
+						RECT windowRect;
+						GetWindowRect(mainWindow, &windowRect);
+						unsigned short bitmapWidth = windowRect.right;
+						unsigned short bitmapHeight = windowRect.bottom;
+
+						fractalWindowData->fractalImage->width = bitmapWidth;
+						fractalWindowData->fractalImage->height = bitmapHeight;
+
+						MonochromaticBitmapThreadData fractalBitmapThreadData = {};
+						fractalBitmapThreadData.width = bitmapWidth;
+						fractalBitmapThreadData.height = bitmapHeight;
+						fractalBitmapThreadData.notifyAboutBitmapUpdateThread = GetCurrentThreadId();
+						HANDLE createFractalBitmapThreadHandle = CreateThread(
+							NULL,
+							0,
+							MonochromaticBitmapThread,
+							&fractalBitmapThreadData,
+							0,
+							&fractalWindowData->createFractalBitmapThreadId
+						);
+						WaitOnAddress(&fractalBitmapThreadData, &fractalBitmapThreadData, 1, INFINITE);
+
+						FractalPixelsCalculatorThreadData fractalPixelCalculatorData = {};
+						fractalPixelCalculatorData.bitmapWidth = bitmapWidth;
+						fractalPixelCalculatorData.bitmapHeight = bitmapHeight;
+						fractalPixelCalculatorData.clipping = fractalFromForm.getClipping();
+						fractalPixelCalculatorData.bitmapThreadId = fractalWindowData->createFractalBitmapThreadId;
+						CreateThread(
+							NULL,
+							0,
+							FractalPixelsCalculatorThread,
+							&fractalPixelCalculatorData,
+							0,
+							&fractalWindowData->calculateFractalPixelsThreadId
+						);
+						WaitOnAddress(&fractalPixelCalculatorData, &fractalPixelCalculatorData, 1, INFINITE);
+
 						FractalPointsThreadData fractalPointsInitData = {};
-						fractalPointsInitData.newPointCallbackThreadId = 0;
-						fractalPointsInitData.fractal = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+						fractalPointsInitData.newPointCallbackThreadId = fractalWindowData->calculateFractalPixelsThreadId;
+						fractalPointsInitData.fractal = fractalFromForm;
 						fractalPointsInitData.maxNumberOfPoints = 100000;
 						CreateThread(
 							NULL,
@@ -765,7 +834,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							0,
 							&fractalWindowData->calculateFractalPointsThreadId
 						);
-						WaitOnAddress(&fractalPointsInitData, 0, 1, INFINITE);
+						WaitOnAddress(&fractalPointsInitData, &fractalPointsInitData, 1, INFINITE);
+
 						return (INT_PTR)TRUE;
 					}
 				}
@@ -1149,6 +1219,7 @@ DWORD WINAPI FractalPointsThread(LPVOID dataStackAddress)
 				case WM_QUIT:
 					if (fractalPoints != NULL)
 					{
+						Point** initialFractalPointsAddres = fractalPoints;
 						concurrency::parallel_for(
 							(unsigned int)0,
 							numberOfCalculatedPoints,
@@ -1162,7 +1233,7 @@ DWORD WINAPI FractalPointsThread(LPVOID dataStackAddress)
 							}
 						}
 						);
-						WaitOnAddress(&fractalPoints, 0, 1, INFINITE);
+						WaitOnAddress(&fractalPoints, &initialFractalPointsAddres, 1, INFINITE);
 					}
 					return 0;
 			}
@@ -1236,23 +1307,31 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 						delete[] pixelBytes;
 					}
 					return 0;
-				case WM_MARK_PIXEL_AS_TEXT: //dorysuj kolejny piksel do bitmapy					
-					BitmapPixel pixel = {};
-					pixel.x = LOWORD(msg.wParam);
-					pixel.y = HIWORD(msg.wParam);
-					if (pixelBytes == NULL)
+				case WM_MARK_PIXEL_AS_TEXT: //dorysuj kolejny piksel do bitmapy		
 					{
-						//przechwyć i zapisz do czasu utworzenia tablicy bajtów
-						awaitingPixels.push_back(pixel);
-					}
-					else
-					{				
-						MarkMononochromeBitmapAsText(
-							pixel,
-							bitsPerScanline,
-							pixelBytes
-						);
-						updateHandle = true;
+						BitmapPixel pixel = {};
+						pixel.x = LOWORD(msg.wParam);
+						pixel.y = HIWORD(msg.wParam);
+						if (pixelBytes == NULL)
+						{
+							//przechwyć i zapisz do czasu utworzenia tablicy bajtów
+							awaitingPixels.push_back(pixel);
+						}
+						else
+						{
+							MarkMononochromeBitmapAsText(
+								pixel,
+								bitsPerScanline,
+								pixelBytes
+							);
+							updateHandle = true;
+							PostThreadMessageW(
+								operationData.notifyAboutBitmapUpdateThread,
+								WM_BITMAP_UPDATED,
+								GetCurrentThreadId(),
+								0
+							);
+						}
 					}
 					break;
 				case WM_PUT_BITMAP_IN_HANDLE:
@@ -1297,14 +1376,20 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 					awaitingPixels.size(),
 					(unsigned int)1,
 					[&](unsigned int i)
-					{
-						MarkMononochromeBitmapAsText(
-							awaitingPixels[i],
-							bitsPerScanline,
-							pixelBytes
-						);
-						updateHandle = true;
-					}
+				{
+					MarkMononochromeBitmapAsText(
+						awaitingPixels[i],
+						bitsPerScanline,
+						pixelBytes
+					);
+					updateHandle = true;
+					PostThreadMessageW(
+						operationData.notifyAboutBitmapUpdateThread,
+						WM_BITMAP_UPDATED,
+						GetCurrentThreadId(),
+						0
+					);
+				}
 				);
 				operationState++;
 				break;
