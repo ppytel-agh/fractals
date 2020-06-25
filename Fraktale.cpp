@@ -976,7 +976,7 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 		std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
 		//CreateBitmapIndirect tworzy kopię bitmapy dletego należy usunąć dane struktury aby uniknąć wycieków pamięci
 		if (windowData->fractalBitmap != NULL)
-		{			
+		{
 			delete windowData->fractalBitmap;
 		}
 		BITMAP* fractalBitmap = new BITMAP{};
@@ -1001,7 +1001,7 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 		debugString << L"Czas tworzenia obiektu bitmapy o rozmiarze " << windowData->fractalImage->width << L" na " << windowData->fractalImage->height << L" pikseli - " << bitmapCreationTime.count() << L" qs\n";
 		OutputDebugStringW(debugString.str().c_str());
 		//narysuj piksele na bitmapie
-		if(drawFractalV2(
+		if (drawFractalV2(
 			&windowData->fractal->getClipping(),
 			windowData->calculatedFractalPoints,
 			windowData->numberOfCalculatedPoints,
@@ -1013,8 +1013,8 @@ DWORD __stdcall CalculateFractalBitmapThread(LPVOID dataAddress)
 		{
 			RefreshFractalBitmap(windowData);
 			RefreshViewport(windowData);
-			return 0;			
-		}		
+			return 0;
+		}
 		else
 		{
 			return 2;
@@ -1040,7 +1040,7 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 			case WM_CALCULATE_POINT_PIXEL:
 				{
 					if (bitmapInitialized)
-					{				
+					{
 						BYTE* currentBitmapBytes = *windowData->bitmapBytesHandle;
 						Point** currentFractalPoints = *windowData->fractalPointsHandle;
 						Point** sentFractalPoints = (Point**)msg.lParam;
@@ -1095,16 +1095,82 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 
 DWORD FractalPointsThread(LPVOID dataStackAddress)
 {
-	CalculateFractalPointsThreadData operationData = {};
-	memcpy(&operationData, dataStackAddress, sizeof(CalculateFractalPointsThreadData));
+	CalculateFractalPointsThreadData operationData = *(CalculateFractalPointsThreadData*)dataStackAddress;
 	WakeByAddressSingle(dataStackAddress);
-	if (operationData.fractal.isValid())
+	unsigned char operationState = 0;
+	MSG msg = {};
+	Point** fractalPoints = NULL;
+	unsigned int numberOfCalculatedPoints = 0;
+	unsigned int currentPointIndex = 0;
+	Point currentPoint;
+	while (1)
 	{
+		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
+		{
+			switch (msg.message)
+			{
+				case WM_QUIT:
+					if (fractalPoints != NULL)
+					{
+						concurrency::parallel_for(
+							(unsigned int)0,
+							numberOfCalculatedPoints,
+							(unsigned int)1,
+							[&](int i) {
+							delete fractalPoints[i];
+							if (i == numberOfCalculatedPoints - 1)
+							{
+								delete fractalPoints;
+								fractalPoints = NULL;
+							}
+						}
+						);
+						WaitOnAddress(&fractalPoints, 0, 1, INFINITE);
+					}
+					return 0;
+			}
+		}
+		switch (operationState)
+		{
+			case 0: //walidacja fraktala				
+				if (operationData.fractal.isValid())
+				{
+					operationState++;
+				}
+				else
+				{
+					return 1;
+				}
+				break;
+			case 1: //alokacja pamięci dla punktów
+				{
+					fractalPoints = new Point * [operationData.maxNumberOfPoints];
+					operationState++;
+				}
+				break;
+			case 2: //wyliczanie kolejnych punktów
+				{
+					if (currentPointIndex < operationData.maxNumberOfPoints)
+					{
+						fractalPoints[currentPointIndex] = new Point(currentPoint);
+						currentPoint = operationData.fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+						//powiadom wątek zwrotny o nowym punkcie
+						PostThreadMessageW(
+							operationData.callbackThreadId,
+							WM_PROCESS_NEW_POINT,
+							currentPointIndex,
+							(LPARAM)fractalPoints
+						);
+						currentPointIndex++;
+					}
+					else 
+					{
+						operationState++;
+					}
+				}
+				break;
+		}
 
-	}
-	else
-	{
-		return 1;
 	}
 }
 
@@ -1124,7 +1190,7 @@ void RefreshFractalBitmap(FractalWindowData* windowData)
 		HDC windowDeviceContext = GetDC(windowData->windowHandle);
 		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
 		ReleaseDC(windowData->windowHandle, windowDeviceContext);
-		
+
 		SelectObject(fractalDrawingDC, newBitmap);
 		//dodaj ramkę
 		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -1152,7 +1218,7 @@ void RefreshViewport(FractalWindowData* windowData)
 {
 	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - windowData->lastPainingTS).count();
 	if (noMillisecondsSinceLastPainting >= 10)
-	{		
+	{
 		InvalidateRect(
 			windowData->windowHandle,
 			NULL,
