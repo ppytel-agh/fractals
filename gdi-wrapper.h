@@ -67,7 +67,7 @@ bool drawMovablePictureInRepaintBuffer(
 
 void markMonochromeBitmapPixelBlack(
 	unsigned short bitsInBitmapScanline,
-	BYTE* bitmapBytes,
+	BYTE** bitmapBytesHandle,
 	unsigned short pixelX,
 	unsigned short pixelY
 );

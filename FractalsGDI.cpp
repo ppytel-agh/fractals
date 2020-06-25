@@ -149,7 +149,8 @@ bool drawFractalV2(
 	unsigned int numberOfCalculatedPoints,
 	BITMAP* clientBitmap,
 	unsigned short bitmapWidth,
-	unsigned short bitmapHeight
+	unsigned short bitmapHeight,
+	BYTE** bitmapBytesHandle
 )
 {
 	std::chrono::steady_clock::time_point bitmapDrawingStart = std::chrono::high_resolution_clock::now();
@@ -161,22 +162,29 @@ bool drawFractalV2(
 	);
 
 	BYTE* bitmapBytes = (BYTE*)clientBitmap->bmBits;
+	
 	COLORREF blackColor = (COLORREF)RGB(0, 0, 0);
+	BYTE* initialBitmapBytes = *bitmapBytesHandle;
 	unsigned short bitsInBitmapScanline = clientBitmap->bmWidthBytes * 8;
 	concurrency::parallel_for(
 		(unsigned int) 0,
 		numberOfCalculatedPoints,
 		(unsigned int) 1,
 		[&](int i){
-		Point currentPoint = *calculatedFractalPoints[i];
-		unsigned short pixelX = kalkulatorPikseli.getPixelX(currentPoint.GetX());
-		unsigned short pixelY = kalkulatorPikseli.getPixelY(currentPoint.GetY());
-		markMonochromeBitmapPixelBlack(
-			bitsInBitmapScanline,
-			bitmapBytes,
-			pixelX,
-			pixelY
-		);
+		BYTE* currentBitmapBytes = *bitmapBytesHandle;
+		//jeżeli zainicjowano nową bitmapę to przestań rysoać piksele
+		if (currentBitmapBytes == initialBitmapBytes)
+		{
+			Point currentPoint = *calculatedFractalPoints[i];
+			unsigned short pixelX = kalkulatorPikseli.getPixelX(currentPoint.GetX());
+			unsigned short pixelY = kalkulatorPikseli.getPixelY(currentPoint.GetY());
+			markMonochromeBitmapPixelBlack(
+				bitsInBitmapScanline,
+				bitmapBytesHandle,
+				pixelX,
+				pixelY
+			);
+		}
 	}
 	);
 

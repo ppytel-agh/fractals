@@ -37,5 +37,6 @@ bool drawFractalV2(
 	unsigned int numberOfCalculatedPoints,
 	BITMAP* clientBitmap,
 	unsigned short bitmapWidth,
-	unsigned short bitmapHeight
+	unsigned short bitmapHeight,
+	BYTE** bitmapBytesHandle
 );
