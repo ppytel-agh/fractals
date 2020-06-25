@@ -34,13 +34,13 @@ DWORD WINAPI DrawFractalBitmapPointsRT(LPVOID);
 
 //nowa funkcja wątku do kalkulacji punktów fraktala
 const UINT WM_PROCESS_NEW_POINT = WM_APP + 2;
-struct CalculateFractalPointsThreadData
+struct FractalPointsThreadData
 {
 	Fractal fractal;
 	unsigned int maxNumberOfPoints;
-	DWORD callbackThreadId;
+	DWORD newPointCallbackThreadId;
 };
-DWORD FractalPointsThread(LPVOID);
+DWORD WINAPI FractalPointsThread(LPVOID);
 
 struct BitmapPixel
 {
@@ -54,7 +54,7 @@ struct MonochromaticBitmapThreadData
 };
 const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
 const UINT WM_PUT_BITMAP_IN_HANDLE = WM_APP + 4;
-DWORD MonochromaticBitmapThread(LPVOID);
+DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
 	BitmapPixel pixel,
@@ -69,7 +69,7 @@ struct FractalPixelsCalculatorThreadData
 	FractalClipping clipping;
 	DWORD bitmapThreadId;
 };
-DWORD FractalPixelsCalculatorThread(LPVOID);
+DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
 //const UINT WM_CALCULATE_PIXEL_FOR_POINT = WM_APP + 5;
 
 struct FractalWindowData
@@ -93,6 +93,7 @@ struct FractalWindowData
 	BYTE* fractalBitmapBytes;
 	DWORD calculateFractalPointsThreadId;
 	DWORD createFractalBitmapThreadId;
+	DWORD calculateFractalPixelsThreadId;
 	BYTE** bitmapBytesHandle;
 	Point*** fractalPointsHandle;
 };
@@ -752,14 +753,19 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							PostThreadMessageW(fractalWindowData->calculateFractalPointsThreadId, WM_QUIT, 0, 0);
 							fractalWindowData->calculateFractalPointsThreadId = NULL;
 						}
+						FractalPointsThreadData fractalPointsInitData = {};
+						fractalPointsInitData.newPointCallbackThreadId = 0;
+						fractalPointsInitData.fractal = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+						fractalPointsInitData.maxNumberOfPoints = 100000;
 						CreateThread(
 							NULL,
 							0,
-							CalculateFractalPointsThread,
-							fractalWindowData,
+							FractalPointsThread,
+							&fractalPointsInitData,
 							0,
 							&fractalWindowData->calculateFractalPointsThreadId
 						);
+						WaitOnAddress(&fractalPointsInitData, 0, 1, INFINITE);
 						return (INT_PTR)TRUE;
 					}
 				}
@@ -1124,9 +1130,9 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 	return 0;
 }
 
-DWORD FractalPointsThread(LPVOID dataStackAddress)
+DWORD WINAPI FractalPointsThread(LPVOID dataStackAddress)
 {
-	CalculateFractalPointsThreadData operationData = *(CalculateFractalPointsThreadData*)dataStackAddress;
+	FractalPointsThreadData operationData = *(FractalPointsThreadData*)dataStackAddress;
 	WakeByAddressSingle(dataStackAddress);
 	unsigned char operationState = 0;
 	MSG msg = {};
@@ -1188,7 +1194,7 @@ DWORD FractalPointsThread(LPVOID dataStackAddress)
 						currentPoint = operationData.fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
 						//powiadom wątek zwrotny o nowym punkcie
 						PostThreadMessageW(
-							operationData.callbackThreadId,
+							operationData.newPointCallbackThreadId,
 							WM_PROCESS_NEW_POINT,
 							currentPointIndex,
 							(LPARAM)fractalPoints
@@ -1206,7 +1212,7 @@ DWORD FractalPointsThread(LPVOID dataStackAddress)
 	}
 }
 
-DWORD MonochromaticBitmapThread(LPVOID inputPointer)
+DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 {
 	MonochromaticBitmapThreadData operationData = *(MonochromaticBitmapThreadData*)inputPointer;
 	WakeByAddressSingle(inputPointer);
@@ -1323,7 +1329,7 @@ void MarkMononochromeBitmapAsText(
 	pixelBytes[byteIndex] = newByteValue;
 }
 
-DWORD FractalPixelsCalculatorThread(LPVOID inputPointer)
+DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 {
 	FractalPixelsCalculatorThreadData operationData = *(FractalPixelsCalculatorThreadData*)inputPointer;
 	WakeByAddressSingle(inputPointer);
