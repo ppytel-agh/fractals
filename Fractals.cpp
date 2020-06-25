@@ -22,6 +22,16 @@ float Point::GetY(void)
 	return y;
 }
 
+AffineTransformation::AffineTransformation()
+{
+	this->a = 0.0f;
+	this->b = 0.0f;
+	this->c = 0.0f;
+	this->d = 0.0f;
+	this->e = 0.0f;
+	this->f = 0.0f;
+}
+
 AffineTransformation::AffineTransformation(float a, float b, float c, float d, float e, float f)
 {
 	this->a = a;
@@ -69,6 +79,11 @@ float AffineTransformation::getF(void)
 	return f;
 }
 
+AffineTransformationRow::AffineTransformationRow() : transformation()
+{
+	this->probability = 0;
+}
+
 AffineTransformationRow::AffineTransformationRow(
 	unsigned char probability,
 	AffineTransformation transformation
@@ -85,6 +100,12 @@ unsigned char AffineTransformationRow::getProbability(void)
 AffineTransformation AffineTransformationRow::getTransformation(void)
 {
 	return this->transformation;
+}
+
+AffineTransformationRowsGroup::AffineTransformationRowsGroup()
+{
+	this->transformationRows = nullptr;
+	this->numberOfRows = 0;
 }
 
 AffineTransformationRowsGroup::AffineTransformationRowsGroup(
@@ -161,6 +182,14 @@ bool AffineTransformationRowsGroup::isValid(void)
 	return this->numberOfRows > 0;
 }
 
+FractalClipping::FractalClipping()
+{
+	this->xMin = 0.0f;
+	this->xMax = 0.0f;
+	this->yMin = 0.0f;
+	this->yMax = 0.0f;
+}
+
 FractalClipping::FractalClipping(float xMin, float xMax, float yMin, float yMax)
 {
 	this->xMin = xMin;
@@ -187,6 +216,12 @@ float FractalClipping::getYMin(void)
 float FractalClipping::getYMax(void)
 {
 	return this->yMax;
+}
+
+Fractal::Fractal(): transformationRowsGroup(), clipping()
+{
+	this->numberOfProbabilities = 0;
+	this->probabilityAssociations = nullptr;
 }
 
 Fractal::Fractal(
