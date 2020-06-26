@@ -398,7 +398,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
 					windowData->fractalImage->scale = 1.0f;
-					if (windowData->createFractalBitmapThreadId != NULL)
+					/*if (windowData->createFractalBitmapThreadId != NULL)
 					{
 						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
 						windowData->createFractalBitmapThreadId = NULL;
@@ -410,7 +410,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						windowData,
 						0,
 						&windowData->createFractalBitmapThreadId
-					);
+					);*/
 				}
 			}
 			break;
@@ -450,7 +450,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetX = 0;
 					windowData->fractalImage->offsetY = 0;
 					windowData->fractalImage->scale = 1.0f;
-					if (windowData->createFractalBitmapThreadId != NULL)
+					/*if (windowData->createFractalBitmapThreadId != NULL)
 					{
 						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
 						windowData->createFractalBitmapThreadId = NULL;
@@ -462,7 +462,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						windowData,
 						0,
 						&windowData->createFractalBitmapThreadId
-					);
+					);*/
 				}
 			}
 			break;
@@ -495,7 +495,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//przesuń obraz fraktala
 					windowData->fractalImage->offsetX += deltaX;
 					windowData->fractalImage->offsetY += deltaY;
-					RefreshViewport(windowData);
+					InvalidateRect(
+						hWnd,
+						NULL,
+						FALSE
+					);
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
 					windowData->lastPointerPosition->y = mouseY;
@@ -565,7 +569,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetY = mousePosition.y + scaledVectorY;
 
 					//rysuj bitmapę fraktala	
-					if (windowData->createFractalBitmapThreadId != NULL)
+					/*if (windowData->createFractalBitmapThreadId != NULL)
 					{
 						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
 						windowData->createFractalBitmapThreadId = NULL;
@@ -577,7 +581,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						windowData,
 						0,
 						&windowData->createFractalBitmapThreadId
-					);
+					);*/
 				}
 			}
 			break;
@@ -1323,12 +1327,21 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 								bitsPerScanline,
 								pixelBytes
 							);
+
+							std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
+
 							*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
 							InvalidateRect(
 								operationData.bitmapWindowHandle,
 								NULL,
 								FALSE
 							);
+
+							std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();							
+							std::wstringstream debugStream;
+							debugStream << L"Czas tworzenia bitmpapy - " << std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart).count() << L"\n";
+							OutputDebugStringW(debugStream.str().c_str());
+
 						}
 					}
 					break;
@@ -1369,12 +1382,20 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 						bitsPerScanline,
 						pixelBytes
 					);
+
+					std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
+
 					*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
 					InvalidateRect(
 						operationData.bitmapWindowHandle,
 						NULL,
 						FALSE
 					);
+
+					std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
+					std::wstringstream debugStream;
+					debugStream << L"Czas tworzenia bitmpapy - " << std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart).count() << L"\n";
+					OutputDebugStringW(debugStream.str().c_str());
 				}
 				);
 				operationState++;
