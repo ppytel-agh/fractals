@@ -1271,7 +1271,7 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 							operationData.newPointCallbackThreadId,
 							WM_PROCESS_NEW_POINT,
 							currentPointIndex,
-							(LPARAM)fractalPoints
+							(LPARAM)&fractalPoints
 						);
 						currentPointIndex++;
 					}
@@ -1440,18 +1440,22 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 			case WM_QUIT:
 				return 0;
 			case WM_PROCESS_NEW_POINT:
-				Point** pointsArray = (Point**)msg.lParam;
-				BitmapPixel pixel = {};
-				pixel.x = pixelCalculator.getPixelX(pointsArray[msg.wParam]->GetX());
-				pixel.y = pixelCalculator.getPixelY(pointsArray[msg.wParam]->GetY());
-				WPARAM wParam = MAKEWPARAM(pixel.x, pixel.y);
-				PostThreadMessageW(
-					operationData.bitmapThreadId,
-					WM_MARK_PIXEL_AS_TEXT,
-					wParam,
-					0
-				);
-				calculatedPixels.push_back(pixel);
+				Point*** pointsArrayAddress = (Point***)msg.lParam;
+				if (pointsArrayAddress != NULL)
+				{
+					Point** pointsArray = (Point**)*pointsArrayAddress;
+					BitmapPixel pixel = {};
+					pixel.x = pixelCalculator.getPixelX(pointsArray[msg.wParam]->GetX());
+					pixel.y = pixelCalculator.getPixelY(pointsArray[msg.wParam]->GetY());
+					WPARAM wParam = MAKEWPARAM(pixel.x, pixel.y);
+					PostThreadMessageW(
+						operationData.bitmapThreadId,
+						WM_MARK_PIXEL_AS_TEXT,
+						wParam,
+						0
+					);
+					calculatedPixels.push_back(pixel);
+				}
 				break;
 		}
 	}
