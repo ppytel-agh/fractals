@@ -612,6 +612,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				//zapisz dane w oknie
 				FractalFormDialogData* dialogData = new FractalFormDialogData{};
 				dialogData->fractalUI = formTest;
+				formTest->getFractalDefinitionForm()->setValue(getDragonFractal());
 				dialogData->drawingScale = 1.0f;
 				SetWindowLongW(
 					hDlg,
