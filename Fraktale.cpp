@@ -58,6 +58,7 @@ struct MonochromaticBitmapThreadData
 const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
 const UINT WM_PUT_BITMAP_IN_HANDLE = WM_APP + 4;
 const UINT WM_BITMAP_UPDATED = WM_APP + 5;
+const UINT WM_PUT_BITMAP_IN_HANDLE_CALLBACK = WM_APP + 6;
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
@@ -145,6 +146,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HWND dialogHandle = fractalWindowData->dialogWindowHandle;
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
+	
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
@@ -156,10 +158,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			PostThreadMessageW(
 				bitmapThreadId,
 				WM_PUT_BITMAP_IN_HANDLE,
-				0,
+				GetCurrentThreadId(),
 				(LPARAM)&windowData->fractalImage->bitmap
 			);
 			//WaitOnAddress(&windowData->fractalImage->bitmap, &currentBitmapHandle, 1, INFINITE);
+		}
+		else if (msg.message == WM_PUT_BITMAP_IN_HANDLE_CALLBACK)
+		{
 			InvalidateRect(
 				mainWindowHandle,
 				NULL,
@@ -1352,6 +1357,12 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 						{
 							bitmapHandle = CreateBitmapIndirect(&monochromeBitmap);
 							updateHandle = false;
+							PostThreadMessageW(
+								msg.wParam,
+								WM_PUT_BITMAP_IN_HANDLE_CALLBACK,
+								0,
+								0
+							);
 						}
 						*bitmapHandlePointer = bitmapHandle;
 					}
