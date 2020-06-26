@@ -54,11 +54,10 @@ struct MonochromaticBitmapThreadData
 	unsigned short width;
 	unsigned short height;
 	DWORD notifyAboutBitmapUpdateThread;
+	HBITMAP* outputHandlePointer;
+	HWND bitmapWindowHandle;
 };
 const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
-const UINT WM_PUT_BITMAP_IN_HANDLE = WM_APP + 4;
-const UINT WM_BITMAP_UPDATED = WM_APP + 5;
-const UINT WM_PUT_BITMAP_IN_HANDLE_CALLBACK = WM_APP + 6;
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
@@ -149,40 +148,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
-	{
-		if (msg.message == WM_BITMAP_UPDATED)
+	{		
+		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+		bool isDialog = IsDialogMessage(dialogHandle, &msg);
+		if (fractalDialogData->importDialogWindowHandle != NULL)
 		{
-			DWORD bitmapThreadId = msg.wParam;
-			FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(mainWindowHandle, GWL_USERDATA);
-			HBITMAP currentBitmapHandle = windowData->fractalImage->bitmap;
-			PostThreadMessageW(
-				bitmapThreadId,
-				WM_PUT_BITMAP_IN_HANDLE,
-				GetCurrentThreadId(),
-				(LPARAM)&windowData->fractalImage->bitmap
-			);
+			isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
 		}
-		else if (msg.message == WM_PUT_BITMAP_IN_HANDLE_CALLBACK)
+		if (!isTranslated && !isDialog)
 		{
-			InvalidateRect(
-				mainWindowHandle,
-				NULL,
-				FALSE
-			);
-		}
-		else
-		{
-			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
-			bool isDialog = IsDialogMessage(dialogHandle, &msg);
-			if (fractalDialogData->importDialogWindowHandle != NULL)
-			{
-				isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
-			}
-			if (!isTranslated && !isDialog)
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 	}
 
@@ -817,6 +793,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalBitmapThreadData->width = bitmapWidth;
 							fractalBitmapThreadData->height = bitmapHeight;
 							fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
+							fractalBitmapThreadData->outputHandlePointer = &fractalWindowData->fractalImage->bitmap;
+							fractalBitmapThreadData->bitmapWindowHandle = mainWindow;
 							HANDLE createFractalBitmapThreadHandle = CreateThread(
 								NULL,
 								0,
@@ -1345,32 +1323,13 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 								bitsPerScanline,
 								pixelBytes
 							);
-							updateHandle = true;
-							PostThreadMessageW(
-								operationData.notifyAboutBitmapUpdateThread,
-								WM_BITMAP_UPDATED,
-								GetCurrentThreadId(),
-								0
+							*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+							InvalidateRect(
+								operationData.bitmapWindowHandle,
+								NULL,
+								FALSE
 							);
 						}
-					}
-					break;
-				case WM_PUT_BITMAP_IN_HANDLE:
-					HBITMAP* bitmapHandlePointer = (HBITMAP*)msg.lParam;
-					if (pixelBytes != NULL)
-					{
-						if (updateHandle)
-						{
-							bitmapHandle = CreateBitmapIndirect(&monochromeBitmap);
-							updateHandle = false;							
-						}
-						*bitmapHandlePointer = bitmapHandle;
-						PostThreadMessageW(
-							msg.wParam,
-							WM_PUT_BITMAP_IN_HANDLE_CALLBACK,
-							0,
-							0
-						);
 					}
 					break;
 			}
@@ -1410,12 +1369,11 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 						bitsPerScanline,
 						pixelBytes
 					);
-					updateHandle = true;
-					PostThreadMessageW(
-						operationData.notifyAboutBitmapUpdateThread,
-						WM_BITMAP_UPDATED,
-						GetCurrentThreadId(),
-						0
+					*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+					InvalidateRect(
+						operationData.bitmapWindowHandle,
+						NULL,
+						FALSE
 					);
 				}
 				);
