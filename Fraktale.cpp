@@ -781,7 +781,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						fractalWindowData->fractalImage->offsetY = 0;
 
 						RECT windowRect;
-						GetWindowRect(mainWindow, &windowRect);
+						GetClientRect(mainWindow, &windowRect);
 						unsigned short bitmapWidth = windowRect.right;
 						unsigned short bitmapHeight = windowRect.bottom;
 
