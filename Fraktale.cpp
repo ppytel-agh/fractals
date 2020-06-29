@@ -293,7 +293,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_PAINT:
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);			
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
 				// TODO: Add any drawing code that uses hdc here...	
@@ -402,7 +402,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						(windowData->fractalImage->width < newSize.right)
 						||
 						(windowData->fractalImage->height < newSize.bottom)
-					)
+						)
 					{
 						OutputDebugStringW(L"Reset skali bitmapy\n");
 						windowData->fractalImage->scale = 1.0f;
@@ -1298,7 +1298,7 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 			case 1: //alokacja pamięci dla punktów
 				{
 					fractalPoints = new Point * [operationData.maxNumberOfPoints];
-					ZeroMemory(fractalPoints, sizeof(Point*) * operationData.maxNumberOfPoints);					
+					ZeroMemory(fractalPoints, sizeof(Point*) * operationData.maxNumberOfPoints);
 					operationState++;
 				}
 				break;
@@ -1322,23 +1322,51 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 						operationState = 4;
 					}
 				}
-				break;			
+				break;
 			case 3://wpisz wyliczone punkty do nowego uchwytu
-				if(newHandlePointIndex < currentPointIndex)
 				{
-					WriteFile(
+					std::wstringstream stream;
+					stream << L"wyliczone punkty - " << currentPointIndex << L"\n";
+					OutputDebugStringW(stream.str().c_str());
+				}
+				concurrency::parallel_for(
+					(unsigned int)0,
+					currentPointIndex,
+					(unsigned int)1,
+					[&](unsigned int pointOffset)
+				{
+					HANDLE writeHandle = NULL;
+					DuplicateHandle(
+						GetCurrentProcess(),
 						pointsWriteHandle,
+						GetCurrentProcess(),
+						&writeHandle,
+						0,
+						FALSE,
+						DUPLICATE_SAME_ACCESS
+					);
+					SetFilePointer(
+						writeHandle,
+						sizeof(Point) * pointOffset,
+						NULL,
+						FILE_BEGIN
+					);
+					BOOL result = WriteFile(
+						writeHandle,
 						fractalPoints[newHandlePointIndex],
 						sizeof(Point),
 						&bytesWritten,
 						NULL
 					);
-					newHandlePointIndex++;
 				}
-				else
-				{
-					operationState = 2;
-				}
+				);
+				SetFilePointer(
+					pointsWriteHandle,
+					sizeof(Point) * currentPointIndex,
+					NULL,
+					FILE_BEGIN
+				);
+				operationState = 2;
 				break;
 			case 4:
 				//koniec strumienia punktów będzie zawierał bity 1
@@ -1642,7 +1670,7 @@ void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth,
 	if (windowData->fractal == NULL)
 	{
 		return;
-	}	
+	}
 	//zamknij poprzednie wątki bitmapy
 	if (windowData->calculateFractalPixelsThreadId != NULL)
 	{
