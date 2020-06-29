@@ -1239,6 +1239,17 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 			switch (msg.message)
 			{
 				case WM_QUIT:
+					if (operationState < 4)
+					{
+						FillMemory(&currentPoint, sizeof(Point), 255);
+						WriteFile(
+							operationData.fractalPointsWriteHandle,
+							&currentPoint,
+							sizeof(Point),
+							&bytesWritten,
+							NULL
+						);
+					}
 					CloseHandle(operationData.fractalPointsWriteHandle);
 					if (fractalPoints != NULL)
 					{
@@ -1343,41 +1354,6 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 					}
 					CloseHandle(operationData.pixelsReadHandle);
 					return 0;
-				case WM_MARK_PIXEL_AS_TEXT: //dorysuj kolejny piksel do bitmapy		
-					{
-						BitmapPixel pixel = {};
-						pixel.x = LOWORD(msg.wParam);
-						pixel.y = HIWORD(msg.wParam);
-						if (pixelBytes == NULL)
-						{
-							//przechwyć i zapisz do czasu utworzenia tablicy bajtów
-							awaitingPixels.push_back(pixel);
-						}
-						else
-						{
-							MarkMononochromeBitmapAsText(
-								pixel,
-								bitsPerScanline,
-								pixelBytes
-							);
-
-							std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
-
-							*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
-							InvalidateRect(
-								operationData.bitmapWindowHandle,
-								NULL,
-								FALSE
-							);
-
-							std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
-							std::wstringstream debugStream;
-							debugStream << L"Czas tworzenia bitmpapy - " << std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart).count() << L"\n";
-							OutputDebugStringW(debugStream.str().c_str());
-
-						}
-					}
-					break;
 			}
 		}
 		switch (operationState)
@@ -1414,36 +1390,35 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 					NULL
 				))
 				{
-
+					BYTE* pointBytes = (BYTE*)&pixelBuffer;
+					bool eof = true;
+					for (unsigned char i = 0; i < sizeof(BitmapPixel);i++)
+					{
+						if ((pointBytes[i] & 255) != 255)
+						{
+							eof = false;
+							break;
+						}
+					}
+					if (eof)
+					{
+						operationState++;
+					}
+					else
+					{
+						MarkMononochromeBitmapAsText(
+							pixelBuffer,
+							bitsPerScanline,
+							pixelBytes
+						);
+						*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+						InvalidateRect(
+							operationData.bitmapWindowHandle,
+							NULL,
+							FALSE
+						);
+					}
 				}
-				concurrency::parallel_for(
-					(unsigned int)0,
-					awaitingPixels.size(),
-					(unsigned int)1,
-					[&](unsigned int i)
-				{
-					MarkMononochromeBitmapAsText(
-						awaitingPixels[i],
-						bitsPerScanline,
-						pixelBytes
-					);
-
-					std::chrono::steady_clock::time_point bitmapCreationStart = std::chrono::high_resolution_clock::now();
-
-					*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
-					InvalidateRect(
-						operationData.bitmapWindowHandle,
-						NULL,
-						FALSE
-					);
-
-					std::chrono::steady_clock::time_point bitmapCreationEnd = std::chrono::high_resolution_clock::now();
-					std::wstringstream debugStream;
-					debugStream << L"Czas tworzenia bitmpapy - " << std::chrono::duration_cast<std::chrono::microseconds>(bitmapCreationEnd - bitmapCreationStart).count() << L"\n";
-					OutputDebugStringW(debugStream.str().c_str());
-				}
-				);
-				operationState++;
 				break;
 		}
 
@@ -1486,38 +1461,11 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 			switch (msg.message)
 			{
 				case WM_QUIT:
-					CloseHandle(operationData.fractalPixelsWriteHandle);
 					CloseHandle(operationData.fractalPointsReadHandle);
-					return 0;
-			}
-		}
-		switch (operationState)
-		{
-			case 0:
-				Point pointBuffer;
-				DWORD bytesRead = 0;
-				if (ReadFile(
-					operationData.fractalPointsReadHandle,
-					&pointBuffer,
-					sizeof(Point),
-					&bytesRead,
-					NULL
-				))
-				{
-					BYTE* pointBytes = (BYTE*)&pointBuffer;
-					bool eof = true;
-					for (unsigned char i = 0; i < sizeof(Point);i++)
+					if (operationState < 2)
 					{
-						if ((pointBytes[i] & 255) != 255)
-						{
-							eof = false;
-							break;
-						}
-					}
-					DWORD bytesWritten = 0;
-					BitmapPixel pixel = {};
-					if (eof)
-					{
+						DWORD bytesWritten = 0;
+						BitmapPixel pixel = {};
 						FillMemory(&pixel, 255, sizeof(BitmapPixel));
 						WriteFile(
 							operationData.fractalPixelsWriteHandle,
@@ -1526,22 +1474,72 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 							&bytesWritten,
 							NULL
 						);
-						operationState++;
 					}
-					else
-					{						
-						pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-						pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());						
-						WriteFile(
-							operationData.fractalPixelsWriteHandle,
-							&pixel,
-							sizeof(BitmapPixel),
-							&bytesWritten,
-							NULL
-						);
-						calculatedPixels.push_back(pixel);
+					CloseHandle(operationData.fractalPixelsWriteHandle);
+					return 0;
+			}
+		}
+		switch (operationState)
+		{
+			case 0:
+				{
+					Point pointBuffer;
+					DWORD bytesRead = 0;
+					if (ReadFile(
+						operationData.fractalPointsReadHandle,
+						&pointBuffer,
+						sizeof(Point),
+						&bytesRead,
+						NULL
+					))
+					{
+						BYTE* pointBytes = (BYTE*)&pointBuffer;
+						bool eof = true;
+						for (unsigned char i = 0; i < sizeof(Point);i++)
+						{
+							if ((pointBytes[i] & 255) != 255)
+							{
+								eof = false;
+								break;
+							}
+						}
+						if (eof)
+						{
+							operationState++;
+						}
+						else
+						{
+							BitmapPixel pixel = {};
+							DWORD bytesWritten = 0;
+							pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
+							pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
+
+							WriteFile(
+								operationData.fractalPixelsWriteHandle,
+								&pixel,
+								sizeof(BitmapPixel),
+								&bytesWritten,
+								NULL
+							);
+							calculatedPixels.push_back(pixel);
+						}
 					}
 				}
+				break;
+			case 1:
+				{
+					BitmapPixel pixel = {};
+					DWORD bytesWritten = 0;
+					FillMemory(&pixel, 255, sizeof(BitmapPixel));
+					WriteFile(
+						operationData.fractalPixelsWriteHandle,
+						&pixel,
+						sizeof(BitmapPixel),
+						&bytesWritten,
+						NULL
+					);
+				}
+				operationState++;
 				break;
 		}
 	}
