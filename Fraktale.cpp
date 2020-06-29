@@ -1638,7 +1638,7 @@ void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth,
 	if (windowData->fractal == NULL)
 	{
 		return;
-	}
+	}	
 	//zamknij poprzednie wątki bitmapy
 	if (windowData->calculateFractalPixelsThreadId != NULL)
 	{
@@ -1705,4 +1705,6 @@ void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth,
 			&windowData->createFractalBitmapThreadId
 		);
 	}
+	windowData->fractalImage->width = newWidth;
+	windowData->fractalImage->height = newHeight;
 }
