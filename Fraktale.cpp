@@ -1454,7 +1454,6 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 	std::vector<BitmapPixel>calculatedPixels;
 	MSG msg;
 	unsigned char operationState = 0;
-	unsigned long idleCounter = 0;
 	while (1)
 	{
 		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
@@ -1541,9 +1540,6 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 					);
 				}
 				operationState++;
-				break;
-			case 2:
-				idleCounter++;
 				break;
 		}
 	}
