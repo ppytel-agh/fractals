@@ -112,6 +112,12 @@ struct FractalFormDialogData
 void RefreshFractalBitmap(FractalWindowData* windowData);
 void RefreshViewport(FractalWindowData* windowData);
 
+void UpdateFractalBitmap(
+	FractalWindowData* windowData,
+	unsigned short newWidth,
+	unsigned short newHeight
+);
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -395,76 +401,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					(windowData->previousHeight != newSize.bottom)
 					)
 				{
-					//zamknij poprzednie wątki bitmapy
-					if (windowData->calculateFractalPixelsThreadId != NULL)
-					{
-						PostThreadMessageW(windowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
-						windowData->calculateFractalPixelsThreadId = NULL;
-					}
-					if (windowData->calculateFractalPointsThreadId != NULL)
-					{
-						PostThreadMessageW(windowData->calculateFractalPointsThreadId, WM_QUIT, 0, 0);
-						windowData->calculateFractalPointsThreadId = NULL;
-					}
-
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
-
-					HANDLE fractalPointsWriteHandle = NULL;
-					HANDLE fractalPointsReadHandle = NULL;
-					CreatePipe(
-						&fractalPointsReadHandle,
-						&fractalPointsWriteHandle,
-						NULL,
-						0
-					);
-					PostThreadMessageW(
-						windowData->calculateFractalPointsThreadId,
-						WM_UPDATE_POINTS_PIPE,
-						(WPARAM)fractalPointsWriteHandle,
-						NULL
-					);
-					HANDLE fractalPixelsWriteHandle = NULL;
-					HANDLE fractalPixelsReadHandle = NULL;
-					CreatePipe(
-						&fractalPixelsReadHandle,
-						&fractalPixelsWriteHandle,
-						NULL,
-						0
-					);
-					unsigned short bitmapWidth = newSize.right * windowData->fractalImage->scale;
-					unsigned short bitmapHeight = newSize.bottom * windowData->fractalImage->scale;
+					//zmień skalę tak, aby pasowała do aktualnego przybliżenia
+					if (
+						(windowData->fractalImage->width < newSize.right)
+						||
+						(windowData->fractalImage->height < newSize.bottom)
+					)
 					{
-						FractalPixelsCalculatorThreadData* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadData{};
-						fractalPixelCalculatorData->bitmapWidth = bitmapWidth;
-						fractalPixelCalculatorData->bitmapHeight = bitmapHeight;
-						fractalPixelCalculatorData->clipping = windowData->fractal->getClipping();
-						fractalPixelCalculatorData->fractalPixelsWriteHandle = fractalPixelsWriteHandle;
-						fractalPixelCalculatorData->fractalPointsReadHandle = fractalPointsReadHandle;
-						CreateThread(
-							NULL,
-							0,
-							FractalPixelsCalculatorThread,
-							fractalPixelCalculatorData,
-							0,
-							&windowData->calculateFractalPixelsThreadId
+						OutputDebugStringW(L"Reset skali bitmapy\n");
+						windowData->fractalImage->scale = 1.0f;
+						UpdateFractalBitmap(
+							windowData,
+							newSize.right,
+							newSize.bottom
 						);
 					}
+					else
 					{
-						MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
-						fractalBitmapThreadData->width = bitmapWidth;
-						fractalBitmapThreadData->height = bitmapHeight;
-						fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
-						fractalBitmapThreadData->outputHandlePointer = &windowData->fractalImage->bitmap;
-						fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
-						fractalBitmapThreadData->pixelsReadHandle = fractalPixelsReadHandle;
-						HANDLE createFractalBitmapThreadHandle = CreateThread(
-							NULL,
-							0,
-							MonochromaticBitmapThread,
-							fractalBitmapThreadData,
-							0,
-							&windowData->createFractalBitmapThreadId
-						);
+						windowData->fractalImage->scale = windowData->fractalImage->width / newSize.right;
 					}
 				}
 			}
@@ -502,22 +457,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (resizeNow)
 				{
-					windowData->fractalImage->offsetX = 0;
-					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;
-					/*if (windowData->createFractalBitmapThreadId != NULL)
+					RECT clientRect;
+					GetClientRect(hWnd, &clientRect);
+					if (
+						(windowData->fractalImage->width < clientRect.right)
+						||
+						(windowData->fractalImage->height < clientRect.bottom)
+						)
 					{
-						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
-						windowData->createFractalBitmapThreadId = NULL;
+						OutputDebugStringW(L"Reset skali bitmapy\n");
+						windowData->fractalImage->scale = 1.0f;
+						UpdateFractalBitmap(
+							windowData,
+							clientRect.right,
+							clientRect.bottom
+						);
 					}
-					CreateThread(
-						NULL,
-						0,
-						CalculateFractalBitmapThread,
-						windowData,
-						0,
-						&windowData->createFractalBitmapThreadId
-					);*/
+					else
+					{
+						windowData->fractalImage->scale = windowData->fractalImage->width / clientRect.right;
+					}
 				}
 			}
 			break;
@@ -623,20 +582,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetX = mousePosition.x + scaledVectorX;
 					windowData->fractalImage->offsetY = mousePosition.y + scaledVectorY;
 
-					//rysuj bitmapę fraktala	
-					/*if (windowData->createFractalBitmapThreadId != NULL)
-					{
-						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
-						windowData->createFractalBitmapThreadId = NULL;
-					}
-					CreateThread(
-						NULL,
-						0,
-						CalculateFractalBitmapThread,
+					RECT clientRect;
+					GetClientRect(hWnd, &clientRect);
+					//rysuj bitmapę fraktala
+					UpdateFractalBitmap(
 						windowData,
-						0,
-						&windowData->createFractalBitmapThreadId
-					);*/
+						clientRect.right * windowData->fractalImage->scale,
+						clientRect.bottom * windowData->fractalImage->scale
+					);
 				}
 			}
 			break;
@@ -835,6 +788,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						}
 
 						Fractal fractalFromForm = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
+						if (fractalWindowData->fractal != NULL)
+						{
+							Fractal* fractalPointer = fractalWindowData->fractal;
+							fractalWindowData->fractal = NULL;
+							delete fractalWindowData->fractal;
+						}
+						fractalWindowData->fractal = new Fractal(fractalFromForm);
 						fractalWindowData->fractalImage->scale = 1.0f;
 						fractalWindowData->fractalImage->offsetX = 0;
 						fractalWindowData->fractalImage->offsetY = 0;
@@ -1321,7 +1281,7 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 					CloseHandle(pointsWriteHandle);
 					pointsWriteHandle = (HANDLE)msg.wParam;
 					newHandlePointIndex = 0;
-					operationState = 4;
+					operationState = 3;
 					break;
 			}
 		}
@@ -1669,6 +1629,80 @@ void RefreshViewport(FractalWindowData* windowData)
 			windowData->windowHandle,
 			NULL,
 			FALSE
+		);
+	}
+}
+
+void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth, unsigned short newHeight)
+{
+	if (windowData->fractal == NULL)
+	{
+		return;
+	}
+	//zamknij poprzednie wątki bitmapy
+	if (windowData->calculateFractalPixelsThreadId != NULL)
+	{
+		PostThreadMessageW(windowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
+		windowData->calculateFractalPixelsThreadId = NULL;
+	}
+	if (windowData->createFractalBitmapThreadId != NULL)
+	{
+		PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
+		windowData->createFractalBitmapThreadId = NULL;
+	}
+	HANDLE fractalPointsWriteHandle = NULL;
+	HANDLE fractalPointsReadHandle = NULL;
+	CreatePipe(
+		&fractalPointsReadHandle,
+		&fractalPointsWriteHandle,
+		NULL,
+		0
+	);
+	PostThreadMessageW(
+		windowData->calculateFractalPointsThreadId,
+		WM_UPDATE_POINTS_PIPE,
+		(WPARAM)fractalPointsWriteHandle,
+		NULL
+	);
+	HANDLE fractalPixelsWriteHandle = NULL;
+	HANDLE fractalPixelsReadHandle = NULL;
+	CreatePipe(
+		&fractalPixelsReadHandle,
+		&fractalPixelsWriteHandle,
+		NULL,
+		0
+	);
+	{
+		FractalPixelsCalculatorThreadData* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadData{};
+		fractalPixelCalculatorData->bitmapWidth = newWidth;
+		fractalPixelCalculatorData->bitmapHeight = newHeight;
+		fractalPixelCalculatorData->clipping = windowData->fractal->getClipping();
+		fractalPixelCalculatorData->fractalPixelsWriteHandle = fractalPixelsWriteHandle;
+		fractalPixelCalculatorData->fractalPointsReadHandle = fractalPointsReadHandle;
+		CreateThread(
+			NULL,
+			0,
+			FractalPixelsCalculatorThread,
+			fractalPixelCalculatorData,
+			0,
+			&windowData->calculateFractalPixelsThreadId
+		);
+	}
+	{
+		MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
+		fractalBitmapThreadData->width = newWidth;
+		fractalBitmapThreadData->height = newHeight;
+		fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
+		fractalBitmapThreadData->outputHandlePointer = &windowData->fractalImage->bitmap;
+		fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
+		fractalBitmapThreadData->pixelsReadHandle = fractalPixelsReadHandle;
+		HANDLE createFractalBitmapThreadHandle = CreateThread(
+			NULL,
+			0,
+			MonochromaticBitmapThread,
+			fractalBitmapThreadData,
+			0,
+			&windowData->createFractalBitmapThreadId
 		);
 	}
 }
