@@ -480,6 +480,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			break;
+		case WM_ERASEBKGND:
+			//nie czyść ekranu bez potrzeby, żeby uniknąć migotania
+			break;
 		case WM_MOUSEMOVE:
 			//jeżeli użytkownik przesuwa myszą z wciśniętym przyciskiem to należy przesuwać bitmapę względem viewportu
 			{
