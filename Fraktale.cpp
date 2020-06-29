@@ -1454,6 +1454,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 	std::vector<BitmapPixel>calculatedPixels;
 	MSG msg;
 	unsigned char operationState = 0;
+	unsigned long idleCounter = 0;
 	while (1)
 	{
 		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
@@ -1466,7 +1467,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 					{
 						DWORD bytesWritten = 0;
 						BitmapPixel pixel = {};
-						FillMemory(&pixel, 255, sizeof(BitmapPixel));
+						FillMemory(&pixel, sizeof(BitmapPixel), 255);
 						WriteFile(
 							operationData.fractalPixelsWriteHandle,
 							&pixel,
@@ -1530,7 +1531,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				{
 					BitmapPixel pixel = {};
 					DWORD bytesWritten = 0;
-					FillMemory(&pixel, 255, sizeof(BitmapPixel));
+					FillMemory(&pixel, sizeof(BitmapPixel), 255);
 					WriteFile(
 						operationData.fractalPixelsWriteHandle,
 						&pixel,
@@ -1540,6 +1541,9 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 					);
 				}
 				operationState++;
+				break;
+			case 2:
+				idleCounter++;
 				break;
 		}
 	}
