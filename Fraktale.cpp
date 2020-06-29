@@ -1262,7 +1262,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	MonochromaticBitmapThreadData operationData = *(MonochromaticBitmapThreadData*)inputPointer;
 	delete inputPointer;
 
-	std::shared_ptr < std::vector<BitmapPixel>> bitmapPixelsInput = operationData.bitmapPixelsInput;	
+	std::shared_ptr < std::vector<BitmapPixel>> bitmapPixelsInput = operationData.bitmapPixelsInput;
 
 	BITMAP monochromeBitmap = BITMAP{};
 	monochromeBitmap.bmPlanes = 1;
@@ -1285,8 +1285,8 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		for (unsigned int pixelIndex = lastProcessedPixelIndex; pixelIndex < numberOfOutputtedPixelIndex; pixelIndex++)
 		{
 			if (*operationData.processThread)
-			{				
-				//std::vector<BitmapPixel> bitmapPixels = *bitmapPixelsInput;
+			{
+
 				BitmapPixel pixelBuffer = bitmapPixelsInput->data()[pixelIndex];
 				MarkMononochromeBitmapAsText(
 					pixelBuffer,
@@ -1323,7 +1323,6 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		if (numberOfOutputtedPixelIndex == operationData.numberOfPixelsToProcess)
 		{
 			HBITMAP previousBitmap = *operationData.outputHandlePointer;
-
 			*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
 			if (previousBitmap != NULL)
 			{
@@ -1408,7 +1407,6 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				if (*operationData.processThread)
 				{
 					BitmapPixel pixel = {};
-					//std::vector<Point> fractalPoints = *fractalPointsInput;
 					Point pointBuffer = fractalPointsInput->data()[pointIndex];
 					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
 					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
