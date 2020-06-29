@@ -13,6 +13,7 @@
 #include <chrono>
 #include <vector>
 #include <synchapi.h>
+#include <memory>
 #pragma comment(lib, "Synchronization.lib")
 
 // Forward declarations of functions included in this code module:
@@ -37,11 +38,12 @@ DWORD WINAPI DrawFractalBitmapPointsRT(LPVOID);
 //nowa funkcja wątku do kalkulacji punktów fraktala
 struct FractalPointsThreadData
 {
+	std::shared_ptr<bool> processThread;
 	Fractal fractal;
 	unsigned int maxNumberOfPoints;
-	HANDLE fractalPointsWriteHandle;
+	std::shared_ptr<std::vector<Point>> fractalPointsOutput;
+	std::shared_ptr<bool> isLastPointOutput;
 };
-const UINT WM_UPDATE_POINTS_PIPE = WM_APP + 2;
 DWORD WINAPI FractalPointsThread(LPVOID);
 
 struct BitmapPixel
@@ -51,12 +53,14 @@ struct BitmapPixel
 };
 struct MonochromaticBitmapThreadData
 {
+	std::shared_ptr<bool> processThread;
 	unsigned short width;
 	unsigned short height;
 	DWORD notifyAboutBitmapUpdateThread;
 	HBITMAP* outputHandlePointer;
 	HWND bitmapWindowHandle;
-	HANDLE pixelsReadHandle;
+	std::shared_ptr<std::vector<BitmapPixel>> bitmapPixelsInput;
+	std::shared_ptr<bool> isLastPixelInput;
 };
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
@@ -68,11 +72,14 @@ void MarkMononochromeBitmapAsText(
 
 struct FractalPixelsCalculatorThreadData
 {
+	std::shared_ptr<bool> processThread;
 	unsigned short bitmapWidth;
 	unsigned short bitmapHeight;
 	FractalClipping clipping;
-	HANDLE fractalPointsReadHandle;
-	HANDLE fractalPixelsWriteHandle;
+	std::shared_ptr<std::vector<Point>> fractalPointsInput;
+	std::shared_ptr<bool> isLastPointInput;
+	std::shared_ptr<std::vector<BitmapPixel>> bitmapPixelsOutput;
+	std::shared_ptr<bool> isLastPixelOutput;
 };
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
 
@@ -100,6 +107,11 @@ struct FractalWindowData
 	DWORD calculateFractalPixelsThreadId;
 	BYTE** bitmapBytesHandle;
 	Point*** fractalPointsHandle;
+	std::shared_ptr<bool> processFractalPointsThread;
+	std::shared_ptr<bool> processFractalPixelsThread;
+	std::shared_ptr<bool> processFractalBitmapThread;
+	std::shared_ptr<std::vector<Point>> currentFractalPoints;	
+	std::shared_ptr<bool> calculatedLastFractalPoint;	
 };
 
 struct FractalFormDialogData
@@ -769,21 +781,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
 						*fractalWindowData->fractalPointsHandle = NULL;
 
-						if (fractalWindowData->createFractalBitmapThreadId != NULL)
-						{
-							PostThreadMessageW(fractalWindowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
-							fractalWindowData->createFractalBitmapThreadId = NULL;
-						}
-						if (fractalWindowData->calculateFractalPixelsThreadId != NULL)
-						{
-							PostThreadMessageW(fractalWindowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
-							fractalWindowData->calculateFractalPixelsThreadId = NULL;
-						}
-						if (fractalWindowData->calculateFractalPointsThreadId != NULL)
-						{
-							PostThreadMessageW(fractalWindowData->calculateFractalPointsThreadId, WM_QUIT, 0, 0);
-							fractalWindowData->calculateFractalPointsThreadId = NULL;
-						}
+						
 
 						Fractal fractalFromForm = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
 						if (fractalWindowData->fractal != NULL)
@@ -803,21 +801,21 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						unsigned short bitmapHeight = windowRect.bottom;
 
 						fractalWindowData->fractalImage->width = bitmapWidth;
-						fractalWindowData->fractalImage->height = bitmapHeight;
+						fractalWindowData->fractalImage->height = bitmapHeight;															
 
-						HANDLE fractalPointsWriteHandle = NULL;
-						HANDLE fractalPointsReadHandle = NULL;
-						CreatePipe(
-							&fractalPointsReadHandle,
-							&fractalPointsWriteHandle,
-							NULL,
-							0
-						);
+						fractalWindowData->currentFractalPoints = std::shared_ptr < std::vector<Point>>(new std::vector<Point>);
+						fractalWindowData->calculatedLastFractalPoint = std::shared_ptr < std::vector<Point>>(new std::vector<Point>);
 						{
+							if (fractalWindowData->processFractalPointsThread != NULL)
+							{
+								*fractalWindowData->processFractalPointsThread = false;
+							}
 							FractalPointsThreadData* fractalPointsInitData = new FractalPointsThreadData{};
+							fractalPointsInitData->processThread = fractalWindowData->processFractalPointsThread = std::shared_ptr<bool>(new bool{ true });
+							fractalPointsInitData->fractalPointsOutput = fractalWindowData->currentFractalPoints;
 							fractalPointsInitData->fractal = fractalFromForm;
 							fractalPointsInitData->maxNumberOfPoints = 100000;
-							fractalPointsInitData->fractalPointsWriteHandle = fractalPointsWriteHandle;
+							fractalPointsInitData->isLastPointOutput = fractalWindowData->calculatedLastFractalPoint;
 							CreateThread(
 								NULL,
 								0,
@@ -827,21 +825,22 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 								&fractalWindowData->calculateFractalPointsThreadId
 							);
 						}
-						HANDLE fractalPixelsWriteHandle = NULL;
-						HANDLE fractalPixelsReadHandle = NULL;
-						CreatePipe(
-							&fractalPixelsReadHandle,
-							&fractalPixelsWriteHandle,
-							NULL,
-							0
-						);
+						std::shared_ptr < std::vector<BitmapPixel >> pixels(new  std::vector<BitmapPixel >);
+						std::shared_ptr<bool> isLastPixel(new bool{ false });
 						{
+							if (fractalWindowData->processFractalPixelsThread != NULL)
+							{
+								*fractalWindowData->processFractalPixelsThread = false;
+							}
 							FractalPixelsCalculatorThreadData* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadData{};
+							fractalPixelCalculatorData->processThread = fractalWindowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
 							fractalPixelCalculatorData->bitmapWidth = bitmapWidth;
 							fractalPixelCalculatorData->bitmapHeight = bitmapHeight;
 							fractalPixelCalculatorData->clipping = fractalFromForm.getClipping();
-							fractalPixelCalculatorData->fractalPixelsWriteHandle = fractalPixelsWriteHandle;
-							fractalPixelCalculatorData->fractalPointsReadHandle = fractalPointsReadHandle;
+							fractalPixelCalculatorData->fractalPointsInput = fractalWindowData->currentFractalPoints;
+							fractalPixelCalculatorData->isLastPointInput = fractalWindowData->calculatedLastFractalPoint;
+							fractalPixelCalculatorData->bitmapPixelsOutput = pixels;
+							fractalPixelCalculatorData->isLastPixelOutput = isLastPixel;
 							CreateThread(
 								NULL,
 								0,
@@ -852,13 +851,19 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							);
 						}
 						{
+							if (fractalWindowData->processFractalBitmapThread != NULL)
+							{
+								*fractalWindowData->processFractalBitmapThread = false;
+							}
 							MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
+							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 							fractalBitmapThreadData->width = bitmapWidth;
 							fractalBitmapThreadData->height = bitmapHeight;
 							fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
 							fractalBitmapThreadData->outputHandlePointer = &fractalWindowData->fractalImage->bitmap;
 							fractalBitmapThreadData->bitmapWindowHandle = mainWindow;
-							fractalBitmapThreadData->pixelsReadHandle = fractalPixelsReadHandle;
+							fractalBitmapThreadData->bitmapPixelsInput = pixels;
+							fractalBitmapThreadData->isLastPixelInput = isLastPixel;
 							HANDLE createFractalBitmapThreadHandle = CreateThread(
 								NULL,
 								0,
@@ -1236,152 +1241,21 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 {
 	FractalPointsThreadData operationData = *(FractalPointsThreadData*)inputPointer;
 	delete inputPointer;
-	HANDLE pointsWriteHandle = operationData.fractalPointsWriteHandle;
-	unsigned char operationState = 0;
-	MSG msg = {};
-	Point** fractalPoints = NULL;
 	unsigned int currentPointIndex = 0;
 	Point currentPoint;
-	DWORD bytesWritten = 0;
-	unsigned int newHandlePointIndex = 0;
-	while (1)
-	{
-		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
+	while (*operationData.processThread)
+	{		
+		if (currentPointIndex < operationData.maxNumberOfPoints)
 		{
-			switch (msg.message)
-			{
-				case WM_QUIT:
-					if (operationState < 5)
-					{
-						FillMemory(&currentPoint, sizeof(Point), 255);
-						WriteFile(
-							pointsWriteHandle,
-							&currentPoint,
-							sizeof(Point),
-							&bytesWritten,
-							NULL
-						);
-					}
-					CloseHandle(pointsWriteHandle);
-					if (fractalPoints != NULL)
-					{
-						for (unsigned int i = 0; i < currentPointIndex; i++)
-						{
-							if (fractalPoints[i] != NULL)
-							{
-								delete fractalPoints[i];
-							}
-						}
-						delete[] fractalPoints;
-					}
-					return 0;
-				case WM_UPDATE_POINTS_PIPE:
-					CloseHandle(pointsWriteHandle);
-					pointsWriteHandle = (HANDLE)msg.wParam;
-					newHandlePointIndex = 0;
-					operationState = 3;
-					break;
-			}
+			operationData.fractalPointsOutput->push_back(currentPoint);
+			currentPoint = operationData.fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+			currentPointIndex++;
 		}
-		switch (operationState)
+		else
 		{
-			case 0: //walidacja fraktala				
-				if (operationData.fractal.isValid())
-				{
-					operationState++;
-				}
-				else
-				{
-					return 1;
-				}
-				break;
-			case 1: //alokacja pamięci dla punktów
-				{
-					fractalPoints = new Point * [operationData.maxNumberOfPoints];
-					ZeroMemory(fractalPoints, sizeof(Point*) * operationData.maxNumberOfPoints);
-					operationState++;
-				}
-				break;
-			case 2: //wyliczanie kolejnych punktów
-				{
-					if (currentPointIndex < operationData.maxNumberOfPoints)
-					{
-						WriteFile(
-							pointsWriteHandle,
-							&currentPoint,
-							sizeof(Point),
-							&bytesWritten,
-							NULL
-						);
-						fractalPoints[currentPointIndex] = new Point(currentPoint);
-						currentPoint = operationData.fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
-						currentPointIndex++;
-					}
-					else
-					{
-						operationState = 4;
-					}
-				}
-				break;
-			case 3://wpisz wyliczone punkty do nowego uchwytu
-				{
-					std::wstringstream stream;
-					stream << L"wyliczone punkty - " << currentPointIndex << L"\n";
-					OutputDebugStringW(stream.str().c_str());
-				}
-				concurrency::parallel_for(
-					(unsigned int)0,
-					currentPointIndex,
-					(unsigned int)1,
-					[&](unsigned int pointOffset)
-				{
-					HANDLE writeHandle = NULL;
-					DuplicateHandle(
-						GetCurrentProcess(),
-						pointsWriteHandle,
-						GetCurrentProcess(),
-						&writeHandle,
-						0,
-						FALSE,
-						DUPLICATE_SAME_ACCESS
-					);
-					SetFilePointer(
-						writeHandle,
-						sizeof(Point) * pointOffset,
-						NULL,
-						FILE_BEGIN
-					);
-					BOOL result = WriteFile(
-						writeHandle,
-						fractalPoints[newHandlePointIndex],
-						sizeof(Point),
-						&bytesWritten,
-						NULL
-					);
-				}
-				);
-				SetFilePointer(
-					pointsWriteHandle,
-					sizeof(Point) * currentPointIndex,
-					NULL,
-					FILE_BEGIN
-				);
-				operationState = 2;
-				break;
-			case 4:
-				//koniec strumienia punktów będzie zawierał bity 1
-				FillMemory(&currentPoint, sizeof(Point), 255);
-				WriteFile(
-					pointsWriteHandle,
-					&currentPoint,
-					sizeof(Point),
-					&bytesWritten,
-					NULL
-				);
-				operationState++;
-				break;
+			*operationData.processThread = false;
+			*operationData.isLastPointOutput = true;
 		}
-
 	}
 }
 
@@ -1518,8 +1392,13 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 		operationData.bitmapHeight,
 		operationData.clipping
 	);
-	std::vector<BitmapPixel>calculatedPixels;
-	MSG msg;
+	unsigned int lastProcessedPointIndex = 0;
+	while (*operationData.processThread)
+	{
+		unsigned int lastOutputtedPointIndex = operationData.fractalPointsInput->size();
+
+		lastProcessedPointIndex = operationData.fractalPointsInput->size();
+	}
 	unsigned char operationState = 0;
 	while (1)
 	{
@@ -1671,46 +1550,22 @@ void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth,
 	{
 		return;
 	}
-	//zamknij poprzednie wątki bitmapy
-	if (windowData->calculateFractalPixelsThreadId != NULL)
+	std::shared_ptr < std::vector<BitmapPixel >> pixels(new  std::vector<BitmapPixel >);
+	std::shared_ptr<bool> isLastPixel(new bool{ false });
 	{
-		PostThreadMessageW(windowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
-		windowData->calculateFractalPixelsThreadId = NULL;
-	}
-	if (windowData->createFractalBitmapThreadId != NULL)
-	{
-		PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
-		windowData->createFractalBitmapThreadId = NULL;
-	}
-	HANDLE fractalPointsWriteHandle = NULL;
-	HANDLE fractalPointsReadHandle = NULL;
-	CreatePipe(
-		&fractalPointsReadHandle,
-		&fractalPointsWriteHandle,
-		NULL,
-		0
-	);
-	PostThreadMessageW(
-		windowData->calculateFractalPointsThreadId,
-		WM_UPDATE_POINTS_PIPE,
-		(WPARAM)fractalPointsWriteHandle,
-		NULL
-	);
-	HANDLE fractalPixelsWriteHandle = NULL;
-	HANDLE fractalPixelsReadHandle = NULL;
-	CreatePipe(
-		&fractalPixelsReadHandle,
-		&fractalPixelsWriteHandle,
-		NULL,
-		0
-	);
-	{
+		if (windowData->processFractalPixelsThread != NULL)
+		{
+			*windowData->processFractalPixelsThread = false;
+		}
 		FractalPixelsCalculatorThreadData* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadData{};
+		fractalPixelCalculatorData->processThread = windowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
 		fractalPixelCalculatorData->bitmapWidth = newWidth;
 		fractalPixelCalculatorData->bitmapHeight = newHeight;
 		fractalPixelCalculatorData->clipping = windowData->fractal->getClipping();
-		fractalPixelCalculatorData->fractalPixelsWriteHandle = fractalPixelsWriteHandle;
-		fractalPixelCalculatorData->fractalPointsReadHandle = fractalPointsReadHandle;
+		fractalPixelCalculatorData->fractalPointsInput = windowData->currentFractalPoints;
+		fractalPixelCalculatorData->isLastPointInput = windowData->calculatedLastFractalPoint;
+		fractalPixelCalculatorData->bitmapPixelsOutput = pixels;
+		fractalPixelCalculatorData->isLastPixelOutput = isLastPixel;
 		CreateThread(
 			NULL,
 			0,
@@ -1721,13 +1576,19 @@ void UpdateFractalBitmap(FractalWindowData* windowData, unsigned short newWidth,
 		);
 	}
 	{
+		if (windowData->processFractalBitmapThread != NULL)
+		{
+			*windowData->processFractalBitmapThread = false;
+		}
 		MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
+		fractalBitmapThreadData->processThread = windowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 		fractalBitmapThreadData->width = newWidth;
 		fractalBitmapThreadData->height = newHeight;
 		fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
 		fractalBitmapThreadData->outputHandlePointer = &windowData->fractalImage->bitmap;
 		fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
-		fractalBitmapThreadData->pixelsReadHandle = fractalPixelsReadHandle;
+		fractalBitmapThreadData->bitmapPixelsInput = pixels;
+		fractalBitmapThreadData->isLastPixelInput = isLastPixel;
 		HANDLE createFractalBitmapThreadHandle = CreateThread(
 			NULL,
 			0,
