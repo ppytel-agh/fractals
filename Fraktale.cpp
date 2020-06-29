@@ -293,12 +293,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_PAINT:
 			{
-				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - windowData->lastPainingTS).count();
-				if (noMillisecondsSinceLastPainting < 10)
-				{
-					return 0;
-				}
+				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);			
 				PAINTSTRUCT ps;
 				HDC hdc = BeginPaint(hWnd, &ps);
 				// TODO: Add any drawing code that uses hdc here...	
@@ -1373,7 +1368,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	std::vector<BitmapPixel> awaitingPixels;
 	MSG msg;
 	HBITMAP bitmapHandle = NULL;
-	bool updateHandle = true;
+	std::chrono::steady_clock::time_point lastBitmapRefresh = std::chrono::high_resolution_clock::now();
 	while (1)
 	{
 		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
@@ -1444,17 +1439,23 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 							bitsPerScanline,
 							pixelBytes
 						);
-						HBITMAP previousBitmap = *operationData.outputHandlePointer;
-						*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
-						if (previousBitmap != NULL)
+						std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
+						long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastBitmapRefresh).count();
+						if (noMillisecondsSinceLastPainting >= 16)
 						{
-							DeleteObject(previousBitmap);
+							HBITMAP previousBitmap = *operationData.outputHandlePointer;
+							*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+							if (previousBitmap != NULL)
+							{
+								DeleteObject(previousBitmap);
+							}
+							InvalidateRect(
+								operationData.bitmapWindowHandle,
+								NULL,
+								FALSE
+							);
+							lastBitmapRefresh = currentTS;
 						}
-						InvalidateRect(
-							operationData.bitmapWindowHandle,
-							NULL,
-							FALSE
-						);
 					}
 				}
 				break;
