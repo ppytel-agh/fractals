@@ -41,6 +41,7 @@ struct FractalPointsThreadData
 	unsigned int maxNumberOfPoints;
 	HANDLE fractalPointsWriteHandle;
 };
+const UINT WM_UPDATE_POINTS_PIPE = WM_APP + 2;
 DWORD WINAPI FractalPointsThread(LPVOID);
 
 struct BitmapPixel
@@ -57,7 +58,6 @@ struct MonochromaticBitmapThreadData
 	HWND bitmapWindowHandle;
 	HANDLE pixelsReadHandle;
 };
-const UINT WM_MARK_PIXEL_AS_TEXT = WM_APP + 3;
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 void MarkMononochromeBitmapAsText(
@@ -395,23 +395,77 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					(windowData->previousHeight != newSize.bottom)
 					)
 				{
-					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
-					windowData->fractalImage->offsetX = 0;
-					windowData->fractalImage->offsetY = 0;
-					windowData->fractalImage->scale = 1.0f;
-					/*if (windowData->createFractalBitmapThreadId != NULL)
+					//zamknij poprzednie wątki bitmapy
+					if (windowData->calculateFractalPixelsThreadId != NULL)
 					{
-						PostThreadMessageW(windowData->createFractalBitmapThreadId, WM_QUIT, 0, 0);
-						windowData->createFractalBitmapThreadId = NULL;
+						PostThreadMessageW(windowData->calculateFractalPixelsThreadId, WM_QUIT, 0, 0);
+						windowData->calculateFractalPixelsThreadId = NULL;
 					}
-					CreateThread(
+					if (windowData->calculateFractalPointsThreadId != NULL)
+					{
+						PostThreadMessageW(windowData->calculateFractalPointsThreadId, WM_QUIT, 0, 0);
+						windowData->calculateFractalPointsThreadId = NULL;
+					}
+
+					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
+
+					HANDLE fractalPointsWriteHandle = NULL;
+					HANDLE fractalPointsReadHandle = NULL;
+					CreatePipe(
+						&fractalPointsReadHandle,
+						&fractalPointsWriteHandle,
 						NULL,
-						0,
-						CalculateFractalBitmapThread,
-						windowData,
-						0,
-						&windowData->createFractalBitmapThreadId
-					);*/
+						0
+					);
+					PostThreadMessageW(
+						windowData->calculateFractalPointsThreadId,
+						WM_UPDATE_POINTS_PIPE,
+						(WPARAM)fractalPointsWriteHandle,
+						NULL
+					);
+					HANDLE fractalPixelsWriteHandle = NULL;
+					HANDLE fractalPixelsReadHandle = NULL;
+					CreatePipe(
+						&fractalPixelsReadHandle,
+						&fractalPixelsWriteHandle,
+						NULL,
+						0
+					);
+					unsigned short bitmapWidth = newSize.right * windowData->fractalImage->scale;
+					unsigned short bitmapHeight = newSize.bottom * windowData->fractalImage->scale;
+					{
+						FractalPixelsCalculatorThreadData* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadData{};
+						fractalPixelCalculatorData->bitmapWidth = bitmapWidth;
+						fractalPixelCalculatorData->bitmapHeight = bitmapHeight;
+						fractalPixelCalculatorData->clipping = windowData->fractal->getClipping();
+						fractalPixelCalculatorData->fractalPixelsWriteHandle = fractalPixelsWriteHandle;
+						fractalPixelCalculatorData->fractalPointsReadHandle = fractalPointsReadHandle;
+						CreateThread(
+							NULL,
+							0,
+							FractalPixelsCalculatorThread,
+							fractalPixelCalculatorData,
+							0,
+							&windowData->calculateFractalPixelsThreadId
+						);
+					}
+					{
+						MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
+						fractalBitmapThreadData->width = bitmapWidth;
+						fractalBitmapThreadData->height = bitmapHeight;
+						fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
+						fractalBitmapThreadData->outputHandlePointer = &windowData->fractalImage->bitmap;
+						fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
+						fractalBitmapThreadData->pixelsReadHandle = fractalPixelsReadHandle;
+						HANDLE createFractalBitmapThreadHandle = CreateThread(
+							NULL,
+							0,
+							MonochromaticBitmapThread,
+							fractalBitmapThreadData,
+							0,
+							&windowData->createFractalBitmapThreadId
+						);
+					}
 				}
 			}
 			break;
@@ -1224,13 +1278,14 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 {
 	FractalPointsThreadData operationData = *(FractalPointsThreadData*)inputPointer;
 	delete inputPointer;
-
+	HANDLE pointsWriteHandle = operationData.fractalPointsWriteHandle;
 	unsigned char operationState = 0;
 	MSG msg = {};
 	Point** fractalPoints = NULL;
 	unsigned int currentPointIndex = 0;
 	Point currentPoint;
 	DWORD bytesWritten = 0;
+	unsigned int newHandlePointIndex = 0;
 	while (1)
 	{
 		while (PeekMessageW(&msg, (HWND)-1, 0, 0, PM_REMOVE))
@@ -1238,18 +1293,18 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 			switch (msg.message)
 			{
 				case WM_QUIT:
-					if (operationState < 4)
+					if (operationState < 5)
 					{
 						FillMemory(&currentPoint, sizeof(Point), 255);
 						WriteFile(
-							operationData.fractalPointsWriteHandle,
+							pointsWriteHandle,
 							&currentPoint,
 							sizeof(Point),
 							&bytesWritten,
 							NULL
 						);
 					}
-					CloseHandle(operationData.fractalPointsWriteHandle);
+					CloseHandle(pointsWriteHandle);
 					if (fractalPoints != NULL)
 					{
 						for (unsigned int i = 0; i < currentPointIndex; i++)
@@ -1262,6 +1317,12 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 						delete[] fractalPoints;
 					}
 					return 0;
+				case WM_UPDATE_POINTS_PIPE:
+					CloseHandle(pointsWriteHandle);
+					pointsWriteHandle = (HANDLE)msg.wParam;
+					newHandlePointIndex = 0;
+					operationState = 4;
+					break;
 			}
 		}
 		switch (operationState)
@@ -1288,7 +1349,7 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 					if (currentPointIndex < operationData.maxNumberOfPoints)
 					{
 						WriteFile(
-							operationData.fractalPointsWriteHandle,
+							pointsWriteHandle,
 							&currentPoint,
 							sizeof(Point),
 							&bytesWritten,
@@ -1300,15 +1361,32 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 					}
 					else
 					{
-						operationState++;
+						operationState = 4;
 					}
 				}
+				break;			
+			case 3://wpisz wyliczone punkty do nowego uchwytu
+				if(newHandlePointIndex < currentPointIndex)
+				{
+					WriteFile(
+						pointsWriteHandle,
+						fractalPoints[newHandlePointIndex],
+						sizeof(Point),
+						&bytesWritten,
+						NULL
+					);
+					newHandlePointIndex++;
+				}
+				else
+				{
+					operationState = 2;
+				}
 				break;
-			case 3:
+			case 4:
 				//koniec strumienia punktów będzie zawierał bity 1
 				FillMemory(&currentPoint, sizeof(Point), 255);
 				WriteFile(
-					operationData.fractalPointsWriteHandle,
+					pointsWriteHandle,
 					&currentPoint,
 					sizeof(Point),
 					&bytesWritten,
