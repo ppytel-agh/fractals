@@ -1228,7 +1228,6 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 	unsigned char operationState = 0;
 	MSG msg = {};
 	Point** fractalPoints = NULL;
-	unsigned int numberOfCalculatedPoints = 0;
 	unsigned int currentPointIndex = 0;
 	Point currentPoint;
 	DWORD bytesWritten = 0;
@@ -1253,21 +1252,14 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 					CloseHandle(operationData.fractalPointsWriteHandle);
 					if (fractalPoints != NULL)
 					{
-						Point** initialFractalPointsAddres = fractalPoints;
-						concurrency::parallel_for(
-							(unsigned int)0,
-							numberOfCalculatedPoints,
-							(unsigned int)1,
-							[&](int i) {
-							delete fractalPoints[i];
-							if (i == numberOfCalculatedPoints - 1)
+						for (unsigned int i = 0; i < currentPointIndex; i++)
+						{
+							if (fractalPoints[i] != NULL)
 							{
-								delete fractalPoints;
-								fractalPoints = NULL;
+								delete fractalPoints[i];
 							}
 						}
-						);
-						WaitOnAddress(&fractalPoints, &initialFractalPointsAddres, 1, INFINITE);
+						delete[] fractalPoints;
 					}
 					return 0;
 			}
@@ -1287,7 +1279,7 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 			case 1: //alokacja pamięci dla punktów
 				{
 					fractalPoints = new Point * [operationData.maxNumberOfPoints];
-					numberOfCalculatedPoints++;
+					ZeroMemory(fractalPoints, sizeof(Point*) * operationData.maxNumberOfPoints);					
 					operationState++;
 				}
 				break;
