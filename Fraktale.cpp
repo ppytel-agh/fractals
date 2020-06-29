@@ -1411,7 +1411,12 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 							bitsPerScanline,
 							pixelBytes
 						);
+						HBITMAP previousBitmap = *operationData.outputHandlePointer;
 						*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+						if (previousBitmap != NULL)
+						{
+							DeleteObject(previousBitmap);
+						}
 						InvalidateRect(
 							operationData.bitmapWindowHandle,
 							NULL,
