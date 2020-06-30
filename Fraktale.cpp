@@ -1280,17 +1280,44 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		unsigned int numberOfOutputtedPixelIndex = operationData.bitmapPixelsInput->size();
 		unsigned int numberOfProcessedPixels = 0;
 		unsigned int numberOfPixelsToProcess = numberOfOutputtedPixelIndex - lastProcessedPixelIndex;
-		for (unsigned int pixelIndex = lastProcessedPixelIndex; pixelIndex < numberOfOutputtedPixelIndex; pixelIndex++)
+		//for (unsigned int pixelIndex = lastProcessedPixelIndex; pixelIndex < numberOfOutputtedPixelIndex; pixelIndex++)
+		//{
+		//	if (*operationData.processThread)
+		//	{			
+		//		BitmapPixel pixel = {};
+		//		try {
+		//			pixel = (BitmapPixel)operationData.bitmapPixelsInput->at(pixelIndex);
+		//		}
+		//		catch (const std::out_of_range& ex)
+		//		{
+		//			continue;
+		//		}
+		//		if (pixel.x < operationData.width && pixel.y < operationData.height)
+		//		{
+		//			MarkMononochromeBitmapAsText(
+		//				pixel,
+		//				bitsPerScanline,
+		//				pixelBytes
+		//			);
+		//		}
+		//		//numberOfProcessedPixels++;
+		//	}
+		//}
+		concurrency::parallel_for(
+			(unsigned int)lastProcessedPixelIndex,
+			numberOfOutputtedPixelIndex,
+			(unsigned int)1,
+			[&](unsigned int pixelIndex)
 		{
 			if (*operationData.processThread)
-			{			
+			{
 				BitmapPixel pixel = {};
 				try {
 					pixel = (BitmapPixel)operationData.bitmapPixelsInput->at(pixelIndex);
 				}
 				catch (const std::out_of_range& ex)
 				{
-					continue;
+					return;
 				}
 				if (pixel.x < operationData.width && pixel.y < operationData.height)
 				{
@@ -1303,30 +1330,8 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 				//numberOfProcessedPixels++;
 			}
 		}
-		/*concurrency::parallel_for(
-			(unsigned int)lastProcessedPixelIndex,
-			numberOfOutputtedPixelIndex,
-			(unsigned int)1,
-			[&](unsigned int pixelIndex)
-		{
-			if (*operationData.processThread)
-			{
-
-				BitmapPixel pixelBuffer = bitmapPixelsInput->data()[pixelIndex];
-				MarkMononochromeBitmapAsText(
-					pixelBuffer,
-					bitsPerScanline,
-					pixelBytes
-				);
-				numberOfProcessedPixels++;
-			}
-			else
-			{
-				WakeByAddressSingle(&numberOfProcessedPixels);
-			}
-		}
 		);
-		WaitOnAddress(&numberOfProcessedPixels, &numberOfPixelsToProcess, 1, INFINITE);*/
+		//WaitOnAddress(&numberOfProcessedPixels, &numberOfPixelsToProcess, 1, INFINITE);
 		if (numberOfOutputtedPixelIndex == operationData.numberOfPixelsToProcess)
 		{
 			HBITMAP previousBitmap = *operationData.outputHandlePointer;
@@ -1409,7 +1414,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 		numberOfPointsToProcess = lastOutputtedPointIndex - lastProcessedPointIndex;
 		if (numberOfPointsToProcess > 0)
 		{
-			for (unsigned int pointIndex = lastProcessedPointIndex; pointIndex < lastOutputtedPointIndex; pointIndex++)
+			/*for (unsigned int pointIndex = lastProcessedPointIndex; pointIndex < lastOutputtedPointIndex; pointIndex++)
 			{
 				if (*operationData.processThread)
 				{
@@ -1426,27 +1431,30 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
 					bitmapPixelsOutput->push_back(pixel);
 				}
+			}*/
+			concurrency::parallel_for(
+				(unsigned int)lastProcessedPointIndex,
+				lastOutputtedPointIndex,
+				(unsigned int)1,
+				[&](unsigned int pointIndex)
+			{
+				if (*operationData.processThread)
+				{
+					Point pointBuffer;
+					try {
+						pointBuffer = fractalPointsInput->at(pointIndex);
+					}
+					catch (const std::out_of_range& ex)
+					{
+						return;
+					}
+					BitmapPixel pixel = {};
+					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
+					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
+					bitmapPixelsOutput->push_back(pixel);
+				}
 			}
-			//concurrency::parallel_for(
-			//	(unsigned int)lastProcessedPointIndex,
-			//	lastOutputtedPointIndex,
-			//	(unsigned int)1,
-			//	[&](unsigned int pointIndex)
-			//{
-			//	if (*operationData.processThread)
-			//	{
-			//		BitmapPixel pixel = {};
-			//		Point pointBuffer = fractalPointsInput->data()[pointIndex];
-			//		pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-			//		pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
-			//		bitmapPixelsOutput->push_back(pixel);
-			//	}
-			//	else
-			//	{
-			//		//WakeByAddressSingle(&numberOfProcessedPoints);
-			//	}
-			//}
-			//);
+			);
 			//WaitOnAddress(&numberOfProcessedPoints, &numberOfPointsToProcess, 1, INFINITE);
 			if (lastOutputtedPointIndex == (operationData.numberOfPointsToProcess - 1)) {
 				*operationData.processThread = false;
