@@ -116,6 +116,8 @@ struct FractalWindowData
 	std::shared_ptr<concurrency::concurrent_vector<Point>> currentFractalPoints;
 	unsigned int numberOfPointsToProcess;
 	float updatedScale;
+	short updateOffsetX;
+	short updateOffsetY;
 };
 
 struct FractalFormDialogData
@@ -281,6 +283,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				*windowData->bitmapBytesHandle = NULL;
 				windowData->fractalPointsHandle = new Point**;
 				*windowData->fractalPointsHandle = NULL;
+				windowData->updatedScale = 1.0f;
+				windowData->updateOffsetX = 0;
+				windowData->updateOffsetY = 0;
 				SetWindowLongW(
 					hWnd,
 					GWL_USERDATA,
@@ -435,7 +440,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						windowData->fractalImage->scale = windowData->fractalImage->width / newSize.right;
+						windowData->updatedScale = windowData->fractalImage->scale = windowData->fractalImage->width / newSize.right;						
 					}
 				}
 			}
@@ -494,7 +499,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						windowData->fractalImage->scale = windowData->fractalImage->width / clientRect.right;
+						windowData->updatedScale = windowData->fractalImage->scale = windowData->fractalImage->width / clientRect.right;
 					}
 				}
 			}
@@ -531,6 +536,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//przesuń obraz fraktala
 					windowData->fractalImage->offsetX += deltaX;
 					windowData->fractalImage->offsetY += deltaY;
+					windowData->updateOffsetX = windowData->fractalImage->offsetX;
+					windowData->updateOffsetY = windowData->fractalImage->offsetY;
 					InvalidateRect(
 						hWnd,
 						NULL,
@@ -539,6 +546,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
 					windowData->lastPointerPosition->y = mouseY;
+
 				}
 			}
 			break;
@@ -587,7 +595,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (newScaleRatio != windowData->updatedScale)
 				{
-					windowData->updatedScale = newScaleRatio;
+					
 					const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
 					WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
 					wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
@@ -601,14 +609,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					unsigned short newHeight = clientRect.bottom * newScaleRatio;
 
 					//wylicz nowy offset obrazu
-					short referenceToOffsetX = windowData->fractalImage->offsetX - mousePosition.x;
-					short referenceToOffsetY = windowData->fractalImage->offsetY - mousePosition.y;
-					float originalReferenceToOffsetX = (float)referenceToOffsetX / windowData->fractalImage->scale;
-					float originalReferenceToOffsetY = (float)referenceToOffsetY / windowData->fractalImage->scale;
+					short referenceToOffsetX = windowData->updateOffsetX - mousePosition.x;
+					short referenceToOffsetY = windowData->updateOffsetY - mousePosition.y;
+					float originalReferenceToOffsetX = (float)referenceToOffsetX / windowData->updatedScale;
+					float originalReferenceToOffsetY = (float)referenceToOffsetY / windowData->updatedScale;
 					short scaledVectorX = (short)(originalReferenceToOffsetX * newScaleRatio);
 					short scaledVectorY = (short)(originalReferenceToOffsetY * newScaleRatio);
 					short newOffsetX = mousePosition.x + scaledVectorX;
 					short newOffsetY = mousePosition.y + scaledVectorY;
+
+					windowData->updatedScale = newScaleRatio;
+					windowData->updateOffsetX = newOffsetX;
+					windowData->updateOffsetY = newOffsetY;
 
 					//rysuj bitmapę fraktala
 					UpdateFractalBitmap(
@@ -816,6 +828,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						unsigned short bitmapWidth = windowRect.right;
 						unsigned short bitmapHeight = windowRect.bottom;
 
+						//parametry skalowania
+						fractalWindowData->updatedScale = 1.0f;
+						fractalWindowData->updateOffsetX = 0;
+						fractalWindowData->updateOffsetY = 0;
 
 						fractalWindowData->numberOfPointsToProcess = 100000;
 
@@ -1622,6 +1638,4 @@ void UpdateFractalBitmap(
 			&windowData->createFractalBitmapThreadId
 		);
 	}
-	windowData->fractalImage->width = newWidth;
-	windowData->fractalImage->height = newHeight;
 }
