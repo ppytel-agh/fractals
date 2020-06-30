@@ -618,10 +618,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					short newOffsetX = mousePosition.x + scaledVectorX;
 					short newOffsetY = mousePosition.y + scaledVectorY;
 
-					windowData->updatedScale = newScaleRatio;
-					windowData->updateOffsetX = newOffsetX;
-					windowData->updateOffsetY = newOffsetY;
-
 					//rysuj bitmapę fraktala
 					UpdateFractalBitmap(
 						windowData,
@@ -1588,6 +1584,10 @@ void UpdateFractalBitmap(
 	{
 		return;
 	}
+	windowData->updatedScale = newScale;
+	windowData->updateOffsetX = newOffsetX;
+	windowData->updateOffsetY = newOffsetY;
+
 	std::shared_ptr < concurrency::concurrent_vector<BitmapPixel >> pixels(new  concurrency::concurrent_vector<BitmapPixel >);
 	std::shared_ptr<bool> isLastPixel(new bool{ false });
 	{
@@ -1638,4 +1638,5 @@ void UpdateFractalBitmap(
 			&windowData->createFractalBitmapThreadId
 		);
 	}
+	
 }
