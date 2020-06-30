@@ -1286,8 +1286,8 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		{
 			if (*operationData.processThread)
 			{
+				BitmapPixel pixelBuffer = bitmapPixelsInput->at(pixelIndex);
 
-				BitmapPixel pixelBuffer = bitmapPixelsInput->data()[pixelIndex];
 				MarkMononochromeBitmapAsText(
 					pixelBuffer,
 					bitsPerScanline,
@@ -1407,7 +1407,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				if (*operationData.processThread)
 				{
 					BitmapPixel pixel = {};
-					Point pointBuffer = fractalPointsInput->data()[pointIndex];
+					Point pointBuffer = fractalPointsInput->at(pointIndex);
 					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
 					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
 					bitmapPixelsOutput->push_back(pixel);
