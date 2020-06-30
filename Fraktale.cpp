@@ -421,27 +421,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					)
 				{
 					OutputDebugStringW(L"Rozmiar okna się zmienił\n");
-					//zmień skalę tak, aby pasowała do aktualnego przybliżenia
-					if (
-						(windowData->fractalImage->width < newSize.right)
-						||
-						(windowData->fractalImage->height < newSize.bottom)
-						)
-					{
-						OutputDebugStringW(L"Reset skali bitmapy\n");
-						UpdateFractalBitmap(
-							windowData,
-							newSize.right,
-							newSize.bottom,
-							0,
-							0,
-							1.0f
-						);
-					}
-					else
-					{
-						windowData->updatedScale = windowData->fractalImage->scale = windowData->fractalImage->width / newSize.right;						
-					}
+					UpdateFractalBitmap(
+						windowData,
+						newSize.right,
+						newSize.bottom,
+						0,
+						0,
+						1.0f
+					);
 				}
 			}
 			break;
@@ -479,28 +466,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
 				if (resizeNow)
-				{
-					
-					if (
-						(windowData->fractalImage->width < clientRect.right)
-						||
-						(windowData->fractalImage->height < clientRect.bottom)
-						)
-					{
-						OutputDebugStringW(L"Reset skali bitmapy\n");
-						UpdateFractalBitmap(
-							windowData,
-							clientRect.right,
-							clientRect.bottom,
-							0,
-							0,
-							1.0f
-						);
-					}
-					else
-					{
-						windowData->updatedScale = windowData->fractalImage->scale = windowData->fractalImage->width / clientRect.right;
-					}
+				{					
+					UpdateFractalBitmap(
+						windowData,
+						clientRect.right,
+						clientRect.bottom,
+						0,
+						0,
+						1.0f
+					);
 				}
 			}
 			break;
@@ -1395,7 +1369,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 
 				std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
 				long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastBitmapRefresh).count();
-				if (noMillisecondsSinceLastPainting >= 16)
+				if (noMillisecondsSinceLastPainting >= 16 || true)
 				{
 					HBITMAP previousBitmap = operationData.outputPicture->bitmap;
 					operationData.outputPicture->bitmap = CreateBitmapIndirect(&monochromeBitmap);
