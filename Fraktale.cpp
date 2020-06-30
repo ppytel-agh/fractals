@@ -1237,8 +1237,9 @@ DWORD __stdcall DrawFractalBitmapPointsRT(LPVOID dataAddress)
 
 DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 {
-	FractalPointsThreadData operationData = *(FractalPointsThreadData*)inputPointer;
-	delete inputPointer;
+	FractalPointsThreadData* input = (FractalPointsThreadData*) inputPointer;
+	FractalPointsThreadData operationData = *input;
+	delete input;
 	unsigned int currentPointIndex = 0;
 	Point currentPoint;
 	while (*operationData.processThread)
@@ -1259,8 +1260,9 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 
 DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 {
-	MonochromaticBitmapThreadData operationData = *(MonochromaticBitmapThreadData*)inputPointer;
-	delete inputPointer;
+	MonochromaticBitmapThreadData* input = (MonochromaticBitmapThreadData*)inputPointer;
+	MonochromaticBitmapThreadData operationData = *input;
+	delete input;
 
 	BITMAP monochromeBitmap = BITMAP{};
 	monochromeBitmap.bmPlanes = 1;
@@ -1394,8 +1396,9 @@ void MarkMononochromeBitmapAsText(
 
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 {
-	FractalPixelsCalculatorThreadData operationData = *(FractalPixelsCalculatorThreadData*)inputPointer;
-	delete inputPointer;
+	FractalPixelsCalculatorThreadData* input = (FractalPixelsCalculatorThreadData*)inputPointer;
+	FractalPixelsCalculatorThreadData operationData = *input;
+	delete input;
 	
 	PixelCalculator pixelCalculator(
 		operationData.bitmapWidth,
