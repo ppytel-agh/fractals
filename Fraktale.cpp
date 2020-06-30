@@ -1262,8 +1262,6 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	MonochromaticBitmapThreadData operationData = *(MonochromaticBitmapThreadData*)inputPointer;
 	delete inputPointer;
 
-	std::shared_ptr < std::vector<BitmapPixel>> bitmapPixelsInput = operationData.bitmapPixelsInput;
-
 	BITMAP monochromeBitmap = BITMAP{};
 	monochromeBitmap.bmPlanes = 1;
 	monochromeBitmap.bmBitsPixel = 1;
@@ -1279,20 +1277,29 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	unsigned int lastProcessedPixelIndex = 0;
 	while (*operationData.processThread)
 	{
-		unsigned int numberOfOutputtedPixelIndex = bitmapPixelsInput->size();
+		unsigned int numberOfOutputtedPixelIndex = operationData.bitmapPixelsInput->size();
 		unsigned int numberOfProcessedPixels = 0;
 		unsigned int numberOfPixelsToProcess = numberOfOutputtedPixelIndex - lastProcessedPixelIndex;
 		for (unsigned int pixelIndex = lastProcessedPixelIndex; pixelIndex < numberOfOutputtedPixelIndex; pixelIndex++)
 		{
 			if (*operationData.processThread)
-			{
-				BitmapPixel pixelBuffer = bitmapPixelsInput->at(pixelIndex);
-
-				MarkMononochromeBitmapAsText(
-					pixelBuffer,
-					bitsPerScanline,
-					pixelBytes
-				);
+			{			
+				BitmapPixel pixel = {};
+				try {
+					pixel = (BitmapPixel)operationData.bitmapPixelsInput->at(pixelIndex);
+				}
+				catch (const std::out_of_range& ex)
+				{
+					continue;
+				}
+				if (pixel.x < operationData.width && pixel.y < operationData.height)
+				{
+					MarkMononochromeBitmapAsText(
+						pixel,
+						bitsPerScanline,
+						pixelBytes
+					);
+				}
 				//numberOfProcessedPixels++;
 			}
 		}
@@ -1406,8 +1413,15 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 			{
 				if (*operationData.processThread)
 				{
+					Point pointBuffer;
+					try {						
+						pointBuffer = fractalPointsInput->at(pointIndex);
+					}
+					catch (const std::out_of_range& ex)
+					{
+						continue;
+					}
 					BitmapPixel pixel = {};
-					Point pointBuffer = fractalPointsInput->at(pointIndex);
 					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
 					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
 					bitmapPixelsOutput->push_back(pixel);
