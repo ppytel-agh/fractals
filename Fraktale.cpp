@@ -115,6 +115,7 @@ struct FractalWindowData
 	std::shared_ptr<bool> processFractalBitmapThread;
 	std::shared_ptr<concurrency::concurrent_vector<Point>> currentFractalPoints;
 	unsigned int numberOfPointsToProcess;
+	float updatedScale;
 };
 
 struct FractalFormDialogData
@@ -131,8 +132,9 @@ void UpdateFractalBitmap(
 	FractalWindowData* windowData,
 	unsigned short newWidth,
 	unsigned short newHeight,
-	unsigned short newOffsetX,
-	unsigned short newOffsetY
+	short newOffsetX,
+	short newOffsetY,
+	float newScale
 );
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -422,13 +424,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						)
 					{
 						OutputDebugStringW(L"Reset skali bitmapy\n");
-						windowData->fractalImage->scale = 1.0f;
 						UpdateFractalBitmap(
 							windowData,
 							newSize.right,
 							newSize.bottom,
-							windowData->fractalImage->offsetX,
-							windowData->fractalImage->offsetY
+							0,
+							0,
+							1.0f
 						);
 					}
 					else
@@ -469,10 +471,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					windowData->isMinimized = true;
 				}
+				RECT clientRect;
+				GetClientRect(hWnd, &clientRect);
 				if (resizeNow)
 				{
-					RECT clientRect;
-					GetClientRect(hWnd, &clientRect);
+					
 					if (
 						(windowData->fractalImage->width < clientRect.right)
 						||
@@ -480,13 +483,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						)
 					{
 						OutputDebugStringW(L"Reset skali bitmapy\n");
-						windowData->fractalImage->scale = 1.0f;
 						UpdateFractalBitmap(
 							windowData,
 							clientRect.right,
 							clientRect.bottom,
-							windowData->fractalImage->offsetX,
-							windowData->fractalImage->offsetY
+							0,
+							0,
+							1.0f
 						);
 					}
 					else
@@ -571,43 +574,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hWnd,
 					&mousePosition
 				);
-				float previousScaleRatio = windowData->fractalImage->scale;
 				//zaktualizuj skalę o przesunięcie kółka myszy
-				windowData->fractalImage->scale += ((float)(wheelDelta) / 1000.0f);
+				float newScaleRatio = windowData->updatedScale + ((float)(wheelDelta) / 1000.0f);
 				//nie oddalaj poniżej skali 1.0
-				if (windowData->fractalImage->scale < 1.0f)
+				if (newScaleRatio < 1.0f)
 				{
-					windowData->fractalImage->scale = 1.0f;
+					newScaleRatio = 1.0f;
 				}
-				else if (windowData->fractalImage->scale > 6.0f)
+				else if (newScaleRatio > 6.0f)
 				{
-					windowData->fractalImage->scale = 6.0f;
+					newScaleRatio = 6.0f;
 				}
-				if (previousScaleRatio != windowData->fractalImage->scale)
+				if (newScaleRatio != windowData->updatedScale)
 				{
+					windowData->updatedScale = newScaleRatio;
 					const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
 					WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
 					wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
-					wcscat_s(scaleRationDebugMessage, floatToString(windowData->fractalImage->scale));
+					wcscat_s(scaleRationDebugMessage, floatToString(newScaleRatio));
 					OutputDebugStringW(scaleRationDebugMessage);
+
+					//nowy rozmiar bitmapy
+					RECT clientRect;
+					GetClientRect(hWnd, &clientRect);
+					unsigned short newWidth = clientRect.right * newScaleRatio;
+					unsigned short newHeight = clientRect.bottom * newScaleRatio;
 
 					//wylicz nowy offset obrazu
 					short referenceToOffsetX = windowData->fractalImage->offsetX - mousePosition.x;
 					short referenceToOffsetY = windowData->fractalImage->offsetY - mousePosition.y;
-					float originalReferenceToOffsetX = (float)referenceToOffsetX / previousScaleRatio;
-					float originalReferenceToOffsetY = (float)referenceToOffsetY / previousScaleRatio;
-					short scaledVectorX = (short)(originalReferenceToOffsetX * windowData->fractalImage->scale);
-					short scaledVectorY = (short)(originalReferenceToOffsetY * windowData->fractalImage->scale);					
+					float originalReferenceToOffsetX = (float)referenceToOffsetX / windowData->fractalImage->scale;
+					float originalReferenceToOffsetY = (float)referenceToOffsetY / windowData->fractalImage->scale;
+					short scaledVectorX = (short)(originalReferenceToOffsetX * newScaleRatio);
+					short scaledVectorY = (short)(originalReferenceToOffsetY * newScaleRatio);
+					short newOffsetX = mousePosition.x + scaledVectorX;
+					short newOffsetY = mousePosition.y + scaledVectorY;
 
-					RECT clientRect;
-					GetClientRect(hWnd, &clientRect);
 					//rysuj bitmapę fraktala
 					UpdateFractalBitmap(
 						windowData,
-						clientRect.right * windowData->fractalImage->scale,
-						clientRect.bottom * windowData->fractalImage->scale,
-						mousePosition.x + scaledVectorX,
-						mousePosition.y + scaledVectorY
+						newWidth,
+						newHeight,
+						newOffsetX,
+						newOffsetY,
+						newScaleRatio
 					);
 				}
 			}
@@ -799,18 +809,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalWindowData->fractal = NULL;
 							delete fractalWindowData->fractal;
 						}
-						fractalWindowData->fractal = new Fractal(fractalFromForm);
-						fractalWindowData->fractalImage->scale = 1.0f;
-						fractalWindowData->fractalImage->offsetX = 0;
-						fractalWindowData->fractalImage->offsetY = 0;
+						fractalWindowData->fractal = new Fractal(fractalFromForm);						
 
 						RECT windowRect;
 						GetClientRect(mainWindow, &windowRect);
 						unsigned short bitmapWidth = windowRect.right;
 						unsigned short bitmapHeight = windowRect.bottom;
 
-						fractalWindowData->fractalImage->width = bitmapWidth;
-						fractalWindowData->fractalImage->height = bitmapHeight;
 
 						fractalWindowData->numberOfPointsToProcess = 100000;
 
@@ -871,7 +876,9 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalBitmapThreadData->outputPicture = fractalWindowData->fractalImage;
 							fractalBitmapThreadData->bitmapWindowHandle = mainWindow;
 							fractalBitmapThreadData->bitmapPixelsInput = pixels;
-							fractalBitmapThreadData->newScale = pixels;
+							fractalBitmapThreadData->newScale = 1.0f;
+							fractalBitmapThreadData->newOffsetX = 0;
+							fractalBitmapThreadData->newOffsetY = 0;
 							HANDLE createFractalBitmapThreadHandle = CreateThread(
 								NULL,
 								0,
@@ -1358,6 +1365,9 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 				{
 					operationData.outputPicture->offsetX = operationData.newOffsetX;
 					operationData.outputPicture->offsetY = operationData.newOffsetY;
+					operationData.outputPicture->scale = operationData.newScale;
+					operationData.outputPicture->width = operationData.width;
+					operationData.outputPicture->height = operationData.height;
 					firstBitmapUpdate = false;
 				}
 				InvalidateRect(
@@ -1386,6 +1396,8 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 						operationData.outputPicture->offsetX = operationData.newOffsetX;
 						operationData.outputPicture->offsetY = operationData.newOffsetY;
 						operationData.outputPicture->scale = operationData.newScale;
+						operationData.outputPicture->width = operationData.width;
+						operationData.outputPicture->height = operationData.height;
 						firstBitmapUpdate = false;
 					}
 					InvalidateRect(
@@ -1551,8 +1563,9 @@ void UpdateFractalBitmap(
 	FractalWindowData* windowData,
 	unsigned short newWidth,
 	unsigned short newHeight,
-	unsigned short newOffsetX,
-	unsigned short newOffsetY
+	short newOffsetX,
+	short newOffsetY,
+	float newScale
 )
 {
 	if (windowData->fractal == NULL)
@@ -1599,6 +1612,7 @@ void UpdateFractalBitmap(
 		fractalBitmapThreadData->bitmapPixelsInput = pixels;
 		fractalBitmapThreadData->newOffsetX = newOffsetX;
 		fractalBitmapThreadData->newOffsetY = newOffsetY;
+		fractalBitmapThreadData->newScale = newScale;
 		HANDLE createFractalBitmapThreadHandle = CreateThread(
 			NULL,
 			0,
