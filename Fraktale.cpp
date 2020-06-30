@@ -1303,57 +1303,53 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		//		//numberOfProcessedPixels++;
 		//	}
 		//}
-		concurrency::parallel_for(
-			(unsigned int)lastProcessedPixelIndex,
-			numberOfOutputtedPixelIndex,
-			(unsigned int)1,
-			[&](unsigned int pixelIndex)
+		if (numberOfPixelsToProcess > 0)
 		{
-			if (*operationData.processThread)
+			concurrency::parallel_for(
+				(unsigned int)lastProcessedPixelIndex,
+				numberOfOutputtedPixelIndex,
+				(unsigned int)1,
+				[&](unsigned int pixelIndex)
 			{
-				BitmapPixel pixel = {};
-				try {
-					pixel = (BitmapPixel)operationData.bitmapPixelsInput->at(pixelIndex);
-				}
-				catch (const std::out_of_range& ex)
+				if (*operationData.processThread)
 				{
-					return;
+					BitmapPixel pixel = {};
+					bool processPixel = true;
+					try {
+						pixel = (BitmapPixel)operationData.bitmapPixelsInput->at(pixelIndex);
+					}
+					catch (const std::out_of_range& ex)
+					{
+						processPixel = false;
+					}
+					if (processPixel)
+					{
+						if (pixel.x < operationData.width && pixel.y < operationData.height)
+						{
+							MarkMononochromeBitmapAsText(
+								pixel,
+								bitsPerScanline,
+								pixelBytes
+							);
+						}
+					}
+					numberOfProcessedPixels++;
+					if (numberOfProcessedPixels == numberOfPixelsToProcess)
+					{
+						WakeByAddressSingle(&numberOfProcessedPixels);
+					}
 				}
-				if (pixel.x < operationData.width && pixel.y < operationData.height)
+				else
 				{
-					MarkMononochromeBitmapAsText(
-						pixel,
-						bitsPerScanline,
-						pixelBytes
-					);
+					WakeByAddressSingle(&numberOfProcessedPixels);
 				}
-				//numberOfProcessedPixels++;
 			}
-		}
-		);
-		//WaitOnAddress(&numberOfProcessedPixels, &numberOfPixelsToProcess, 1, INFINITE);
-		if (numberOfOutputtedPixelIndex == operationData.numberOfPixelsToProcess)
-		{
-			HBITMAP previousBitmap = *operationData.outputHandlePointer;
-			*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
-			if (previousBitmap != NULL)
-			{
-				DeleteObject(previousBitmap);
-			}
-			InvalidateRect(
-				operationData.bitmapWindowHandle,
-				NULL,
-				FALSE
 			);
-			*operationData.processThread = false;
-		}
-		else
-		{
-			lastProcessedPixelIndex = numberOfOutputtedPixelIndex;
-
-			std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
-			long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastBitmapRefresh).count();
-			if (noMillisecondsSinceLastPainting >= 16)
+			if (numberOfProcessedPixels < numberOfPixelsToProcess)
+			{
+				WaitOnAddress(&numberOfProcessedPixels, &numberOfPixelsToProcess, 1, INFINITE);
+			}
+			if (numberOfOutputtedPixelIndex == operationData.numberOfPixelsToProcess)
 			{
 				HBITMAP previousBitmap = *operationData.outputHandlePointer;
 				*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
@@ -1366,7 +1362,29 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 					NULL,
 					FALSE
 				);
-				lastBitmapRefresh = currentTS;
+				*operationData.processThread = false;
+			}
+			else
+			{
+				lastProcessedPixelIndex = numberOfOutputtedPixelIndex;
+
+				std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
+				long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastBitmapRefresh).count();
+				if (noMillisecondsSinceLastPainting >= 16)
+				{
+					HBITMAP previousBitmap = *operationData.outputHandlePointer;
+					*operationData.outputHandlePointer = CreateBitmapIndirect(&monochromeBitmap);
+					if (previousBitmap != NULL)
+					{
+						DeleteObject(previousBitmap);
+					}
+					InvalidateRect(
+						operationData.bitmapWindowHandle,
+						NULL,
+						FALSE
+					);
+					lastBitmapRefresh = currentTS;
+				}
 			}
 		}
 	}
@@ -1419,7 +1437,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				if (*operationData.processThread)
 				{
 					Point pointBuffer;
-					try {						
+					try {
 						pointBuffer = fractalPointsInput->at(pointIndex);
 					}
 					catch (const std::out_of_range& ex)
@@ -1441,21 +1459,37 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				if (*operationData.processThread)
 				{
 					Point pointBuffer;
+					bool processPoint = true;
 					try {
 						pointBuffer = fractalPointsInput->at(pointIndex);
 					}
 					catch (const std::out_of_range& ex)
 					{
-						return;
+						processPoint = false;
 					}
-					BitmapPixel pixel = {};
-					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
-					bitmapPixelsOutput->push_back(pixel);
+					if (processPoint)
+					{
+						BitmapPixel pixel = {};
+						pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
+						pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
+						bitmapPixelsOutput->push_back(pixel);
+					}
+					numberOfProcessedPoints++;
+					if (numberOfProcessedPoints == numberOfPointsToProcess)
+					{
+						WakeByAddressSingle(&numberOfProcessedPoints);
+					}
+				}
+				else
+				{
+					WakeByAddressSingle(&numberOfProcessedPoints);
 				}
 			}
 			);
-			//WaitOnAddress(&numberOfProcessedPoints, &numberOfPointsToProcess, 1, INFINITE);
+			if (numberOfProcessedPoints < numberOfPointsToProcess)
+			{
+				WaitOnAddress(&numberOfProcessedPoints, &numberOfPointsToProcess, 1, INFINITE);
+			}
 			if (lastOutputtedPointIndex == (operationData.numberOfPointsToProcess - 1)) {
 				*operationData.processThread = false;
 			}
