@@ -15,6 +15,7 @@
 #include <synchapi.h>
 #include <memory>
 #include < concurrent_vector.h>
+#include "fractal-calculations.h"
 #pragma comment(lib, "Synchronization.lib")
 
 // Forward declarations of functions included in this code module:
@@ -34,7 +35,7 @@ struct FractalPointsThreadData
 	std::shared_ptr<bool> processThread;
 	Fractal fractal;
 	unsigned int maxNumberOfPoints;
-	std::shared_ptr<concurrency::concurrent_vector<Point>> fractalPointsOutput;
+	std::shared_ptr<FractalPoints> fractalPointsOutput;
 };
 DWORD WINAPI FractalPointsThread(LPVOID);
 
@@ -71,7 +72,7 @@ struct FractalPixelsCalculatorThreadData
 	unsigned short bitmapWidth;
 	unsigned short bitmapHeight;
 	FractalClipping clipping;
-	std::shared_ptr<concurrency::concurrent_vector<Point>> fractalPointsInput;
+	std::shared_ptr<FractalPoints> fractalPointsInput;
 	std::shared_ptr<concurrency::concurrent_vector<BitmapPixel>> bitmapPixelsOutput;
 };
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
@@ -100,7 +101,7 @@ struct FractalWindowData
 	std::shared_ptr<bool> processFractalPointsThread;
 	std::shared_ptr<bool> processFractalPixelsThread;
 	std::shared_ptr<bool> processFractalBitmapThread;
-	std::shared_ptr<concurrency::concurrent_vector<Point>> currentFractalPoints;
+	std::shared_ptr<FractalPoints> currentFractalPoints;
 	unsigned int numberOfPointsToProcess;
 	float updatedScale;
 	short updateOffsetX;
@@ -807,7 +808,12 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						}
 						
 
-						fractalWindowData->currentFractalPoints = std::shared_ptr < concurrency::concurrent_vector<Point>>(new concurrency::concurrent_vector<Point>);
+						fractalWindowData->currentFractalPoints = std::shared_ptr < FractalPoints>(
+							new FractalPoints(
+								fractalFromForm,
+								Point(0,0)
+							)
+						);
 						{
 							if (fractalWindowData->processFractalPointsThread != NULL)
 							{
@@ -989,21 +995,10 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 	FractalPointsThreadData* input = (FractalPointsThreadData*) inputPointer;
 	FractalPointsThreadData operationData = *input;
 	delete input;
-	unsigned int currentPointIndex = 0;
-	Point currentPoint;
-	while (*operationData.processThread)
-	{
-		if (currentPointIndex < operationData.maxNumberOfPoints)
-		{
-			operationData.fractalPointsOutput->push_back(currentPoint);
-			currentPoint = operationData.fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
-			currentPointIndex++;
-		}
-		else
-		{
-			*operationData.processThread = false;
-		}
-	}
+	operationData.fractalPointsOutput->calculatePoints(
+		operationData.maxNumberOfPoints,
+		operationData.processThread
+	);
 	return 0;
 }
 
@@ -1159,7 +1154,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 	unsigned int numberOfPointsToProcess = 0;
 	while (*operationData.processThread)
 	{
-		lastOutputtedPointIndex = operationData.fractalPointsInput->size();
+		lastOutputtedPointIndex = operationData.fractalPointsInput->getNumberOfCalculatedPoints();
 		numberOfProcessedPoints = 0;
 		numberOfPointsToProcess = lastOutputtedPointIndex - lastProcessedPointIndex;
 		if (numberOfPointsToProcess > 0)
@@ -1173,14 +1168,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 				Point pointBuffer;
 				BitmapPixel pixel = {};
 				bool processPoint = true;
-				try {
-					pointBuffer = operationData.fractalPointsInput->at(pointIndex);
-				}
-				catch (const std::out_of_range& ex)
-				{
-					processPoint = false;
-				}
-				if (processPoint)
+				if (operationData.fractalPointsInput->getPoint(pointIndex, pointBuffer))				
 				{					
 					pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
 					pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
