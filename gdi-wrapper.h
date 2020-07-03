@@ -64,3 +64,10 @@ bool drawMovablePictureInRepaintBuffer(
 	const RECT* repaintRect,
 	const MovablePicture* picture
 );
+
+void markMonochromeBitmapPixelBlack(
+	unsigned short bitsInBitmapScanline,
+	BYTE** bitmapBytesHandle,
+	unsigned short pixelX,
+	unsigned short pixelY
+);

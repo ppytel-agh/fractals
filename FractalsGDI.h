@@ -2,6 +2,8 @@
 
 #include "Fractals.h"
 #include <windows.h>
+#include <ppl.h>
+#include "gdi-wrapper.h"
 
 class FractalDrawing
 {
@@ -35,5 +37,6 @@ bool drawFractalV2(
 	unsigned int numberOfCalculatedPoints,
 	BITMAP* clientBitmap,
 	unsigned short bitmapWidth,
-	unsigned short bitmapHeight
+	unsigned short bitmapHeight,
+	BYTE** bitmapBytesHandle
 );

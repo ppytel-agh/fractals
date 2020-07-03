@@ -380,7 +380,7 @@ bool drawMovablePictureInRepaintBuffer(
 		destinationY = repaintOffsetY;
 		copiedHeight = repaintHeight - repaintOffsetY;
 	}
-	HDC pictureDC = CreateCompatibleDC(bufferDC);	
+	HDC pictureDC = CreateCompatibleDC(bufferDC);
 	SelectObject(pictureDC, picture->bitmap);
 	bool result = BitBlt(
 		bufferDC,
@@ -393,6 +393,40 @@ bool drawMovablePictureInRepaintBuffer(
 		sourceY,
 		SRCCOPY
 	);
-	DeleteDC(pictureDC);	
+	DeleteDC(pictureDC);
 	return result;
+}
+
+void markMonochromeBitmapPixelBlack(
+	unsigned short bitsInBitmapScanline,
+	BYTE** bitmapBytesHandle,
+	unsigned short pixelX,
+	unsigned short pixelY
+)
+{
+	BYTE* initialBitmapBytes = *bitmapBytesHandle;
+	if (initialBitmapBytes == NULL)
+	{
+		return;
+	}
+	if (pixelX < 1 || pixelY < 1)
+	{
+		return;
+	}
+	unsigned int pixelBitIndex = ((pixelY - 1) * bitsInBitmapScanline) + (pixelX - 1);
+	unsigned int byteIndex = pixelBitIndex / 8;
+	unsigned char offsetInByte = (pixelBitIndex % 8);
+	unsigned char moveToTheLeft = (7 - offsetInByte);
+	BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
+	BYTE* bitmapBytes = *bitmapBytesHandle;
+	BYTE currentByteValue = 0;
+	if (*bitmapBytesHandle == initialBitmapBytes)
+	{
+		currentByteValue = bitmapBytes[byteIndex];
+	}
+	currentByteValue &= pixelByteValue;
+	if (*bitmapBytesHandle == initialBitmapBytes)
+	{
+		bitmapBytes[byteIndex] = currentByteValue;
+	}
 }

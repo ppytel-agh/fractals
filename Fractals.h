@@ -25,6 +25,7 @@ private:
 	float e;
 	float f;
 public:
+	AffineTransformation();
 	AffineTransformation(
 		float a,
 		float b,
@@ -48,6 +49,7 @@ private:
 	unsigned char probability;
 	AffineTransformation transformation;
 public:
+	AffineTransformationRow();
 	AffineTransformationRow(
 		unsigned char probability,
 		AffineTransformation transformation
@@ -62,6 +64,7 @@ private:
 	AffineTransformationRow** transformationRows;
 	unsigned char numberOfRows;
 public:
+	AffineTransformationRowsGroup();
 	AffineTransformationRowsGroup(
 		AffineTransformationRow transformationRows[],
 		unsigned char numberOfRows
@@ -82,6 +85,7 @@ private:
 	float yMin;
 	float yMax;
 public:
+	FractalClipping();
 	FractalClipping(
 		float xMin,
 		float xMax,
@@ -103,6 +107,7 @@ private:
 	unsigned char numberOfProbabilities;
 	unsigned char* probabilityAssociations;
 public:
+	Fractal();
 	Fractal(
 		AffineTransformationRowsGroup transformationRowsGroup,
 		FractalClipping clipping
