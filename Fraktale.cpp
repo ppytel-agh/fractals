@@ -1369,7 +1369,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 
 				std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
 				long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastBitmapRefresh).count();
-				if (noMillisecondsSinceLastPainting >= 16 || true)
+				if (noMillisecondsSinceLastPainting >= 10)
 				{
 					HBITMAP previousBitmap = operationData.outputPicture->bitmap;
 					operationData.outputPicture->bitmap = CreateBitmapIndirect(&monochromeBitmap);
