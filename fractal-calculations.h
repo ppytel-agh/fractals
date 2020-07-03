@@ -1,15 +1,16 @@
 #pragma once
 #include "Fractals.h"
 #include <concurrent_vector.h>
+#include <cstdlib>
 
 class FractalPoints
 {
 private:
-	AffineTransformationRowsGroup fractalTransformations;
+	Fractal fractal;
 	concurrency::concurrent_vector<Point> calculatedPoints;
 public:
 	FractalPoints(
-		AffineTransformationRowsGroup fractalTransformations,
+		Fractal fractal,
 		Point startingPoint
 	);
 	void calculatePoints(unsigned int numberOfPointsToCalculate);

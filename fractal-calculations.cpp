@@ -1,16 +1,25 @@
 #include "fractal-calculations.h"
 
-FractalPoints::FractalPoints(AffineTransformationRowsGroup fractalTransformations, Point startingPoint) : calculatedPoints()
+FractalPoints::FractalPoints(
+	Fractal fractal,
+	Point startingPoint
+) 
 {
-	this->fractalTransformations = fractalTransformations;
+	this->fractal = fractal;
 	this->calculatedPoints.push_back(startingPoint);
 }
 
 void FractalPoints::calculatePoints(unsigned int numberOfPointsToCalculate)
 {
-	if (numberOfPointsToCalculate > this->calculatedPoints.size())
+	unsigned int currentSize = this->calculatedPoints.size();
+	if (numberOfPointsToCalculate > currentSize)
 	{
-
+		Point currentPoint = this->calculatedPoints[currentSize - 1];
+		for (unsigned int i = currentSize; i < numberOfPointsToCalculate; i++)
+		{
+			currentPoint = this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+			this->calculatedPoints.push_back(currentPoint);
+		}
 	}
 }
 
@@ -28,7 +37,6 @@ bool FractalPoints::getPoint(unsigned int index, Point& output)
 	}
 	else
 	{
-		output = nullptr;
 		return false;
 	}
 }
