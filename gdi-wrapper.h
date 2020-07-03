@@ -71,3 +71,38 @@ void markMonochromeBitmapPixelBlack(
 	unsigned short pixelX,
 	unsigned short pixelY
 );
+
+class PictureInterface
+{
+public:
+	BitmapSizeInPixels getSize();
+	HBITMAP getBitmapHandle();
+};
+
+struct BitmapSizeInPixels
+{
+	unsigned short width;
+	unsigned short height;
+};
+
+struct PixelVector
+{
+	short x;
+	short y;
+};
+
+class PictureMovableInViewport
+{
+private:
+	PictureInterface picture;
+	BitmapSizeInPixels viewportSize;
+	PixelVector ViewportToPictureOffset;
+public:
+	PictureMovableInViewport(
+		PictureInterface picture,
+		BitmapSizeInPixels initialViewportSize
+	);
+	bool OnViewportResize(BitmapSizeInPixels newViewportSize);
+	bool MovePicture(PixelVector delta);
+	void OnViewportRedraw(HDC viewportDC, const RECT& repaintRect);
+};
