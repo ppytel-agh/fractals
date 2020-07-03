@@ -84,6 +84,11 @@ struct FractalWindowData
 	bool isFractalImageMoved;
 	POINT* lastPointerPosition;
 	Fractal* fractal;
+	/*
+	Przy wywołaniu UpdateFractalBitmap przez chwilę mogą istnieć dwa wątki
+	zwracające uchwyt do tego samego pola w pamięci co może skutkować lekkim gliczowaniem obrazu.
+	Potencjalne rozwiązanie to reset wskaźnika do uchwytu bitmapy w tej funkcji.
+	*/
 	MovablePicture* fractalImage;
 	std::chrono::steady_clock::time_point lastPainingTS;
 	DWORD calculateFractalPointsThreadId;
