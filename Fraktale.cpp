@@ -771,7 +771,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalWindowData->fractal = NULL;
 							delete fractalWindowData->fractal;
 						}
-						fractalWindowData->fractal = new Fractal(fractalFromForm);						
+						fractalWindowData->fractal = new Fractal(fractalFromForm);					
 
 						RECT windowRect;
 						GetClientRect(mainWindow, &windowRect);
@@ -783,7 +783,15 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						fractalWindowData->updateOffsetX = 0;
 						fractalWindowData->updateOffsetY = 0;
 
-						fractalWindowData->numberOfPointsToProcess = 100000;
+						if (dialogData->fractalUI->getNumberOfPointsToRender()->isValid())
+						{
+							fractalWindowData->numberOfPointsToProcess = dialogData->fractalUI->getNumberOfPointsToRender()->getValue();
+						}
+						else
+						{
+							fractalWindowData->numberOfPointsToProcess = initialNumberOfPointsToRender;
+						}
+						
 
 						fractalWindowData->currentFractalPoints = std::shared_ptr < concurrency::concurrent_vector<Point>>(new concurrency::concurrent_vector<Point>);
 						{
