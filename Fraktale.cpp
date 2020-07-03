@@ -116,9 +116,6 @@ struct FractalFormDialogData
 	float drawingScale;
 };
 
-void RefreshFractalBitmap(FractalWindowData* windowData);
-void RefreshViewport(FractalWindowData* windowData);
-
 void UpdateFractalBitmap(
 	FractalWindowData* windowData,
 	unsigned short newWidth,
@@ -1224,59 +1221,6 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 		}
 	}
 	return 0;
-}
-
-void RefreshFractalBitmap(FractalWindowData* windowData)
-{
-	if (windowData->fractalBitmap != NULL)
-	{
-		HBITMAP newBitmap = CreateBitmapIndirect(
-			windowData->fractalBitmap
-		);
-		if (newBitmap == NULL)
-		{
-			OutputDebugStringW(L"Błąd tworzenia uchwytu bitmapy\n");
-			debugLastError();
-			return;
-		}
-		HDC windowDeviceContext = GetDC(windowData->windowHandle);
-		HDC fractalDrawingDC = CreateCompatibleDC(windowDeviceContext);
-		ReleaseDC(windowData->windowHandle, windowDeviceContext);
-
-		SelectObject(fractalDrawingDC, newBitmap);
-		//dodaj ramkę
-		HBRUSH blackBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-		RECT frameRect = {};
-		frameRect.right = windowData->fractalImage->width;
-		frameRect.bottom = windowData->fractalImage->height;
-		FrameRect(fractalDrawingDC, &frameRect, blackBrush);
-		//wywołaj przerysowanie okna
-		DeleteDC(fractalDrawingDC);
-		//skopiuj uchwyt i usuń starą bitmapę na sam koniec aby obraz nie migał
-		if (windowData->fractalImage->bitmap != NULL)
-		{
-			HBITMAP oldBitmap = windowData->fractalImage->bitmap;
-			windowData->fractalImage->bitmap = newBitmap;
-			DeleteObject(oldBitmap);
-		}
-		else
-		{
-			windowData->fractalImage->bitmap = newBitmap;
-		}
-	}
-}
-
-void RefreshViewport(FractalWindowData* windowData)
-{
-	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - windowData->lastPainingTS).count();
-	if (noMillisecondsSinceLastPainting >= 10)
-	{
-		InvalidateRect(
-			windowData->windowHandle,
-			NULL,
-			FALSE
-		);
-	}
 }
 
 void UpdateFractalBitmap(
