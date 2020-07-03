@@ -102,15 +102,13 @@ class Fractal
 {
 private:
 	AffineTransformationRowsGroup transformationRowsGroup;
-	FractalClipping clipping;
 	//internal
 	unsigned char numberOfProbabilities;
 	unsigned char* probabilityAssociations;
 public:
 	Fractal();
 	Fractal(
-		AffineTransformationRowsGroup transformationRowsGroup,
-		FractalClipping clipping
+		AffineTransformationRowsGroup transformationRowsGroup
 	);
 	Fractal(const Fractal& prototype);
 	~Fractal();
@@ -120,7 +118,6 @@ public:
 		int randomValue,
 		unsigned char* selectedRow = nullptr
 	);
-	FractalClipping getClipping(void);
 	AffineTransformationRowsGroup getTransformationRows(void);
 	unsigned char getNumberOfProbabilities(void);
 };

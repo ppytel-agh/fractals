@@ -218,16 +218,15 @@ float FractalClipping::getYMax(void)
 	return this->yMax;
 }
 
-Fractal::Fractal(): transformationRowsGroup(), clipping()
+Fractal::Fractal(): transformationRowsGroup()
 {
 	this->numberOfProbabilities = 0;
 	this->probabilityAssociations = nullptr;
 }
 
 Fractal::Fractal(
-	AffineTransformationRowsGroup transformationRowsGroup,
-	FractalClipping clipping
-) : clipping(clipping), transformationRowsGroup(transformationRowsGroup)
+	AffineTransformationRowsGroup transformationRowsGroup
+)
 {
 	unsigned char numberOfRows = transformationRowsGroup.getNumberOfRows();
 	if (numberOfRows > 0)
@@ -249,8 +248,7 @@ Fractal::Fractal(
 }
 
 Fractal::Fractal(const Fractal& prototype)
-	: clipping(prototype.clipping),
-	transformationRowsGroup(prototype.transformationRowsGroup),
+	:transformationRowsGroup(prototype.transformationRowsGroup),
 	numberOfProbabilities{ prototype.numberOfProbabilities}
 {	
 	if (this->numberOfProbabilities > 0)
@@ -279,7 +277,6 @@ Fractal::~Fractal()
 
 Fractal& Fractal::operator=(const Fractal& rVal)
 {
-	this->clipping = rVal.clipping;
 	this->transformationRowsGroup = rVal.transformationRowsGroup;
 	this->numberOfProbabilities = rVal.numberOfProbabilities;
 	if (this->numberOfProbabilities > 0)
@@ -326,11 +323,6 @@ AffineTransformation Fractal::getAffineTransformation(
 		*selectedRow = this->numberOfProbabilities;
 	}
 	return this->transformationRowsGroup.getAffineTransformation(this->numberOfProbabilities).getTransformation();
-}
-
-FractalClipping Fractal::getClipping(void)
-{
-	return this->clipping;
 }
 
 AffineTransformationRowsGroup Fractal::getTransformationRows(void)

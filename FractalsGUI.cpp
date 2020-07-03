@@ -809,24 +809,6 @@ unsigned short FractalDefinitionForm::getWidth(void)
 	return width;
 }
 
-Fractal FractalDefinitionForm::getValue(void)
-{
-	return Fractal(
-		this->transformations->getValue(),
-		this->clipping->getValue()
-	);
-}
-
-void FractalDefinitionForm::setValue(Fractal newValue)
-{
-	this->transformations->setValue(
-		newValue.getTransformationRows()
-	);
-	this->clipping->setValue(
-		newValue.getClipping()
-	);
-}
-
 bool FractalDefinitionForm::isValid(void)
 {
 	if (!this->clipping->isValid())

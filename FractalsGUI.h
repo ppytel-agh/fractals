@@ -290,8 +290,6 @@ public:
 	FractalClippingForm* getClippingForm();
 	unsigned short getHeight(void);
 	unsigned short getWidth(void);
-	Fractal getValue(void);
-	void setValue(Fractal newValue);
 	bool isValid(void);
 	void processNotification(const NMHDR* message);
 	void processControlCommand(
