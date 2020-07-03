@@ -113,7 +113,7 @@ bool InputWrapper::isEmpty(void)
 
 float FloatInput::GetValue(void)
 {
-	this->updateInputBuffer();		
+	this->updateInputBuffer();
 	return _wtof(
 		this->getInputBuffer()
 	);
@@ -603,7 +603,7 @@ LabelWrapper::~LabelWrapper()
 }
 
 FractalClippingForm::FractalClippingForm(HWND parent, unsigned short offsetX, unsigned short offsetY)
-{	
+{
 	unsigned short elementOffsetX = offsetX;
 	minX = new FloatInputWithLeftLabel(
 		parent,
@@ -722,7 +722,7 @@ FloatInputWithLeftLabel::FloatInputWithLeftLabel(
 	unsigned char labelWidth,
 	bool isFirstElementOfGroup
 )
-{	
+{
 	label = new LabelWrapper(
 		parent,
 		text,
@@ -841,14 +841,63 @@ bool FractalDefinitionForm::isValid(void)
 }
 
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
-{
+{	
 	this->fractalDefinition = new FractalDefinitionForm(
 		parent,
 		offsetX,
 		offsetY
 	);
+
+	//liczba punktów do zrenderowania
+	unsigned short numberOfPointsOffsetY = offsetY + this->fractalDefinition->getHeight() + this->layersOffsetY;
+
+	const WCHAR numberOfPointsToRenderLabelText[] = L"Liczba punktów do zrenderowania";
+	SIZE numberOfPointsTextSize = {};
+	HDC parentDC = GetDC(parent);
+	GetTextExtentPoint32A(
+		parentDC,
+		(LPCSTR)numberOfPointsToRenderLabelText,
+		wcslen(numberOfPointsToRenderLabelText),
+		&numberOfPointsTextSize
+	);	
+	ReleaseDC(parent, parentDC);
+	unsigned short numberOfPointsLabelWidth = numberOfPointsTextSize.cx + 10;
+	unsigned short numberOfPointsHeight = numberOfPointsTextSize.cy + 5;
+	this->numberOfPointsToRenderLabel = new LabelWrapper(
+		parent,
+		numberOfPointsToRenderLabelText,
+		offsetX,
+		numberOfPointsOffsetY,
+		numberOfPointsLabelWidth,
+		numberOfPointsHeight,
+		LabelHorizontalAlignment::center
+	);
+	
+	unsigned short numberOfPointsControlOffsetX = numberOfPointsLabelWidth + 5;
+	this->numberOfPointsToRender = new NaturalInput(
+		parent,
+		numberOfPointsControlOffsetX,
+		numberOfPointsOffsetY,
+		this->numberOfPointsControlWidth,
+		numberOfPointsHeight
+	);
+	//this->numberOfPointsUpDownHandle = CreateWindowExW(
+	//	WS_EX_LEFT | WS_EX_LTRREADING,
+	//	UPDOWN_CLASS,
+	//	NULL,
+	//	WS_CHILDWINDOW | WS_VISIBLE
+	//	| UDS_AUTOBUDDY | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK,
+	//	0, 0,
+	//	0, 0,         // Set to zero to automatically size to fit the buddy window.
+	//	this->numberOfPointsToRender->,
+	//	NULL,
+	//	(HINSTANCE)GetWindowLongPtr(parent, GWLP_HINSTANCE),
+	//	NULL
+	//);
+	//SendMessageW(this->numberOfPointsUpDownHandle, UDM_SETRANGE, 0, MAKELPARAM(this->maxNumberOfPointsToRender, 0));	
+
 	unsigned short buttonOffsetX = offsetX + this->fractalDefinition->getTransformationsForm()->getWidth() - buttonWidth;
-	unsigned short buttonOffsetY = offsetY + this->fractalDefinition->getHeight() + 5;
+	unsigned short buttonOffsetY = numberOfPointsOffsetY + numberOfPointsHeight + this->layersOffsetY;
 	this->renderFractalButton = new ButtonWrapper(
 		parent,
 		L"Renderuj",
@@ -866,13 +915,18 @@ FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned
 		importButtonWidth,
 		buttonHeight
 	);
-	height = this->fractalDefinition->getHeight() + buttonHeight + 5;
+
+	height = buttonOffsetY + buttonHeight + this->layersOffsetY;	
 }
 
 FractalDrawingUI::~FractalDrawingUI()
 {
 	delete fractalDefinition;
+	delete this->numberOfPointsToRenderLabel;
+	delete this->numberOfPointsToRender;
+	//DestroyWindow(this->numberOfPointsUpDownHandle);
 	delete renderFractalButton;
+	delete this->importValuesFromPDFButton;
 }
 
 unsigned short FractalDrawingUI::getHeight(void)
@@ -898,6 +952,11 @@ FractalDefinitionForm* FractalDrawingUI::getFractalDefinitionForm(void)
 ButtonWrapper* FractalDrawingUI::getImportbutton(void)
 {
 	return importValuesFromPDFButton;
+}
+
+NaturalInput* FractalDrawingUI::getNumberOfPointsToRender(void)
+{
+	return this->numberOfPointsToRender;
 }
 
 void FractalDefinitionForm::processNotification(const NMHDR* message)
@@ -978,7 +1037,7 @@ void FloatInputWithStepping::processChange(const NMUPDOWN* upDownMessage)
 	if (upDownMessage->hdr.hwndFrom == this->upDownWindowHandle)
 	{
 		float newInputValue = (float)(upDownMessage->iPos + upDownMessage->iDelta) / 100.0f;
-		if(newInputValue <= this->max && newInputValue >= this->min)
+		if (newInputValue <= this->max && newInputValue >= this->min)
 		{
 			FloatInput::setValue(newInputValue);
 		}
@@ -993,7 +1052,7 @@ void FloatInputWithStepping::processInputChange(const HWND changedInputWindowHan
 		{
 			short positionValue = (short)(FloatInput::GetValue() * 100.0f);
 			this->updateUpDownPos(positionValue);
-			this->isValid();		
+			this->isValid();
 		}
 	}
 }
@@ -1019,7 +1078,7 @@ bool FloatInputWithStepping::isValid(void)
 
 void FloatInputWithStepping::setValue(float newValue)
 {
-	short positionValue = (short) (newValue * 100.0f);
+	short positionValue = (short)(newValue * 100.0f);
 	this->updateUpDownPos(positionValue);
 	FloatInput::setValue(newValue);
 }

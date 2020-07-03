@@ -25,6 +25,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
 
+//stałe
+const unsigned int initialNumberOfPointsToRender = 100000;
+
 //nowa funkcja wątku do kalkulacji punktów fraktala
 struct FractalPointsThreadData
 {
@@ -719,6 +722,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				);
 				//ustaw wstępne dane formularza
 				formTest->getFractalDefinitionForm()->setValue(getDragonFractal());
+				formTest->getNumberOfPointsToRender()->setValue(initialNumberOfPointsToRender);
 			}
 			return (INT_PTR)TRUE;
 		case WM_COMMAND:
