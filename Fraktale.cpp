@@ -85,18 +85,10 @@ struct FractalWindowData
 	POINT* lastPointerPosition;
 	Fractal* fractal;
 	MovablePicture* fractalImage;
-	Point** calculatedFractalPoints;
-	unsigned int numberOfCalculatedPoints;
-	BITMAP* fractalBitmap;
 	std::chrono::steady_clock::time_point lastPainingTS;
-	PixelCalculator* pixelCalculator;
-	unsigned short fractalBitmapBitsPerScanline;
-	BYTE* fractalBitmapBytes;
 	DWORD calculateFractalPointsThreadId;
 	DWORD createFractalBitmapThreadId;
 	DWORD calculateFractalPixelsThreadId;
-	BYTE** bitmapBytesHandle;
-	Point*** fractalPointsHandle;
 	std::shared_ptr<bool> processFractalPointsThread;
 	std::shared_ptr<bool> processFractalPixelsThread;
 	std::shared_ptr<bool> processFractalBitmapThread;
@@ -263,10 +255,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
 				windowData->fractalImage = new MovablePicture{};
-				windowData->bitmapBytesHandle = new BYTE*;
-				*windowData->bitmapBytesHandle = NULL;
-				windowData->fractalPointsHandle = new Point**;
-				*windowData->fractalPointsHandle = NULL;
 				windowData->updatedScale = 1.0f;
 				windowData->updateOffsetX = 0;
 				windowData->updateOffsetY = 0;
@@ -764,7 +752,6 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						*/
 						HWND mainWindow = GetWindow(hDlg, GW_OWNER);
 						FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
-						*fractalWindowData->fractalPointsHandle = NULL;
 
 
 
