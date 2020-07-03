@@ -32,7 +32,6 @@ struct FractalPointsThreadData
 	Fractal fractal;
 	unsigned int maxNumberOfPoints;
 	std::shared_ptr<concurrency::concurrent_vector<Point>> fractalPointsOutput;
-	std::shared_ptr<bool> isLastPointOutput;
 };
 DWORD WINAPI FractalPointsThread(LPVOID);
 
@@ -47,7 +46,6 @@ struct MonochromaticBitmapThreadData
 	unsigned int numberOfPixelsToProcess;
 	unsigned short width;
 	unsigned short height;
-	DWORD notifyAboutBitmapUpdateThread;
 	HWND bitmapWindowHandle;
 	std::shared_ptr<concurrency::concurrent_vector<BitmapPixel>> bitmapPixelsInput;
 	unsigned short newOffsetX;
@@ -844,7 +842,6 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 							fractalBitmapThreadData->width = bitmapWidth;
 							fractalBitmapThreadData->height = bitmapHeight;
-							fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
 							fractalBitmapThreadData->outputPicture = fractalWindowData->fractalImage;
 							fractalBitmapThreadData->bitmapWindowHandle = mainWindow;
 							fractalBitmapThreadData->bitmapPixelsInput = pixels;
@@ -1233,7 +1230,6 @@ void UpdateFractalBitmap(
 		fractalBitmapThreadData->numberOfPixelsToProcess = windowData->numberOfPointsToProcess;
 		fractalBitmapThreadData->width = newWidth;
 		fractalBitmapThreadData->height = newHeight;
-		fractalBitmapThreadData->notifyAboutBitmapUpdateThread = GetCurrentThreadId();
 		fractalBitmapThreadData->outputPicture = windowData->fractalImage;
 		fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
 		fractalBitmapThreadData->bitmapPixelsInput = pixels;
