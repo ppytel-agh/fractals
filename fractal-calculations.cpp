@@ -3,22 +3,36 @@
 FractalPoints::FractalPoints(
 	Fractal fractal,
 	Point startingPoint
-) 
+)
 {
 	this->fractal = fractal;
 	this->calculatedPoints.push_back(startingPoint);
 }
 
-void FractalPoints::calculatePoints(unsigned int numberOfPointsToCalculate)
+void FractalPoints::calculatePoints(
+	unsigned int numberOfPointsToCalculate,
+	std::shared_ptr<bool> continueOperation
+)
 {
 	unsigned int currentSize = this->calculatedPoints.size();
 	if (numberOfPointsToCalculate > currentSize)
 	{
 		Point currentPoint = this->calculatedPoints[currentSize - 1];
-		for (unsigned int i = currentSize; i < numberOfPointsToCalculate; i++)
+		for (
+			unsigned int i = currentSize;
+			i < numberOfPointsToCalculate;
+			i++
+		)
 		{
-			currentPoint = this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
-			this->calculatedPoints.push_back(currentPoint);
+			if (*continueOperation)
+			{
+				currentPoint = this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+				this->calculatedPoints.push_back(currentPoint);
+			}
+			else
+			{
+				break;
+			}
 		}
 	}
 }

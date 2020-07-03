@@ -13,7 +13,10 @@ public:
 		Fractal fractal,
 		Point startingPoint
 	);
-	void calculatePoints(unsigned int numberOfPointsToCalculate);
+	void calculatePoints(
+		unsigned int numberOfPointsToCalculate,
+		std::shared_ptr<bool> continueOperation
+	);
 	unsigned int getNumberOfCalculatedPoints(void);
 	bool getPoint(unsigned int index, Point& output);
 };
