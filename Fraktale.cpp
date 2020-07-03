@@ -105,7 +105,6 @@ struct FractalWindowData
 	float updatedScale;
 	short updateOffsetX;
 	short updateOffsetY;
-	FractalClipping fractalClipping;
 };
 
 struct FractalFormDialogData
@@ -779,15 +778,14 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 
 
 
-						AffineTransformationRowsGroup fractalTransformations = dialogData->fractalUI->getFractalDefinitionForm()->getTransformationsForm()->getValue();
+						Fractal fractalFromForm = dialogData->fractalUI->getFractalDefinitionForm()->getValue();
 						if (fractalWindowData->fractal != NULL)
 						{
 							Fractal* fractalPointer = fractalWindowData->fractal;
 							fractalWindowData->fractal = NULL;
 							delete fractalWindowData->fractal;
 						}
-						fractalWindowData->fractal = new Fractal(fractalTransformations);
-						fractalWindowData->fractalClipping = dialogData->fractalUI->getFractalDefinitionForm()->getClippingForm()->getValue();
+						fractalWindowData->fractal = new Fractal(fractalFromForm);					
 
 						RECT windowRect;
 						GetClientRect(mainWindow, &windowRect);
@@ -840,7 +838,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalPixelCalculatorData->processThread = fractalWindowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
 							fractalPixelCalculatorData->bitmapWidth = bitmapWidth;
 							fractalPixelCalculatorData->bitmapHeight = bitmapHeight;
-							fractalPixelCalculatorData->clipping = fractalWindowData->fractalClipping;
+							fractalPixelCalculatorData->clipping = fractalFromForm.getClipping();
 							fractalPixelCalculatorData->fractalPointsInput = fractalWindowData->currentFractalPoints;
 							fractalPixelCalculatorData->bitmapPixelsOutput = pixels;
 							CreateThread(
@@ -1231,7 +1229,7 @@ void UpdateFractalBitmap(
 		fractalPixelCalculatorData->numberOfPointsToProcess = windowData->numberOfPointsToProcess;
 		fractalPixelCalculatorData->bitmapWidth = newWidth;
 		fractalPixelCalculatorData->bitmapHeight = newHeight;
-		fractalPixelCalculatorData->clipping = windowData->fractalClipping;
+		fractalPixelCalculatorData->clipping = windowData->fractal->getClipping();
 		fractalPixelCalculatorData->fractalPointsInput = windowData->currentFractalPoints;
 		fractalPixelCalculatorData->bitmapPixelsOutput = pixels;
 		CreateThread(
