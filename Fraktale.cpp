@@ -162,6 +162,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+		/*
+		Wywołania IsDialogMessage są lipne, bo jakakolwiek zmiana w liście okien aplikacji wymaga dostosowania tego kodu.
+		Przydałaby się drobna klasa do zarządzania oknami dialogowymi w ramach danego wątku.
+		*/
 		bool isDialog = IsDialogMessage(dialogHandle, &msg);
 		if (fractalDialogData->importDialogWindowHandle != NULL)
 		{
@@ -463,6 +467,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEMOVE:
 			//jeżeli użytkownik przesuwa myszą z wciśniętym przyciskiem to należy przesuwać bitmapę względem viewportu
+			/*
+			przesuwanie bitmapy względem widoku możnaby owrapować przynajmiej jakąs funkcją
+			*/
 			{
 				int mouseX = GET_X_LPARAM(lParam);
 				int mouseY = GET_Y_LPARAM(lParam);
@@ -518,6 +525,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEWHEEL:
 			//za pomocą kółka myszy można zoomować bitmapę fraktala
+			/*
+			Tę operacje również możnaby owrapować
+			*/
 			{
 				const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
 				LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
@@ -751,6 +761,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 					WORD notificationCode = HIWORD(wParam);
 					if (notificationCode == BN_CLICKED)
 					{
+						/*
+						Operację "renderowania" należy owrapować w funkcję,
+						tak aby była również możliwość jej wywołania po naciśnięciu klawisza.
+						*/
 						/*
 							Po naciśnięciu tego przycisku należy pobrać obiekt fraktala z formularza.
 							Jeżeli ten obiekt jest poprawny, to należy wykalkulować jego punkty
@@ -993,6 +1007,9 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 	return 0;
 }
 
+/*
+	Tutaj należałoby oddzielić markowanie pikseli bitmapy od tworzenia uchwytu i requestowania odświeżania okna.
+*/
 DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 {
 	MonochromaticBitmapThreadData* input = (MonochromaticBitmapThreadData*)inputPointer;
