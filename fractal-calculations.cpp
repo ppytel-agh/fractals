@@ -107,6 +107,8 @@ FractalPixels::FractalPixels(
 		255,
 		sizeof(int) * numberOfPointsToProcess
 	);
+	this->bitmapWidth = bitmapWidth;
+	this->bitmapHeight = bitmapHeight;
 }
 
 bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
@@ -161,4 +163,27 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 		this->isCalculatingPixels = false;
 		return anyPointsToProcess;
 	}
+}
+
+unsigned short FractalPixels::getBitmapWidth(void)
+{
+	return this->bitmapWidth;
+}
+
+unsigned short FractalPixels::getBitmapHeight(void)
+{
+	return this->bitmapHeight;
+}
+
+bool FractalPixels::getPixelByPointIndex(unsigned int pointIndex, BitmapPixel& output)
+{
+	if (pointIndex < this->numberOfPointsToProcess)
+	{
+		if (this->pointPixelIndexes[pointIndex] != -1)
+		{
+			output = this->calculatedPixels[this->pointPixelIndexes[pointIndex]];
+			return true;
+		}
+	}
+	return false;
 }

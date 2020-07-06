@@ -196,3 +196,130 @@ bool drawFractalV2(
 	OutputDebugStringW(debugString.str().c_str());
 	return true;
 }
+
+void MarkMononochromeBitmapAsText(
+	BitmapPixel pixel,
+	unsigned short bitsPerScanline,
+	BYTE* pixelBytes
+)
+{
+	unsigned int pixelBitIndex = (pixel.y * bitsPerScanline) + pixel.x;
+	unsigned int byteIndex = pixelBitIndex / 8;
+	unsigned char offsetInByte = (pixelBitIndex % 8);
+	unsigned char moveToTheLeft = (7 - offsetInByte);
+	BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
+	BYTE currentByteValue = pixelBytes[byteIndex];
+	BYTE newByteValue = currentByteValue & pixelByteValue;
+	pixelBytes[byteIndex] = newByteValue;
+}
+
+FractalBitmapFactory::FractalBitmapFactory(
+	std::shared_ptr<FractalPixels> fractalPixelsCalculator
+)
+{
+	this->fractalPixelsCalculator = fractalPixelsCalculator;
+	this->bitmapData = {};
+	this->bitmapData.bmPlanes = 1;
+	this->bitmapData.bmBitsPixel = 1;
+	this->bitmapData.bmHeight = fractalPixelsCalculator->getBitmapHeight();
+	this->bitmapData.bmWidth = fractalPixelsCalculator->getBitmapWidth();
+	this->bitmapData.bmWidthBytes = ceil(fractalPixelsCalculator->getBitmapWidth() / 16.0f) * 2;
+	this->bitsPerScanline = this->bitmapData.bmWidthBytes * 8;
+	this->noBytesRequired = this->bitmapData.bmWidthBytes * this->bitmapData.bmHeight;
+	this->pixelBytes = new BYTE[this->noBytesRequired];
+	memset(
+		this->pixelBytes,
+		255,
+		this->noBytesRequired
+	);
+	this->bitmapData.bmBits = (void*)this->pixelBytes;
+	this->numberOfDrawnPixels = 0;
+	this->isDrawingBitmap = false;
+	this->bitmapHandle = NULL;
+	this->bitmapUpdated = false;
+}
+
+bool FractalBitmapFactory::generateBitmap(unsigned int numberOfPixelsToDraw, std::shared_ptr<bool> continueOperation)
+{
+	if (this->isDrawingBitmap)
+	{
+		return false;
+	}
+	this->isDrawingBitmap = true;
+	unsigned int firstPointIndex = this->numberOfDrawnPixels;
+	while (this->numberOfDrawnPixels < numberOfPixelsToDraw)
+	{
+		if (*continueOperation)
+		{
+			unsigned int numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
+			if (firstPointIndex > numberOfCalculatedPixels)
+			{
+				concurrency::parallel_for(
+					firstPointIndex,
+					numberOfCalculatedPixels,
+					(unsigned int)1,
+					[&](unsigned int pointIndex)
+				{
+					BitmapPixel pixel = {};
+					if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
+					{
+						if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+						{
+							MarkMononochromeBitmapAsText(
+								pixel,
+								this->bitsPerScanline,
+								this->pixelBytes
+							);
+							this->bitmapUpdated = true;
+							this->numberOfDrawnPixels++;
+						}
+					}
+				}
+				);				
+			}
+		}
+	}
+	this->isDrawingBitmap = false;
+	return true;
+}
+
+bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
+{
+	if (this->bitmapUpdated)
+	{
+		this->bitmapUpdated = false;
+		HBITMAP bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
+		HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
+		SelectObject(sourceDC, bitmapHandle);
+		bool result = BitBlt(
+			bitmapBuffer,
+			0,
+			0,
+			this->bitmapData.bmWidth,
+			this->bitmapData.bmHeight,
+			sourceDC,
+			0,
+			0,
+			SRCCOPY
+		);
+		DeleteDC(sourceDC);
+		DeleteObject(bitmapHandle);
+		return result;
+	}	
+	return false;
+}
+
+void FractalBitmapFactory::reset(void)
+{
+	if (this->bitmapHandle != NULL)
+	{
+		DeleteObject(this->bitmapHandle);
+	}
+	this->bitmapHandle = NULL;
+	memset(
+		this->pixelBytes,
+		255,
+		this->noBytesRequired
+	);
+	this->numberOfDrawnPixels = 0;
+}

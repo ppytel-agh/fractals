@@ -54,11 +54,6 @@ struct MonochromaticBitmapThreadData
 };
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
-void MarkMononochromeBitmapAsText(
-	BitmapPixel pixel,
-	unsigned short bitsPerScanline,
-	BYTE* pixelBytes
-);
 
 struct FractalPixelsCalculatorThreadData
 {
@@ -1104,21 +1099,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	return 0;
 }
 
-void MarkMononochromeBitmapAsText(
-	BitmapPixel pixel,
-	unsigned short bitsPerScanline,
-	BYTE* pixelBytes
-)
-{
-	unsigned int pixelBitIndex = (pixel.y * bitsPerScanline) + pixel.x;
-	unsigned int byteIndex = pixelBitIndex / 8;
-	unsigned char offsetInByte = (pixelBitIndex % 8);
-	unsigned char moveToTheLeft = (7 - offsetInByte);
-	BYTE pixelByteValue = ~(1 << moveToTheLeft); // ofset bitu w bajcie, dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
-	BYTE currentByteValue = pixelBytes[byteIndex];
-	BYTE newByteValue = currentByteValue & pixelByteValue;
-	pixelBytes[byteIndex] = newByteValue;
-}
+
 
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 {

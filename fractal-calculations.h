@@ -45,8 +45,8 @@ class FractalPixels : public BitmapPixelsCalculator
 {
 private:
 	std::shared_ptr<FractalPoints> pointsCalculator;
-	/*unsigned short bitmapWidth;
-	unsigned short bitmapHeight;*/
+	unsigned short bitmapWidth;
+	unsigned short bitmapHeight;
 	PixelCalculator pixelCalculator;	
 	bool isCalculatingPixels;
 	unsigned int numberOfPointsToProcess;
@@ -60,4 +60,7 @@ public:
 		unsigned int numberOfPointsToProcess
 	);
 	bool calculatePixels(std::shared_ptr<bool> continueOperation);	
+	unsigned short getBitmapWidth(void);
+	unsigned short getBitmapHeight(void);
+	bool getPixelByPointIndex(unsigned int pointIndex, BitmapPixel& output);
 };

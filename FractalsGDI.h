@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <ppl.h>
 #include "gdi-wrapper.h"
+#include "fractal-calculations.h"
+#include "ppl.h"
 
 class FractalDrawing
 {
@@ -40,3 +42,33 @@ bool drawFractalV2(
 	unsigned short bitmapHeight,
 	BYTE** bitmapBytesHandle
 );
+
+void MarkMononochromeBitmapAsText(
+	BitmapPixel pixel,
+	unsigned short bitsPerScanline,
+	BYTE* pixelBytes
+);
+
+class FractalBitmapFactory
+{
+private:
+	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
+	BITMAP bitmapData;
+	unsigned short bitsPerScanline;
+	unsigned int noBytesRequired;
+	BYTE* pixelBytes;
+	unsigned int numberOfDrawnPixels;
+	bool isDrawingBitmap;
+	HBITMAP bitmapHandle;
+	bool bitmapUpdated;
+public:
+	FractalBitmapFactory(
+		std::shared_ptr<FractalPixels> fractalPixelsCalculator
+	);
+	bool generateBitmap(
+		unsigned int numberOfPixelsToDraw,
+		std::shared_ptr<bool> continueOperation
+	);
+	bool copyIntoBuffer(HDC bitmapBuffer);
+	void reset(void);
+};
