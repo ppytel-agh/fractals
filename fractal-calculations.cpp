@@ -73,6 +73,24 @@ bool FractalPoints::pointsAreCalculated(void)
 	return this->isCalculatingPoints;
 }
 
+unsigned int BitmapPixelsCalculator::getNumberOfCalculatedPixels(void)
+{
+	return this->calculatedPixels.size();
+}
+
+bool BitmapPixelsCalculator::getPixel(unsigned int pixelIndex, BitmapPixel& output)
+{
+	if (pixelIndex < this->getNumberOfCalculatedPixels())
+	{
+		output = this->calculatedPixels[pixelIndex];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 FractalPixels::FractalPixels(
 	std::shared_ptr<FractalPoints> pointsCalculator,
 	FractalClipping fractalClipping,
@@ -117,8 +135,8 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 							{
 								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
-								this->calculatedPixels[pointIndex] = pixel;
+								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());								
+								this->calculatedPixels.push_back(pixel);
 							}
 						}
 					}
@@ -128,23 +146,5 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 		} while (this->pointsCalculator->pointsAreCalculated());
 		this->isCalculatingPixels = false;
 		return anyPointsToProcess;
-	}
-}
-
-unsigned int FractalPixels::getNumberOfProcessedPoints(void)
-{
-	return this->calculatedPixels.size();
-}
-
-bool FractalPixels::getPixel(unsigned int pointIndex, BitmapPixel& output)
-{
-	if (pointIndex < this->getNumberOfProcessedPoints())
-	{
-		output = this->calculatedPixels[pointIndex];
-		return true;
-	}
-	else
-	{
-		return false;
 	}
 }

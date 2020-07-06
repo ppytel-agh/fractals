@@ -31,14 +31,23 @@ struct BitmapPixel
 	unsigned short y;
 };
 
-class FractalPixels
+class BitmapPixelsCalculator
+{
+protected:
+	concurrency::concurrent_vector<BitmapPixel> calculatedPixels;
+public:
+	unsigned int getNumberOfCalculatedPixels(void);
+	bool getPixel(unsigned int pixelIndex, BitmapPixel& output);
+};
+
+class FractalPixels : public BitmapPixelsCalculator
 {
 private:
 	std::shared_ptr<FractalPoints> pointsCalculator;
 	/*unsigned short bitmapWidth;
 	unsigned short bitmapHeight;*/
 	PixelCalculator pixelCalculator;
-	concurrency::concurrent_vector<BitmapPixel> calculatedPixels;
+	
 	bool isCalculatingPixels;
 public:
 	FractalPixels(
@@ -47,7 +56,5 @@ public:
 		unsigned short bitmapWidth,
 		unsigned short bitmapHeight
 	);
-	bool calculatePixels(std::shared_ptr<bool> continueOperation);
-	unsigned int getNumberOfProcessedPoints(void);
-	bool getPixel(unsigned int pointIndex, BitmapPixel& output);
+	bool calculatePixels(std::shared_ptr<bool> continueOperation);	
 };
