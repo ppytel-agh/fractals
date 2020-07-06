@@ -49,13 +49,14 @@ private:
 	unsigned short bitmapHeight;*/
 	PixelCalculator pixelCalculator;	
 	bool isCalculatingPixels;
-	concurrency::concurrent_unordered_map<unsigned int, unsigned int> pointPixelIndexes;
+	unsigned int* pointPixelIndexes;
 public:
 	FractalPixels(
 		std::shared_ptr<FractalPoints> pointsCalculator,
 		FractalClipping fractalClipping,
 		unsigned short bitmapWidth,
-		unsigned short bitmapHeight
+		unsigned short bitmapHeight,
+		unsigned int numberOfPointsToProcess
 	);
 	bool calculatePixels(std::shared_ptr<bool> continueOperation);	
 };

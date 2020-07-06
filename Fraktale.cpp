@@ -827,7 +827,8 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalWindowData->currentFractalPoints,
 							fractalFromForm.getClipping(),
 							bitmapWidth,
-							bitmapHeight
+							bitmapHeight,
+							fractalWindowData->numberOfPointsToProcess
 						));
 						{
 							if (fractalWindowData->processFractalPixelsThread != NULL)
@@ -1150,7 +1151,8 @@ void UpdateFractalBitmap(
 		windowData->currentFractalPoints,
 		windowData->fractal->getClipping(),
 		newWidth,
-		newHeight
+		newHeight,
+		windowData->numberOfPointsToProcess
 	));
 	{
 		if (windowData->processFractalPixelsThread != NULL)
