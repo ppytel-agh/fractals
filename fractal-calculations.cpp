@@ -101,11 +101,11 @@ FractalPixels::FractalPixels(
 {
 	this->pointsCalculator = pointsCalculator;
 	this->numberOfPointsToProcess = numberOfPointsToProcess;
-	this->pointPixelIndexes = new unsigned int[this->numberOfPointsToProcess];
+	this->pointPixelIndexes = new int[this->numberOfPointsToProcess];
 	memset(
 		this->pointPixelIndexes,
-		0,
-		sizeof(unsigned int) * numberOfPointsToProcess
+		255,
+		sizeof(int) * numberOfPointsToProcess
 	);
 }
 
@@ -148,7 +148,7 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
 								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());								
 								concurrency::concurrent_vector<BitmapPixel>::iterator pushedPixelIterator = this->calculatedPixels.push_back(pixel);
-								unsigned int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator) - 1;
+								int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator) - 1;
 								this->pointPixelIndexes[pointIndex] = pixelIndex;
 								numberOfProcessedPoints++;
 							}

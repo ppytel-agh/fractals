@@ -50,7 +50,7 @@ private:
 	PixelCalculator pixelCalculator;	
 	bool isCalculatingPixels;
 	unsigned int numberOfPointsToProcess;
-	unsigned int* pointPixelIndexes;
+	int* pointPixelIndexes;
 public:
 	FractalPixels(
 		std::shared_ptr<FractalPoints> pointsCalculator,
