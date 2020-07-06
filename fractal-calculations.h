@@ -49,6 +49,7 @@ private:
 	unsigned short bitmapHeight;*/
 	PixelCalculator pixelCalculator;	
 	bool isCalculatingPixels;
+	unsigned int numberOfPointsToProcess;
 	unsigned int* pointPixelIndexes;
 public:
 	FractalPixels(
