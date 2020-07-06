@@ -1,6 +1,7 @@
 #pragma once
 #include "Fractals.h"
 #include <concurrent_vector.h>
+#include <concurrent_unordered_map.h>
 #include <cstdlib>
 #include <ppl.h>
 
@@ -35,6 +36,7 @@ class BitmapPixelsCalculator
 {
 protected:
 	concurrency::concurrent_vector<BitmapPixel> calculatedPixels;
+	concurrency::concurrent_unordered_map<unsigned int, BitmapPixel> calculatedPixels2;
 public:
 	unsigned int getNumberOfCalculatedPixels(void);
 	bool getPixel(unsigned int pixelIndex, BitmapPixel& output);

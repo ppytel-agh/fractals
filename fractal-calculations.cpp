@@ -75,19 +75,19 @@ bool FractalPoints::pointsAreCalculated(void)
 
 unsigned int BitmapPixelsCalculator::getNumberOfCalculatedPixels(void)
 {
-	return this->calculatedPixels.size();
+	return this->calculatedPixels2.size();
 }
 
 bool BitmapPixelsCalculator::getPixel(unsigned int pixelIndex, BitmapPixel& output)
 {
-	if (pixelIndex < this->getNumberOfCalculatedPixels())
+	if (this->calculatedPixels2.find(pixelIndex) == this->calculatedPixels2.end())
 	{
-		output = this->calculatedPixels[pixelIndex];
-		return true;
+		return false;
 	}
 	else
 	{
-		return false;
+		output = this->calculatedPixels2[pixelIndex];
+		return true;
 	}
 }
 
@@ -135,8 +135,8 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 							{
 								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());								
-								this->calculatedPixels.push_back(pixel);
+								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());		
+								this->calculatedPixels2[pointIndex] = pixel;
 							}
 						}
 					}
