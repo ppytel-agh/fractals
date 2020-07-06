@@ -75,19 +75,19 @@ bool FractalPoints::pointsAreCalculated(void)
 
 unsigned int BitmapPixelsCalculator::getNumberOfCalculatedPixels(void)
 {
-	return this->calculatedPixels2.size();
+	return this->calculatedPixels.size();
 }
 
 bool BitmapPixelsCalculator::getPixel(unsigned int pixelIndex, BitmapPixel& output)
 {
-	if (this->calculatedPixels2.find(pixelIndex) == this->calculatedPixels2.end())
+	if (pixelIndex < this->getNumberOfCalculatedPixels())
 	{
-		return false;
+		output = this->calculatedPixels[pixelIndex];
+		return true;
 	}
 	else
 	{
-		output = this->calculatedPixels2[pixelIndex];
-		return true;
+		return false;
 	}
 }
 
@@ -111,16 +111,18 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 	{
 		this->isCalculatingPixels = true;
 		bool anyPointsToProcess = false;
+		concurrency::concurrent_vector<BitmapPixel>::iterator firstPixelIndex = this->calculatedPixels.begin();
 		do
 		{
 			if (*continueOperation)
 			{
 				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
-				unsigned int noCalculatedPixels = this->calculatedPixels.size();
+				unsigned int noCalculatedPixels = this->calculatedPixels.size();				
 				if (noCalculatedPoints > noCalculatedPixels)
 				{
 					anyPointsToProcess = true;
 					unsigned int lastOutputtedPointIndex = noCalculatedPoints - 1;
+					
 					concurrency::parallel_for(
 						noCalculatedPixels,
 						lastOutputtedPointIndex,
@@ -135,8 +137,10 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 							{
 								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());		
-								this->calculatedPixels2[pointIndex] = pixel;
+								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());								
+								concurrency::concurrent_vector<BitmapPixel>::iterator pushedPixelIterator = this->calculatedPixels.push_back(pixel);
+								unsigned int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator) - 1;
+								//this->pointPixelIndexes[pointIndex] = pixelIndex;
 							}
 						}
 					}

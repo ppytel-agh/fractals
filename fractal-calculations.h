@@ -35,8 +35,7 @@ struct BitmapPixel
 class BitmapPixelsCalculator
 {
 protected:
-	concurrency::concurrent_vector<BitmapPixel> calculatedPixels;
-	concurrency::concurrent_unordered_map<unsigned int, BitmapPixel> calculatedPixels2;
+	concurrency::concurrent_vector<BitmapPixel> calculatedPixels;	
 public:
 	unsigned int getNumberOfCalculatedPixels(void);
 	bool getPixel(unsigned int pixelIndex, BitmapPixel& output);
@@ -48,9 +47,9 @@ private:
 	std::shared_ptr<FractalPoints> pointsCalculator;
 	/*unsigned short bitmapWidth;
 	unsigned short bitmapHeight;*/
-	PixelCalculator pixelCalculator;
-	
+	PixelCalculator pixelCalculator;	
 	bool isCalculatingPixels;
+	concurrency::concurrent_unordered_map<unsigned int, unsigned int> pointPixelIndexes;
 public:
 	FractalPixels(
 		std::shared_ptr<FractalPoints> pointsCalculator,
