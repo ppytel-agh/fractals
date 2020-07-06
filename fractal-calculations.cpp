@@ -7,33 +7,46 @@ FractalPoints::FractalPoints(
 {
 	this->fractal = fractal;
 	this->calculatedPoints.push_back(startingPoint);
+	this->isCalculatingPoints = false;
 }
 
-void FractalPoints::calculatePoints(
+bool FractalPoints::calculatePoints(
 	unsigned int numberOfPointsToCalculate,
 	std::shared_ptr<bool> continueOperation
 )
 {
-	unsigned int currentSize = this->calculatedPoints.size();
-	if (numberOfPointsToCalculate > currentSize)
+	if (this->isCalculatingPoints)
 	{
-		Point currentPoint = this->calculatedPoints[currentSize - 1];
-		for (
-			unsigned int i = currentSize;
-			i < numberOfPointsToCalculate;
-			i++
-		)
+		return false;
+	}
+	else
+	{
+		this->isCalculatingPoints = true;
+		unsigned int currentSize = this->calculatedPoints.size();
+		bool anyPointsToCalculate = false;
+		if (numberOfPointsToCalculate > currentSize)
 		{
-			if (*continueOperation)
+			anyPointsToCalculate = true;
+			Point currentPoint = this->calculatedPoints[currentSize - 1];
+			for (
+				unsigned int i = currentSize;
+				i < numberOfPointsToCalculate;
+				i++
+				)
 			{
-				currentPoint = this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
-				this->calculatedPoints.push_back(currentPoint);
-			}
-			else
-			{
-				break;
+				if (*continueOperation)
+				{
+					currentPoint = this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+					this->calculatedPoints.push_back(currentPoint);
+				}
+				else
+				{
+					break;
+				}
 			}
 		}
+		this->isCalculatingPoints = false;
+		return anyPointsToCalculate;
 	}
 }
 
@@ -47,6 +60,87 @@ bool FractalPoints::getPoint(unsigned int index, Point& output)
 	if (index < this->calculatedPoints.size())
 	{
 		output = this->calculatedPoints[index];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool FractalPoints::pointsAreCalculated(void)
+{
+	return this->isCalculatingPoints;
+}
+
+FractalPixels::FractalPixels(
+	std::shared_ptr<FractalPoints> pointsCalculator,
+	FractalClipping fractalClipping,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+) : pixelCalculator(bitmapWidth, bitmapHeight, fractalClipping)
+{
+	this->pointsCalculator = pointsCalculator;
+}
+
+bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
+{
+	if (this->isCalculatingPixels)
+	{
+		return false;
+	}
+	else
+	{
+		this->isCalculatingPixels = true;
+		bool anyPointsToProcess = false;
+		do
+		{
+			if (*continueOperation)
+			{
+				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
+				unsigned int noCalculatedPixels = this->calculatedPixels.size();
+				if (noCalculatedPoints > noCalculatedPixels)
+				{
+					anyPointsToProcess = true;
+					unsigned int lastOutputtedPointIndex = noCalculatedPoints - 1;
+					concurrency::parallel_for(
+						noCalculatedPixels,
+						lastOutputtedPointIndex,
+						(unsigned int)1,
+						[&](unsigned int pointIndex)
+					{
+						Point pointBuffer;
+						BitmapPixel pixel = {};
+						bool processPoint = true;
+						if (*continueOperation)
+						{
+							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
+							{
+								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
+								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
+								this->calculatedPixels[pointIndex] = pixel;
+							}
+						}
+					}
+					);
+				}
+			}
+		} while (this->pointsCalculator->pointsAreCalculated());
+		this->isCalculatingPixels = false;
+		return anyPointsToProcess;
+	}
+}
+
+unsigned int FractalPixels::getNumberOfProcessedPoints(void)
+{
+	return this->calculatedPixels.size();
+}
+
+bool FractalPixels::getPixel(unsigned int pointIndex, BitmapPixel& output)
+{
+	if (pointIndex < this->getNumberOfProcessedPoints())
+	{
+		output = this->calculatedPixels[pointIndex];
 		return true;
 	}
 	else

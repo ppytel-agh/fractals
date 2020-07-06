@@ -39,11 +39,6 @@ struct FractalPointsThreadData
 };
 DWORD WINAPI FractalPointsThread(LPVOID);
 
-struct BitmapPixel
-{
-	unsigned short x;
-	unsigned short y;
-};
 struct MonochromaticBitmapThreadData
 {
 	std::shared_ptr<bool> processThread;
