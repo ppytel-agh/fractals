@@ -159,6 +159,10 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 					);
 				}
 			}
+			else
+			{
+				break;
+			}
 			noCalculatedPixels = this->calculatedPixels.size();
 		}
 		this->isCalculatingPixels = false;

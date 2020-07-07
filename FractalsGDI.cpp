@@ -271,6 +271,10 @@ bool FractalBitmapFactory::generateBitmap(
 				}
 			}
 		}
+		else
+		{
+			break;
+		}
 	}
 	this->isDrawingBitmap = false;
 	return true;
