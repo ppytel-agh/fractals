@@ -157,27 +157,33 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
 
-	// Main message loop:	
-	while (GetMessage(&msg, nullptr, 0, 0))
+	// Main message loop:
+	while (1)
 	{
-		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
-		/*
-		Wywołania IsDialogMessage są lipne, bo jakakolwiek zmiana w liście okien aplikacji wymaga dostosowania tego kodu.
-		Przydałaby się drobna klasa do zarządzania oknami dialogowymi w ramach danego wątku.
-		*/
-		bool isDialog = IsDialogMessage(dialogHandle, &msg);
-		if (fractalDialogData->importDialogWindowHandle != NULL)
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
-		}
-		if (!isTranslated && !isDialog)
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+			{
+				return (int)msg.wParam;
+			}
+
+			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+			/*
+			Wywołania IsDialogMessage są lipne, bo jakakolwiek zmiana w liście okien aplikacji wymaga dostosowania tego kodu.
+			Przydałaby się drobna klasa do zarządzania oknami dialogowymi w ramach danego wątku.
+			*/
+			bool isDialog = IsDialogMessage(dialogHandle, &msg);
+			if (fractalDialogData->importDialogWindowHandle != NULL)
+			{
+				isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
+			}
+			if (!isTranslated && !isDialog)
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
 	}
-
-	return (int)msg.wParam;
 }
 
 
@@ -1084,9 +1090,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	callbackData.lastPainingTS = std::chrono::high_resolution_clock::now();
 	operationData.fractalBitmapFactory->generateBitmap(
 		operationData.numberOfPixelsToProcess,
-		operationData.processThread,
-		&FractalBitmapUpdateCallback,
-		(void*)&callbackData
+		operationData.processThread
 	);
 
 	return 0;
