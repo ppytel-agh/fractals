@@ -1169,6 +1169,18 @@ void UpdateFractalBitmap(
 		newHeight
 	);
 	SelectObject(windowData->fractalImage->deviceContext, windowData->fractalImage->bitmap);
+	HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
+		windowData->windowHandle,
+		GCL_HBRBACKGROUND
+	);
+	RECT fillRect = {};
+	fillRect.right = newWidth;
+	fillRect.bottom = newHeight;
+	FillRect(
+		windowData->fractalImage->deviceContext,
+		&fillRect,
+		backgroundBrush
+	);
 
 	std::shared_ptr < FractalPixels> fractalPixels(new  FractalPixels(
 		windowData->currentFractalPoints,
