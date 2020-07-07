@@ -103,7 +103,7 @@ struct FractalWindowData
 	float updatedScale;
 	short updateOffsetX;
 	short updateOffsetY;
-	HDC fractalBufferDC;
+	std::shared_ptr<FractalBitmapFactory> currentFractalBitmapGenerator;
 };
 
 struct FractalFormDialogData
@@ -183,6 +183,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
+
+		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
+		{
+			if (fractalWindowData->currentFractalBitmapGenerator->copyIntoBuffer(
+				fractalWindowData->fractalImage->deviceContext
+			))
+			{
+				InvalidateRect(
+					mainWindowHandle,
+					NULL,
+					FALSE
+				);
+			}
+		}
+
 	}
 }
 
@@ -903,7 +918,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalBitmapThreadData->newScale = 1.0f;
 							fractalBitmapThreadData->newOffsetX = 0;
 							fractalBitmapThreadData->newOffsetY = 0;
-							fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
+							fractalWindowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 								fractalPixels
 							));
 							fractalBitmapThreadData->fractalBitmapBufferDC = fractalWindowData->fractalImage->deviceContext;
@@ -1174,7 +1189,7 @@ void UpdateFractalBitmap(
 		fractalBitmapThreadData->newOffsetX = newOffsetX;
 		fractalBitmapThreadData->newOffsetY = newOffsetY;
 		fractalBitmapThreadData->newScale = newScale;
-		fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
+		windowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 			fractalPixels
 		));
 		fractalBitmapThreadData->fractalBitmapBufferDC = windowData->fractalImage->deviceContext;
