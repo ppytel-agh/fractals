@@ -157,15 +157,39 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HWND dialogHandle = fractalWindowData->dialogWindowHandle;
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
-
+	unsigned char sleepMS = 5;
 	// Main message loop:
 	while (1)
 	{
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			if (msg.message == WM_QUIT)
+			switch (msg.message)
 			{
-				return (int)msg.wParam;
+				case WM_QUIT:
+					return (int)msg.wParam;
+				case WM_KEYUP:
+					switch (msg.wParam)
+					{
+						case VK_ADD:
+							if (sleepMS < 50)
+							{
+								sleepMS++;
+								OutputDebugStringW(L"PLUS++\n");
+								OutputDebugStringW(std::to_wstring(sleepMS).c_str());
+									OutputDebugStringW(L"\n");
+							}
+							break;
+						case VK_SUBTRACT:
+							if (sleepMS > 0)
+							{
+								sleepMS--;
+								OutputDebugStringW(L"MINUS--\n");
+								OutputDebugStringW(std::to_wstring(sleepMS).c_str());
+								OutputDebugStringW(L"\n");
+							}
+							break;
+					}
+					break;
 			}
 
 			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
@@ -185,7 +209,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
-		Sleep(5);
+		Sleep(1);
 
 		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
 		{
