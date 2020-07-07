@@ -294,7 +294,7 @@ bool FractalBitmapFactory::generateBitmap(
 bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 {
 	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
-	if (bool result = this->bitmapUpdated)
+	if (this->bitmapUpdated)
 	{
 		DeleteObject(this->bitmapHandle);
 		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
@@ -312,6 +312,11 @@ bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 		0,
 		SRCCOPY
 	);
+	if (!result)
+	{
+		DWORD error = GetLastError();
+		char x = 'd';
+	}
 	DeleteDC(sourceDC);
 	return result;
 	

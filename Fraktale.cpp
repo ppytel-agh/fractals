@@ -265,8 +265,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FractalWindowData* windowData = new FractalWindowData{};
 				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
-			
-				windowData->fractalImage = new MovablePicture{};								
+
+				windowData->fractalImage = new MovablePicture{};
 				windowData->updatedScale = 1.0f;
 				windowData->updateOffsetX = 0;
 				windowData->updateOffsetY = 0;
@@ -467,7 +467,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
 				if (resizeNow)
-				{					
+				{
 					UpdateFractalBitmap(
 						windowData,
 						clientRect.right,
@@ -576,7 +576,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (newScaleRatio != windowData->updatedScale)
 				{
-					
+
 					const WCHAR debugMessageBeginning[] = L"skala bitmapy - ";
 					WCHAR scaleRationDebugMessage[sizeof(debugMessageBeginning) + 4] = L"";
 					wcscat_s(scaleRationDebugMessage, debugMessageBeginning);
@@ -802,7 +802,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalWindowData->fractal = NULL;
 							delete fractalWindowData->fractal;
 						}
-						fractalWindowData->fractal = new Fractal(fractalFromForm);					
+						fractalWindowData->fractal = new Fractal(fractalFromForm);
 
 						RECT windowRect;
 						GetClientRect(mainWindow, &windowRect);
@@ -822,14 +822,13 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 						{
 							fractalWindowData->numberOfPointsToProcess = initialNumberOfPointsToRender;
 						}
-						
 
 						fractalWindowData->currentFractalPoints = std::shared_ptr < FractalPoints>(
 							new FractalPoints(
 								fractalFromForm,
-								Point(0,0)
+								Point(0, 0)
 							)
-						);
+							);
 						{
 							if (fractalWindowData->processFractalPointsThread != NULL)
 							{
@@ -1013,7 +1012,7 @@ INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 
 DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 {
-	FractalPointsThreadData* input = (FractalPointsThreadData*) inputPointer;
+	FractalPointsThreadData* input = (FractalPointsThreadData*)inputPointer;
 	FractalPointsThreadData operationData = *input;
 	delete input;
 	operationData.fractalPointsOutput->calculatePoints(
@@ -1030,16 +1029,18 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 	std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
 	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - data->lastPainingTS).count();
 	if (
-		noMillisecondsSinceLastPainting >= 10 
+		noMillisecondsSinceLastPainting >= 10
 		||
 		numberOfAlreadyDrawnPixels == (data->operationData->numberOfPixelsToProcess - 1)
 		||
 		numberOfAlreadyDrawnPixels == 0
-	)
-	{		
-		objectPointer->copyIntoBuffer(
-			data->operationData->fractalBitmapBufferDC
+		)
+	{
+		HDC windowDC = GetDC(data->operationData->bitmapWindowHandle);
+		bool copyResult = objectPointer->copyIntoBuffer(
+			windowDC//data->operationData->fractalBitmapBufferDC
 		);
+		ReleaseDC(data->operationData->bitmapWindowHandle, windowDC);
 		if (numberOfAlreadyDrawnPixels == 0)
 		{
 			data->operationData->outputPicture->offsetX = data->operationData->newOffsetX;
@@ -1048,12 +1049,15 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 			data->operationData->outputPicture->width = data->operationData->width;
 			data->operationData->outputPicture->height = data->operationData->height;
 		}
-		InvalidateRect(
-			data->operationData->bitmapWindowHandle,
-			NULL,
-			FALSE
-		);
-		data->lastPainingTS = currentTS;
+		/*if (copyResult)
+		{
+			InvalidateRect(
+				data->operationData->bitmapWindowHandle,
+				NULL,
+				FALSE
+			);
+			data->lastPainingTS = currentTS;
+		}*/
 	}
 }
 
@@ -1073,7 +1077,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 		operationData.numberOfPixelsToProcess,
 		operationData.processThread,
 		&FractalBitmapUpdateCallback,
-		(void*)&callbackData	
+		(void*)&callbackData
 	);
 
 	return 0;
@@ -1086,7 +1090,7 @@ DWORD WINAPI FractalPixelsCalculatorThread(LPVOID inputPointer)
 	FractalPixelsCalculatorThreadData* input = (FractalPixelsCalculatorThreadData*)inputPointer;
 	FractalPixelsCalculatorThreadData operationData = *input;
 	delete input;
-	
+
 	operationData.fractalPixelsOutput->calculatePixels(operationData.processThread);
 	return 0;
 }
@@ -1170,5 +1174,5 @@ void UpdateFractalBitmap(
 			&windowData->createFractalBitmapThreadId
 		);
 	}
-	
+
 }
