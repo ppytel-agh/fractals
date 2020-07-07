@@ -380,20 +380,17 @@ bool drawMovablePictureInRepaintBuffer(
 		destinationY = repaintOffsetY;
 		copiedHeight = repaintHeight - repaintOffsetY;
 	}
-	HDC pictureDC = CreateCompatibleDC(bufferDC);
-	SelectObject(pictureDC, picture->bitmap);
 	bool result = BitBlt(
 		bufferDC,
 		destinationX,
 		destinationY,
 		copiedWidth,
 		copiedHeight,
-		pictureDC,
+		picture->deviceContext,
 		sourceX,
 		sourceY,
 		SRCCOPY
 	);
-	DeleteDC(pictureDC);
 	return result;
 }
 

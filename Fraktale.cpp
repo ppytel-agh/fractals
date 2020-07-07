@@ -273,18 +273,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				//bufor obrazka fraktala
 				HDC windowDC = GetDC(hWnd);
-				windowData->fractalBufferDC = CreateCompatibleDC(windowDC);
+				windowData->fractalImage->deviceContext = CreateCompatibleDC(windowDC);
 				ReleaseDC(hWnd, windowDC);
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
 				windowData->fractalImage->bitmap = CreateCompatibleBitmap(
-					windowData->fractalBufferDC,
+					windowData->fractalImage->deviceContext,
 					clientRect.right,
 					clientRect.bottom
 				);
 				SelectObject(
-					windowData->fractalBufferDC,
+					windowData->fractalImage->deviceContext,
 					windowData->fractalImage->bitmap
+				);
+				HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
+					hWnd,
+					GCL_HBRBACKGROUND
+				);
+				FillRect(
+					windowData->fractalImage->deviceContext,
+					&clientRect,
+					backgroundBrush
 				);
 
 				SetWindowLongW(
@@ -891,7 +900,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 								fractalPixels
 							));
-							fractalBitmapThreadData->fractalBitmapBufferDC = fractalWindowData->fractalBufferDC;
+							fractalBitmapThreadData->fractalBitmapBufferDC = fractalWindowData->fractalImage->deviceContext;
 							HANDLE createFractalBitmapThreadHandle = CreateThread(
 								NULL,
 								0,
@@ -1038,7 +1047,7 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 	{
 		HDC windowDC = GetDC(data->operationData->bitmapWindowHandle);
 		bool copyResult = objectPointer->copyIntoBuffer(
-			windowDC//data->operationData->fractalBitmapBufferDC
+			data->operationData->fractalBitmapBufferDC
 		);
 		ReleaseDC(data->operationData->bitmapWindowHandle, windowDC);
 		if (numberOfAlreadyDrawnPixels == 0)
@@ -1048,8 +1057,8 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 			data->operationData->outputPicture->scale = data->operationData->newScale;
 			data->operationData->outputPicture->width = data->operationData->width;
 			data->operationData->outputPicture->height = data->operationData->height;
-		}
-		/*if (copyResult)
+		}		
+		if (copyResult)
 		{
 			InvalidateRect(
 				data->operationData->bitmapWindowHandle,
@@ -1057,7 +1066,7 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 				FALSE
 			);
 			data->lastPainingTS = currentTS;
-		}*/
+		}
 	}
 }
 
@@ -1115,11 +1124,11 @@ void UpdateFractalBitmap(
 	//aktualizacja uchwytu bitmapy
 	DeleteObject(windowData->fractalImage->bitmap);
 	windowData->fractalImage->bitmap = CreateCompatibleBitmap(
-		windowData->fractalBufferDC,
+		windowData->fractalImage->deviceContext,
 		newWidth,
 		newHeight
 	);
-	SelectObject(windowData->fractalBufferDC, windowData->fractalImage->bitmap);
+	SelectObject(windowData->fractalImage->deviceContext, windowData->fractalImage->bitmap);
 
 	std::shared_ptr < FractalPixels> fractalPixels(new  FractalPixels(
 		windowData->currentFractalPoints,
@@ -1164,7 +1173,7 @@ void UpdateFractalBitmap(
 		fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 			fractalPixels
 		));
-		fractalBitmapThreadData->fractalBitmapBufferDC = windowData->fractalBufferDC;
+		fractalBitmapThreadData->fractalBitmapBufferDC = windowData->fractalImage->deviceContext;
 		HANDLE createFractalBitmapThreadHandle = CreateThread(
 			NULL,
 			0,

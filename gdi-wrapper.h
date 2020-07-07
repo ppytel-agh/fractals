@@ -52,6 +52,7 @@ public:
 struct MovablePicture
 {
 	HBITMAP bitmap;
+	HDC deviceContext;
 	unsigned short width;
 	unsigned short height;
 	short offsetX;
