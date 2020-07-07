@@ -16,6 +16,7 @@
 #include <memory>
 #include < concurrent_vector.h>
 #include "fractal-calculations.h"
+#include "Synchapi.h"
 #pragma comment(lib, "Synchronization.lib")
 
 // Forward declarations of functions included in this code module:
@@ -183,6 +184,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
+
+		Sleep(5);
 
 		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
 		{
