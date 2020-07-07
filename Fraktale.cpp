@@ -91,6 +91,8 @@ struct FractalWindowData
 	float updatedScale;
 	short updateOffsetX;
 	short updateOffsetY;
+	HDC fractalBufferDC;
+	HBITMAP fractalBuffer;
 };
 
 struct FractalFormDialogData
@@ -256,6 +258,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				windowData->updatedScale = 1.0f;
 				windowData->updateOffsetX = 0;
 				windowData->updateOffsetY = 0;
+
+				//bufor obrazka fraktala
+				HDC windowDC = GetDC(hWnd);
+				windowData->fractalBufferDC = CreateCompatibleDC(windowDC);
+				ReleaseDC(hWnd, windowDC);
+				RECT clientRect;
+				GetClientRect(hWnd, &clientRect);
+				windowData->fractalBuffer = CreateCompatibleBitmap(
+					windowData->fractalBufferDC,
+					clientRect.right,
+					clientRect.bottom
+				);
+				SelectObject(
+					windowData->fractalBufferDC,
+					windowData->fractalBuffer
+				);
+
 				SetWindowLongW(
 					hWnd,
 					GWL_USERDATA,
