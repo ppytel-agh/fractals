@@ -111,6 +111,11 @@ FractalPixels::FractalPixels(
 	this->bitmapHeight = bitmapHeight;
 }
 
+FractalPixels::~FractalPixels()
+{
+	delete[] this->pointPixelIndexes;
+}
+
 bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 {
 	if (this->isCalculatingPixels)

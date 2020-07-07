@@ -258,6 +258,12 @@ FractalBitmapFactory::FractalBitmapFactory(
 	);
 }
 
+FractalBitmapFactory::~FractalBitmapFactory()
+{
+	delete[] this->pixelBytes;
+	delete[] this->pixelCount;
+}
+
 bool FractalBitmapFactory::generateBitmap(
 	unsigned int numberOfPixelsToDraw,
 	std::shared_ptr<bool> continueOperation

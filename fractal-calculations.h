@@ -59,6 +59,7 @@ public:
 		unsigned short bitmapHeight,
 		unsigned int numberOfPointsToProcess
 	);
+	~FractalPixels();
 	bool calculatePixels(std::shared_ptr<bool> continueOperation);	
 	unsigned short getBitmapWidth(void);
 	unsigned short getBitmapHeight(void);

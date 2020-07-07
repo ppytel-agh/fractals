@@ -72,6 +72,7 @@ public:
 	FractalBitmapFactory(
 		std::shared_ptr<FractalPixels> fractalPixelsCalculator
 	);
+	~FractalBitmapFactory();
 	bool generateBitmap(
 		unsigned int numberOfPixelsToDraw,
 		std::shared_ptr<bool> continueOperation
