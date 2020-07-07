@@ -361,6 +361,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//bufor ma rozmiar obszaru do odmalowania
 				int bufferBitmapWidth = ps.rcPaint.right - ps.rcPaint.left;
 				int bufferBitmapHeight = ps.rcPaint.bottom - ps.rcPaint.top;
+				if (bufferBitmapWidth == 0 && bufferBitmapHeight == 0)
+				{
+					RECT clientRect;
+					GetClientRect(hWnd, &clientRect);
+					ps.rcPaint = clientRect;
+					bufferBitmapWidth = clientRect.right;
+					bufferBitmapHeight = clientRect.bottom;
+				}
+				else
+				{
+					char x = 'd';
+				}
 				HBITMAP screenCompatibleBitmap = CreateCompatibleBitmap(hdc, bufferBitmapWidth, bufferBitmapHeight);
 				SelectObject(screenBuffer, screenCompatibleBitmap);
 				//wypełnij bufor kolorem tła
@@ -931,6 +943,12 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 								&fractalWindowData->createFractalBitmapThreadId
 							);
 						}
+
+						fractalWindowData->fractalImage->offsetX = 0;
+						fractalWindowData->fractalImage->offsetY = 0;
+						fractalWindowData->fractalImage->scale = 1.0f;
+						fractalWindowData->fractalImage->width = bitmapWidth;
+						fractalWindowData->fractalImage->height = bitmapHeight;
 						return (INT_PTR)TRUE;
 					}
 				}
@@ -1202,5 +1220,11 @@ void UpdateFractalBitmap(
 			&windowData->createFractalBitmapThreadId
 		);
 	}
+
+	windowData->fractalImage->offsetX = newOffsetX;
+	windowData->fractalImage->offsetY = newOffsetY;
+	windowData->fractalImage->scale = newScale;
+	windowData->fractalImage->width = newWidth;
+	windowData->fractalImage->height = newHeight;
 
 }
