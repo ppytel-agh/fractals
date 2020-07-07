@@ -104,7 +104,6 @@ struct FractalWindowData
 	short updateOffsetX;
 	short updateOffsetY;
 	HDC fractalBufferDC;
-	HBITMAP fractalBuffer;
 };
 
 struct FractalFormDialogData
@@ -266,7 +265,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FractalWindowData* windowData = new FractalWindowData{};
 				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
-				windowData->fractalImage = new MovablePicture{};
+			
+				windowData->fractalImage = new MovablePicture{};								
 				windowData->updatedScale = 1.0f;
 				windowData->updateOffsetX = 0;
 				windowData->updateOffsetY = 0;
@@ -277,14 +277,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ReleaseDC(hWnd, windowDC);
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
-				windowData->fractalBuffer = CreateCompatibleBitmap(
+				windowData->fractalImage->bitmap = CreateCompatibleBitmap(
 					windowData->fractalBufferDC,
 					clientRect.right,
 					clientRect.bottom
 				);
 				SelectObject(
 					windowData->fractalBufferDC,
-					windowData->fractalBuffer
+					windowData->fractalImage->bitmap
 				);
 
 				SetWindowLongW(
@@ -1036,8 +1036,7 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 		||
 		numberOfAlreadyDrawnPixels == 0
 	)
-	{
-		HBITMAP previousBitmap = data->operationData->outputPicture->bitmap;
+	{		
 		objectPointer->copyIntoBuffer(
 			data->operationData->fractalBitmapBufferDC
 		);
@@ -1108,6 +1107,15 @@ void UpdateFractalBitmap(
 	windowData->updatedScale = newScale;
 	windowData->updateOffsetX = newOffsetX;
 	windowData->updateOffsetY = newOffsetY;
+
+	//aktualizacja uchwytu bitmapy
+	DeleteObject(windowData->fractalImage->bitmap);
+	windowData->fractalImage->bitmap = CreateCompatibleBitmap(
+		windowData->fractalBufferDC,
+		newWidth,
+		newHeight
+	);
+	SelectObject(windowData->fractalBufferDC, windowData->fractalImage->bitmap);
 
 	std::shared_ptr < FractalPixels> fractalPixels(new  FractalPixels(
 		windowData->currentFractalPoints,

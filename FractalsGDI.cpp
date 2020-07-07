@@ -235,7 +235,7 @@ FractalBitmapFactory::FractalBitmapFactory(
 	this->bitmapData.bmBits = (void*)this->pixelBytes;
 	this->numberOfDrawnPixels = 0;
 	this->isDrawingBitmap = false;
-	this->bitmapHandle = NULL;
+	this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
 	this->bitmapUpdated = false;
 }
 
@@ -257,7 +257,7 @@ bool FractalBitmapFactory::generateBitmap(
 		if (*continueOperation)
 		{
 			unsigned int numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
-			if (firstPointIndex > numberOfCalculatedPixels)
+			if (numberOfCalculatedPixels > firstPointIndex)
 			{
 				concurrency::parallel_for(
 					firstPointIndex,
@@ -278,11 +278,12 @@ bool FractalBitmapFactory::generateBitmap(
 							this->bitmapUpdated = true;
 							(*onBitmapUpdate)(this, this->numberOfDrawnPixels, onBitmapUpdateData);
 							//należy zainkrementować po callbacku aby główna funkcja nie skończyła się przed jego wywołaniem
-							this->numberOfDrawnPixels++;
 						}
+						this->numberOfDrawnPixels++;
 					}
 				}
-				);				
+				);
+				firstPointIndex = numberOfCalculatedPixels;
 			}
 		}
 	}
@@ -292,28 +293,28 @@ bool FractalBitmapFactory::generateBitmap(
 
 bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 {
-	if (this->bitmapUpdated)
+	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
+	if (bool result = this->bitmapUpdated)
 	{
+		DeleteObject(this->bitmapHandle);
+		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
 		this->bitmapUpdated = false;
-		HBITMAP bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
-		HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
-		SelectObject(sourceDC, bitmapHandle);
-		bool result = BitBlt(
-			bitmapBuffer,
-			0,
-			0,
-			this->bitmapData.bmWidth,
-			this->bitmapData.bmHeight,
-			sourceDC,
-			0,
-			0,
-			SRCCOPY
-		);
-		DeleteDC(sourceDC);
-		DeleteObject(bitmapHandle);
-		return result;
-	}	
-	return false;
+	}
+	SelectObject(sourceDC, this->bitmapHandle);	
+	bool result = BitBlt(
+		bitmapBuffer,
+		0,
+		0,
+		this->bitmapData.bmWidth,
+		this->bitmapData.bmHeight,
+		sourceDC,
+		0,
+		0,
+		SRCCOPY
+	);
+	DeleteDC(sourceDC);
+	return result;
+	
 }
 
 void FractalBitmapFactory::reset(void)
