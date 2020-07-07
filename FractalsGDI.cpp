@@ -276,6 +276,7 @@ bool FractalBitmapFactory::generateBitmap(
 	this->isDrawingBitmap = true;
 	if (numberOfPixelsToDraw > this->numberOfDrawnPixels)
 	{
+		unsigned short highestPixelValue = 0;
 		while (this->numberOfDrawnPixels < numberOfPixelsToDraw)
 		{
 			if (*continueOperation)
@@ -293,8 +294,12 @@ bool FractalBitmapFactory::generateBitmap(
 								this->pixelBytes
 							);
 							this->bitmapUpdated = true;
-							unsigned short pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;							
+							unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;							
 							this->pixelCount[pixelIndex]++;
+							if (this->pixelCount[pixelIndex] > highestPixelValue)
+							{
+								highestPixelValue = this->pixelCount[pixelIndex];
+							}
 						}
 						this->numberOfDrawnPixels++;
 					}
@@ -317,11 +322,9 @@ bool FractalBitmapFactory::generateBitmap(
 				{
 					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 					{
-						unsigned short pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-						unsigned char currentPixelCount = this->pixelCount[pixelIndex];
+						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
 						this->pixelCount[pixelIndex]--;
-						unsigned char updatedPixelCount = this->pixelCount[pixelIndex];
-						if (this->pixelCount[pixelIndex] < 1)
+						if (this->pixelCount[pixelIndex] == 0)
 						{
 							MarkMononochromeBitmapAsBackground(
 								pixel,
