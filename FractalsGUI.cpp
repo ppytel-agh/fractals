@@ -896,8 +896,24 @@ FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned
 	//);
 	//SendMessageW(this->numberOfPointsUpDownHandle, UDM_SETRANGE, 0, MAKELPARAM(this->maxNumberOfPointsToRender, 0));	
 
+	unsigned short currentNumberRangeOffsetY = numberOfPointsOffsetY + numberOfPointsHeight + this->layersOffsetY;
+
+	this->currentNumberOfPointsRangeHandle = CreateWindowW(
+		TRACKBAR_CLASS,
+		L"Punkt renderowania",
+		WS_CHILD | WS_VISIBLE,
+		10,
+		currentNumberRangeOffsetY,
+		this->fractalDefinition->getWidth() - 20,
+		this->currentNumberRangeHeight,
+		parent,
+		NULL,
+		(HINSTANCE)GetWindowLong(parent, GWL_HINSTANCE),
+		NULL
+	);
+
 	unsigned short buttonOffsetX = offsetX + this->fractalDefinition->getTransformationsForm()->getWidth() - buttonWidth;
-	unsigned short buttonOffsetY = numberOfPointsOffsetY + numberOfPointsHeight + this->layersOffsetY;
+	unsigned short buttonOffsetY = currentNumberRangeOffsetY + this->currentNumberRangeHeight + this->layersOffsetY;
 	this->renderFractalButton = new ButtonWrapper(
 		parent,
 		L"Renderuj",
@@ -927,6 +943,7 @@ FractalDrawingUI::~FractalDrawingUI()
 	//DestroyWindow(this->numberOfPointsUpDownHandle);
 	delete renderFractalButton;
 	delete this->importValuesFromPDFButton;
+	DestroyWindow(this->currentNumberOfPointsRangeHandle);
 }
 
 unsigned short FractalDrawingUI::getHeight(void)

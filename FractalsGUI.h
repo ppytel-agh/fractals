@@ -331,6 +331,7 @@ private:
 	const unsigned char importButtonWidth = 200;
 	const unsigned char layersOffsetY = 5;
 	const unsigned char numberOfPointsControlWidth = 75;
+	const unsigned char currentNumberRangeHeight = 30;
 	const unsigned int maxNumberOfPointsToRender = 1000000;
 	FractalDefinitionForm* fractalDefinition;
 	ButtonWrapper* renderFractalButton;
@@ -339,6 +340,7 @@ private:
 	NaturalInput* numberOfPointsToRender;
 	LabelWrapper* numberOfPointsToRenderLabel;
 	HWND numberOfPointsUpDownHandle;
+	HWND currentNumberOfPointsRangeHandle;
 public:
 	FractalDrawingUI(
 		HWND parent,
