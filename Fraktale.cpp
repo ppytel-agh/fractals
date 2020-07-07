@@ -157,7 +157,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
 
-	// Main message loop:
+	// Main message loop:	
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);

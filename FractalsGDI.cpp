@@ -241,9 +241,7 @@ FractalBitmapFactory::FractalBitmapFactory(
 
 bool FractalBitmapFactory::generateBitmap(
 	unsigned int numberOfPixelsToDraw,
-	std::shared_ptr<bool> continueOperation,	
-	void (*onBitmapUpdate)(FractalBitmapFactory*, unsigned int, void*),
-	void* onBitmapUpdateData
+	std::shared_ptr<bool> continueOperation
 )
 {
 	if (this->isDrawingBitmap)
@@ -268,8 +266,6 @@ bool FractalBitmapFactory::generateBitmap(
 							this->pixelBytes
 						);
 						this->bitmapUpdated = true;
-						(*onBitmapUpdate)(this, this->numberOfDrawnPixels, onBitmapUpdateData);
-						//należy zainkrementować po callbacku aby główna funkcja nie skończyła się przed jego wywołaniem
 					}
 					this->numberOfDrawnPixels++;
 				}
@@ -288,6 +284,10 @@ bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 		DeleteObject(this->bitmapHandle);
 		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
 		this->bitmapUpdated = false;
+	}
+	else
+	{
+		return false;
 	}
 	SelectObject(sourceDC, this->bitmapHandle);	
 	bool result = BitBlt(
@@ -324,4 +324,9 @@ void FractalBitmapFactory::reset(void)
 		this->noBytesRequired
 	);
 	this->numberOfDrawnPixels = 0;
+}
+
+unsigned int FractalBitmapFactory::getNumberOfDrawnPixels(void)
+{
+	return this->numberOfDrawnPixels;
 }
