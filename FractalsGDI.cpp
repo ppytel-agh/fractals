@@ -276,8 +276,9 @@ bool FractalBitmapFactory::generateBitmap(
 								this->pixelBytes
 							);
 							this->bitmapUpdated = true;
-							this->numberOfDrawnPixels++;
 							(*onBitmapUpdate)(this, this->numberOfDrawnPixels, onBitmapUpdateData);
+							//należy zainkrementować po callbacku aby główna funkcja nie skończyła się przed jego wywołaniem
+							this->numberOfDrawnPixels++;
 						}
 					}
 				}
