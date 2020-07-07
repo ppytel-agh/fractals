@@ -277,8 +277,7 @@ bool FractalBitmapFactory::generateBitmap(
 }
 
 bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
-{
-	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
+{	
 	if (this->bitmapUpdated)
 	{
 		DeleteObject(this->bitmapHandle);
@@ -289,6 +288,7 @@ bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 	{
 		return false;
 	}
+	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
 	SelectObject(sourceDC, this->bitmapHandle);	
 	bool result = BitBlt(
 		bitmapBuffer,
