@@ -251,39 +251,28 @@ bool FractalBitmapFactory::generateBitmap(
 		return false;
 	}
 	this->isDrawingBitmap = true;
-	unsigned int firstPointIndex = this->numberOfDrawnPixels;
 	while (this->numberOfDrawnPixels < numberOfPixelsToDraw)
 	{
 		if (*continueOperation)
 		{
-			unsigned int numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
-			if (numberOfCalculatedPixels > firstPointIndex)
+			if (this->fractalPixelsCalculator->getNumberOfCalculatedPixels() > this->numberOfDrawnPixels)
 			{
-				concurrency::parallel_for(
-					firstPointIndex,
-					numberOfCalculatedPixels,
-					(unsigned int)1,
-					[&](unsigned int pointIndex)
+				BitmapPixel pixel = {};
+				if (this->fractalPixelsCalculator->getPixelByPointIndex(this->numberOfDrawnPixels, pixel))
 				{
-					BitmapPixel pixel = {};
-					if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
+					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 					{
-						if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
-						{
-							MarkMononochromeBitmapAsText(
-								pixel,
-								this->bitsPerScanline,
-								this->pixelBytes
-							);
-							this->bitmapUpdated = true;
-							(*onBitmapUpdate)(this, this->numberOfDrawnPixels, onBitmapUpdateData);
-							//należy zainkrementować po callbacku aby główna funkcja nie skończyła się przed jego wywołaniem
-						}
-						this->numberOfDrawnPixels++;
+						MarkMononochromeBitmapAsText(
+							pixel,
+							this->bitsPerScanline,
+							this->pixelBytes
+						);
+						this->bitmapUpdated = true;
+						(*onBitmapUpdate)(this, this->numberOfDrawnPixels, onBitmapUpdateData);
+						//należy zainkrementować po callbacku aby główna funkcja nie skończyła się przed jego wywołaniem
 					}
+					this->numberOfDrawnPixels++;
 				}
-				);
-				firstPointIndex = numberOfCalculatedPixels;
 			}
 		}
 	}
