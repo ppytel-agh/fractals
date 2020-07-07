@@ -43,27 +43,8 @@ struct MonochromaticBitmapThreadData
 {
 	std::shared_ptr<bool> processThread;
 	unsigned int numberOfPixelsToProcess;
-	unsigned short width;
-	unsigned short height;
-	HWND bitmapWindowHandle;
-	std::shared_ptr<BitmapPixelsCalculator> bitmapPixelsInput;
-	unsigned short newOffsetX;
-	unsigned short newOffsetY;
-	unsigned short newScale;
-	MovablePicture* outputPicture;
 	std::shared_ptr<FractalBitmapFactory> fractalBitmapFactory;
-	HDC fractalBitmapBufferDC;
 };
-struct FractalBitmapUpdateCallbackData
-{
-	MonochromaticBitmapThreadData* operationData;
-	std::chrono::steady_clock::time_point lastPainingTS;
-};
-void FractalBitmapUpdateCallback(
-	FractalBitmapFactory* objectPointer,
-	unsigned int numberOfAlreadyDrawnPixels,
-	void* callbackData
-);
 DWORD WINAPI MonochromaticBitmapThread(LPVOID);
 
 

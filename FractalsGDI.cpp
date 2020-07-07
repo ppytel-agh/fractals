@@ -293,7 +293,7 @@ bool FractalBitmapFactory::generateBitmap(
 								this->pixelBytes
 							);
 							this->bitmapUpdated = true;
-							unsigned short pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+							unsigned short pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;							
 							this->pixelCount[pixelIndex]++;
 						}
 						this->numberOfDrawnPixels++;
@@ -313,12 +313,14 @@ bool FractalBitmapFactory::generateBitmap(
 			if (*continueOperation)
 			{
 				BitmapPixel pixel = {};
-				if (this->fractalPixelsCalculator->getPixelByPointIndex(this->numberOfDrawnPixels, pixel))
+				if (this->fractalPixelsCalculator->getPixelByPointIndex(this->numberOfDrawnPixels-1, pixel))
 				{
 					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 					{
 						unsigned short pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+						unsigned char currentPixelCount = this->pixelCount[pixelIndex];
 						this->pixelCount[pixelIndex]--;
+						unsigned char updatedPixelCount = this->pixelCount[pixelIndex];
 						if (this->pixelCount[pixelIndex] < 1)
 						{
 							MarkMononochromeBitmapAsBackground(
@@ -390,6 +392,12 @@ void FractalBitmapFactory::reset(void)
 		this->noBytesRequired
 	);
 	this->numberOfDrawnPixels = 0;
+	unsigned int numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
+	memset(
+		this->pixelCount,
+		0,
+		numberOfPixels
+	);
 }
 
 unsigned int FractalBitmapFactory::getNumberOfDrawnPixels(void)

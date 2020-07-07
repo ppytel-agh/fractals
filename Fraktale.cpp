@@ -840,19 +840,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							}
 							MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
 							fractalBitmapThreadData->numberOfPixelsToProcess = fractalWindowData->numberOfPointsToProcess;
-							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
-							fractalBitmapThreadData->width = bitmapWidth;
-							fractalBitmapThreadData->height = bitmapHeight;
-							fractalBitmapThreadData->outputPicture = fractalWindowData->fractalImage;
-							fractalBitmapThreadData->bitmapWindowHandle = mainWindow;
-							fractalBitmapThreadData->bitmapPixelsInput = fractalPixels;
-							fractalBitmapThreadData->newScale = 1.0f;
-							fractalBitmapThreadData->newOffsetX = 0;
-							fractalBitmapThreadData->newOffsetY = 0;
+							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });						
 							fractalWindowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 								fractalPixels
 							));
-							fractalBitmapThreadData->fractalBitmapBufferDC = fractalWindowData->fractalImage->deviceContext;
 							HANDLE createFractalBitmapThreadHandle = CreateThread(
 								NULL,
 								0,
@@ -903,6 +894,40 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
 				NMHDR* message = (NMHDR*)lParam;
 				dialogData->fractalUI->getFractalDefinitionForm()->processNotification(message);
+			}
+			break;
+		case WM_HSCROLL:
+			{
+				int currentPosition = SendMessageW(
+					(HWND)lParam,
+					TBM_GETPOS,
+					0,
+					0
+				);
+				std::wstringstream stream;
+				stream << "Pozycja range'a - " << currentPosition << L"\n";
+				OutputDebugStringW(stream.str().c_str());
+				HWND mainWindow = GetWindow(hDlg, GW_OWNER);
+				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
+				if (fractalWindowData->currentFractalBitmapGenerator != NULL)
+				{
+					if (fractalWindowData->processFractalBitmapThread != NULL)
+					{
+						*fractalWindowData->processFractalBitmapThread = false;
+					}
+					MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
+					fractalBitmapThreadData->numberOfPixelsToProcess = currentPosition;
+					fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
+					fractalBitmapThreadData->fractalBitmapFactory = fractalWindowData->currentFractalBitmapGenerator;
+					HANDLE createFractalBitmapThreadHandle = CreateThread(
+						NULL,
+						0,
+						MonochromaticBitmapThread,
+						fractalBitmapThreadData,
+						0,
+						&fractalWindowData->createFractalBitmapThreadId
+					);
+				}
 			}
 			break;
 	}
@@ -989,45 +1014,6 @@ DWORD WINAPI FractalPointsThread(LPVOID inputPointer)
 	return 0;
 }
 
-void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned int numberOfAlreadyDrawnPixels, void* callbackData)
-{
-	FractalBitmapUpdateCallbackData* data = (FractalBitmapUpdateCallbackData*)callbackData;
-
-	std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
-	long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - data->lastPainingTS).count();
-	if (
-		noMillisecondsSinceLastPainting >= 10
-		||
-		numberOfAlreadyDrawnPixels == (data->operationData->numberOfPixelsToProcess - 1)
-		||
-		numberOfAlreadyDrawnPixels == 0
-		)
-	{
-		HDC windowDC = GetDC(data->operationData->bitmapWindowHandle);
-		bool copyResult = objectPointer->copyIntoBuffer(
-			data->operationData->fractalBitmapBufferDC
-		);
-		ReleaseDC(data->operationData->bitmapWindowHandle, windowDC);
-		if (numberOfAlreadyDrawnPixels == 0)
-		{
-			data->operationData->outputPicture->offsetX = data->operationData->newOffsetX;
-			data->operationData->outputPicture->offsetY = data->operationData->newOffsetY;
-			data->operationData->outputPicture->scale = data->operationData->newScale;
-			data->operationData->outputPicture->width = data->operationData->width;
-			data->operationData->outputPicture->height = data->operationData->height;
-		}
-		if (copyResult)
-		{
-			InvalidateRect(
-				data->operationData->bitmapWindowHandle,
-				NULL,
-				FALSE
-			);
-			data->lastPainingTS = currentTS;
-		}
-	}
-}
-
 /*
 	Tutaj należałoby oddzielić markowanie pikseli bitmapy od tworzenia uchwytu i requestowania odświeżania okna.
 */
@@ -1036,10 +1022,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	MonochromaticBitmapThreadData* input = (MonochromaticBitmapThreadData*)inputPointer;
 	MonochromaticBitmapThreadData operationData = *input;
 	delete input;
-
-	FractalBitmapUpdateCallbackData callbackData = {};
-	callbackData.operationData = &operationData;
-	callbackData.lastPainingTS = std::chrono::high_resolution_clock::now();
+	//operationData.fractalBitmapFactory->reset();
 	operationData.fractalBitmapFactory->generateBitmap(
 		operationData.numberOfPixelsToProcess,
 		operationData.processThread
@@ -1129,19 +1112,10 @@ void UpdateFractalBitmap(
 		}
 		MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
 		fractalBitmapThreadData->processThread = windowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
-		fractalBitmapThreadData->numberOfPixelsToProcess = windowData->numberOfPointsToProcess;
-		fractalBitmapThreadData->width = newWidth;
-		fractalBitmapThreadData->height = newHeight;
-		fractalBitmapThreadData->outputPicture = windowData->fractalImage;
-		fractalBitmapThreadData->bitmapWindowHandle = windowData->windowHandle;
-		fractalBitmapThreadData->bitmapPixelsInput = fractalPixels;
-		fractalBitmapThreadData->newOffsetX = newOffsetX;
-		fractalBitmapThreadData->newOffsetY = newOffsetY;
-		fractalBitmapThreadData->newScale = newScale;
+		fractalBitmapThreadData->numberOfPixelsToProcess = windowData->numberOfPointsToProcess;	
 		windowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 			fractalPixels
 		));
-		fractalBitmapThreadData->fractalBitmapBufferDC = windowData->fractalImage->deviceContext;
 		HANDLE createFractalBitmapThreadHandle = CreateThread(
 			NULL,
 			0,
