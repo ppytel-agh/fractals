@@ -68,7 +68,8 @@ public:
 	bool generateBitmap(
 		unsigned int numberOfPixelsToDraw,
 		std::shared_ptr<bool> continueOperation,
-		void (*onBitmapUpdate)(int)
+		void (*onBitmapUpdate)(FractalBitmapFactory*, unsigned int, void*),
+		void* onBitmapUpdateData
 	);
 	bool copyIntoBuffer(HDC bitmapBuffer);
 	void reset(void);
