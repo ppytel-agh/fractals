@@ -1084,9 +1084,7 @@ DWORD WINAPI MonochromaticBitmapThread(LPVOID inputPointer)
 	callbackData.lastPainingTS = std::chrono::high_resolution_clock::now();
 	operationData.fractalBitmapFactory->generateBitmap(
 		operationData.numberOfPixelsToProcess,
-		operationData.processThread,
-		&FractalBitmapUpdateCallback,
-		(void*)&callbackData
+		operationData.processThread
 	);
 
 	return 0;
