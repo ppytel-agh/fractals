@@ -37,15 +37,46 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HWND dialogHandle = fractalWindowData->dialogWindowHandle;
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
+	std::chrono::steady_clock::time_point lastPaintingTS = std::chrono::high_resolution_clock::now();
+	unsigned char framecapMS = 16;
 	// Main message loop:
 	while (1)
 	{
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
+
 			switch (msg.message)
 			{
 				case WM_QUIT:
-					return (int)msg.wParam;				
+					return (int)msg.wParam;
+				case WM_KEYUP:
+					{
+						bool framecapChanged = false;
+						switch (msg.wParam)
+						{
+							case VK_ADD:
+								if (framecapMS < 50)
+								{
+									framecapMS++;
+									framecapChanged = true;
+								}
+								break;
+							case VK_SUBTRACT:
+								if (framecapMS > 0)
+								{
+									framecapMS--;
+									framecapChanged = true;
+								}
+								break;
+						}
+						if (framecapChanged)
+						{
+							std::wstringstream stream;
+							stream << L"Nowy framecap - " << framecapMS << L"\n";
+							OutputDebugStringW(stream.str().c_str());
+						}
+					}
+					break;
 			}
 
 			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
@@ -66,18 +97,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 
 		Sleep(1);
-
 		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
 		{
-			if (fractalWindowData->currentFractalBitmapGenerator->copyIntoBuffer(
-				fractalWindowData->fractalImage->deviceContext
-			))
+			std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
+			long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastPaintingTS).count();
+			if (noMillisecondsSinceLastPainting > framecapMS)
 			{
-				InvalidateRect(
-					mainWindowHandle,
-					NULL,
-					FALSE
-				);
+				lastPaintingTS = currentTS;
+				if (fractalWindowData->currentFractalBitmapGenerator->copyIntoBuffer(
+					fractalWindowData->fractalImage->deviceContext
+				))
+				{
+					InvalidateRect(
+						mainWindowHandle,
+						NULL,
+						FALSE
+					);
+				}
 			}
 		}
 
@@ -979,7 +1015,7 @@ void FractalBitmapUpdateCallback(FractalBitmapFactory* objectPointer, unsigned i
 			data->operationData->outputPicture->scale = data->operationData->newScale;
 			data->operationData->outputPicture->width = data->operationData->width;
 			data->operationData->outputPicture->height = data->operationData->height;
-		}		
+		}
 		if (copyResult)
 		{
 			InvalidateRect(
