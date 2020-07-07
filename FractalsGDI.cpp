@@ -239,7 +239,11 @@ FractalBitmapFactory::FractalBitmapFactory(
 	this->bitmapUpdated = false;
 }
 
-bool FractalBitmapFactory::generateBitmap(unsigned int numberOfPixelsToDraw, std::shared_ptr<bool> continueOperation)
+bool FractalBitmapFactory::generateBitmap(
+	unsigned int numberOfPixelsToDraw,
+	std::shared_ptr<bool> continueOperation,
+	void (*onBitmapUpdate)(int)
+)
 {
 	if (this->isDrawingBitmap)
 	{
@@ -272,6 +276,7 @@ bool FractalBitmapFactory::generateBitmap(unsigned int numberOfPixelsToDraw, std
 							);
 							this->bitmapUpdated = true;
 							this->numberOfDrawnPixels++;
+							(*onBitmapUpdate)(numberOfDrawnPixels);
 						}
 					}
 				}

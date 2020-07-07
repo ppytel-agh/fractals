@@ -67,7 +67,8 @@ public:
 	);
 	bool generateBitmap(
 		unsigned int numberOfPixelsToDraw,
-		std::shared_ptr<bool> continueOperation
+		std::shared_ptr<bool> continueOperation,
+		void (*onBitmapUpdate)(int)
 	);
 	bool copyIntoBuffer(HDC bitmapBuffer);
 	void reset(void);
