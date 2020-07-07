@@ -332,7 +332,6 @@ private:
 	const unsigned char layersOffsetY = 5;
 	const unsigned char numberOfPointsControlWidth = 75;
 	const unsigned char currentNumberRangeHeight = 30;
-	const unsigned int maxNumberOfPointsToRender = 1000000;
 	FractalDefinitionForm* fractalDefinition;
 	ButtonWrapper* renderFractalButton;
 	unsigned short height;
@@ -354,6 +353,7 @@ public:
 	FractalDefinitionForm* getFractalDefinitionForm(void);
 	ButtonWrapper* getImportbutton(void);
 	NaturalInput* getNumberOfPointsToRender(void);
+	void setMaxNumberOfPointsToRender(unsigned int maxNumberOfPointsToRender);
 };
 
 LPWSTR ansiToUnicode(const char* cString);

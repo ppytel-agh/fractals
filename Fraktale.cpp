@@ -710,7 +710,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				);
 				//ustaw wstępne dane formularza
 				formTest->getFractalDefinitionForm()->setValue(getDragonFractal());
-				formTest->getNumberOfPointsToRender()->setValue(initialNumberOfPointsToRender);
+				formTest->setMaxNumberOfPointsToRender(initialNumberOfPointsToRender);
 			}
 			return (INT_PTR)TRUE;
 		case WM_COMMAND:

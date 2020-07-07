@@ -976,6 +976,23 @@ NaturalInput* FractalDrawingUI::getNumberOfPointsToRender(void)
 	return this->numberOfPointsToRender;
 }
 
+void FractalDrawingUI::setMaxNumberOfPointsToRender(unsigned int maxNumberOfPointsToRender)
+{
+	this->numberOfPointsToRender->setValue(maxNumberOfPointsToRender);
+	SendMessageW(
+		this->currentNumberOfPointsRangeHandle,
+		TBM_SETRANGEMAX,
+		FALSE,
+		maxNumberOfPointsToRender
+	);
+	SendMessageW(
+		this->currentNumberOfPointsRangeHandle,
+		TBM_SETPOS,
+		TRUE,
+		maxNumberOfPointsToRender
+	);
+}
+
 void FractalDefinitionForm::processNotification(const NMHDR* message)
 {
 	if (message->code == UDN_DELTAPOS)
