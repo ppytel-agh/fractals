@@ -49,6 +49,12 @@ void MarkMononochromeBitmapAsText(
 	BYTE* pixelBytes
 );
 
+void MarkMononochromeBitmapAsBackground(
+	BitmapPixel pixel,
+	unsigned short bitsPerScanline,
+	BYTE* pixelBytes
+);
+
 class FractalBitmapFactory
 {
 private:
@@ -61,6 +67,7 @@ private:
 	bool isDrawingBitmap;
 	HBITMAP bitmapHandle;
 	bool bitmapUpdated;
+	unsigned char* pixelCount;
 public:
 	FractalBitmapFactory(
 		std::shared_ptr<FractalPixels> fractalPixelsCalculator
