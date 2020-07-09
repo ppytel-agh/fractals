@@ -277,71 +277,75 @@ bool FractalBitmapFactory::generateBitmap(
 	if (numberOfPixelsToDraw > this->numberOfDrawnPixels)
 	{
 		unsigned short highestPixelValue = 0;
-		while (this->numberOfDrawnPixels < numberOfPixelsToDraw)
-		{
-			if (*continueOperation)
+		concurrency::parallel_for(
+			this->numberOfDrawnPixels,
+			numberOfPixelsToDraw,
+			(unsigned int)1,
+			[&](unsigned int pointIndex)
 			{
-				if (this->fractalPixelsCalculator->getNumberOfCalculatedPixels() > this->numberOfDrawnPixels)
+				if (*continueOperation)
 				{
-					BitmapPixel pixel = {};
-					if (this->fractalPixelsCalculator->getPixelByPointIndex(this->numberOfDrawnPixels, pixel))
+					while (this->fractalPixelsCalculator->getNumberOfCalculatedPixels() < pointIndex)
 					{
-						if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+						BitmapPixel pixel = {};
+						while (!this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
 						{
-							MarkMononochromeBitmapAsText(
-								pixel,
-								this->bitsPerScanline,
-								this->pixelBytes
-							);
-							this->bitmapUpdated = true;
-							unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;							
-							this->pixelCount[pixelIndex]++;
-							if (this->pixelCount[pixelIndex] > highestPixelValue)
+							if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 							{
-								highestPixelValue = this->pixelCount[pixelIndex];
+								MarkMononochromeBitmapAsText(
+									pixel,
+									this->bitsPerScanline,
+									this->pixelBytes
+								);
+								this->bitmapUpdated = true;
+								unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+								this->pixelCount[pixelIndex]++;
+								if (this->pixelCount[pixelIndex] > highestPixelValue)
+								{
+									highestPixelValue = this->pixelCount[pixelIndex];
+								}
 							}
+							this->numberOfDrawnPixels++;
 						}
-						this->numberOfDrawnPixels++;
 					}
 				}
 			}
-			else
-			{
-				break;
-			}
-		}
+		);
+		while (this->numberOfDrawnPixels < numberOfPixelsToDraw) {}
 	}
 	else if (numberOfPixelsToDraw < this->numberOfDrawnPixels)
 	{
-		while (this->numberOfDrawnPixels > numberOfPixelsToDraw)
-		{
-			if (*continueOperation)
+		concurrency::parallel_for(
+			this->numberOfDrawnPixels,
+			numberOfPixelsToDraw,
+			(unsigned int)-1,
+			[&](unsigned int pointIndex)
 			{
-				BitmapPixel pixel = {};
-				if (this->fractalPixelsCalculator->getPixelByPointIndex(this->numberOfDrawnPixels-1, pixel))
+				if (*continueOperation)
 				{
-					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+					BitmapPixel pixel = {};
+					if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex - 1, pixel))
 					{
-						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-						this->pixelCount[pixelIndex]--;
-						if (this->pixelCount[pixelIndex] == 0)
+						if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 						{
-							MarkMononochromeBitmapAsBackground(
-								pixel,
-								this->bitsPerScanline,
-								this->pixelBytes
-							);
-							this->bitmapUpdated = true;
+							unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+							this->pixelCount[pixelIndex]--;
+							if (this->pixelCount[pixelIndex] == 0)
+							{
+								MarkMononochromeBitmapAsBackground(
+									pixel,
+									this->bitsPerScanline,
+									this->pixelBytes
+								);
+								this->bitmapUpdated = true;
+							}
 						}
+						this->numberOfDrawnPixels--;
 					}
-					this->numberOfDrawnPixels--;
 				}
 			}
-			else
-			{
-				break;
-			}
-		}
+		);		
+		while (this->numberOfDrawnPixels > numberOfPixelsToDraw) {}
 	}
 	this->isDrawingBitmap = false;
 	return true;
