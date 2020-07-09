@@ -427,3 +427,58 @@ void markMonochromeBitmapPixelBlack(
 		bitmapBytes[byteIndex] = currentByteValue;
 	}
 }
+
+Bitmap::Bitmap(unsigned short width, unsigned short height)
+{
+	this->bitmapData = {};
+	this->bitmapData.bmWidth = width;
+	this->bitmapData.bmHeight = height;
+	this->updateHandle = false;
+	this->bitmapHandle = NULL;
+}
+
+unsigned int Bitmap::GetPixelIndex(unsigned short pixelX, unsigned short pixelY)
+{
+	return pixelY * this->bitmapData.bmWidth + pixelX;
+}
+
+bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)
+{	
+	if (this->updateHandle)
+	{
+		DeleteObject(this->bitmapHandle);
+		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
+		this->updateHandle = false;
+		handleWasUpdated = true;
+	}
+	else
+	{
+		handleWasUpdated = false;
+	}
+	if (this->bitmapHandle == NULL)
+	{
+		return false;
+	}
+	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
+	SelectObject(sourceDC, this->bitmapHandle);
+	bool result = BitBlt(
+		bitmapBuffer,
+		0,
+		0,
+		this->bitmapData.bmWidth,
+		this->bitmapData.bmHeight,
+		sourceDC,
+		0,
+		0,
+		SRCCOPY
+	);
+	if (!result)
+	{
+		DWORD error = GetLastError();
+		std::wstringstream outputStream;
+		outputStream << L"błąd kopiowania bitmapy do bufora - " << error << L"\n";
+		OutputDebugStringW(outputStream.str().c_str());
+	}
+	DeleteDC(sourceDC);
+	return result;
+}

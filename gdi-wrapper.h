@@ -72,3 +72,21 @@ void markMonochromeBitmapPixelBlack(
 	unsigned short pixelX,
 	unsigned short pixelY
 );
+
+class Bitmap
+{
+private:
+	BITMAP bitmapData;
+	bool updateHandle;
+	HBITMAP bitmapHandle;
+public:
+	Bitmap(
+		unsigned short width,
+		unsigned short height
+	);
+	unsigned int GetPixelIndex(
+		unsigned short pixelX,
+		unsigned short pixelY
+	);
+	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
+};
