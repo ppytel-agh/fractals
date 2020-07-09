@@ -278,16 +278,13 @@ bool FractalBitmapFactory::generateBitmap(
 	{
 
 		unsigned short highestPixelValue = 0;
-		unsigned int currentNumberOfDrawnPixels = this->numberOfDrawnPixels;
-		unsigned int numberOfPointsToProcess = numberOfPixelsToDraw - this->numberOfDrawnPixels;
-		char* processedPoints = new char[numberOfPointsToProcess];
-		memset(
-			processedPoints,
-			0,
-			numberOfPointsToProcess
+		HANDLE noPointsIncrementMutex = CreateMutexW(
+			NULL,
+			FALSE,
+			NULL
 		);
 		concurrency::parallel_for(
-			currentNumberOfDrawnPixels,
+			this->numberOfDrawnPixels,
 			numberOfPixelsToDraw,
 			(unsigned int)1,
 			[&](unsigned int pointIndex)
@@ -331,8 +328,9 @@ bool FractalBitmapFactory::generateBitmap(
 											highestPixelValue = this->pixelCount[pixelIndex];
 										}
 									}
-									unsigned int pointReferenceIndex = pointIndex - currentNumberOfDrawnPixels;
-									processedPoints[pointReferenceIndex] = 1;
+									WaitForSingleObject(noPointsIncrementMutex, INFINITE);
+									this->numberOfDrawnPixels++;
+									ReleaseMutex(noPointsIncrementMutex);
 								}
 							} while (!pointFound);
 						}
@@ -340,28 +338,16 @@ bool FractalBitmapFactory::generateBitmap(
 				}
 			}
 		);
-		while (this->numberOfDrawnPixels < numberOfPixelsToDraw && *continueOperation) {
-			for (unsigned int i = 0; i < numberOfPointsToProcess; i++)
-			{
-				if (processedPoints[i] == 1)
-				{
-					this->numberOfDrawnPixels++;
-					processedPoints[i] == 2;
-				}
-			}			
-		}
-		delete[] processedPoints;
+		while (this->numberOfDrawnPixels < numberOfPixelsToDraw && *continueOperation) {}
+		CloseHandle(noPointsIncrementMutex);
 	}
 	else if (numberOfPixelsToDraw < this->numberOfDrawnPixels)
 	{
 		unsigned int lastPointIndex = this->numberOfDrawnPixels - 1;
-		unsigned int currentNumberOfDrawnPixels = this->numberOfDrawnPixels;
-		unsigned int numberOfPointsToProcess = currentNumberOfDrawnPixels - numberOfPixelsToDraw;
-		char* processedPoints = new char[numberOfPointsToProcess];
-		memset(
-			processedPoints,
-			0,
-			numberOfPointsToProcess
+		HANDLE noPointsDecrementMutex = CreateMutexW(
+			NULL,
+			FALSE,
+			NULL
 		);
 		concurrency::parallel_for(
 			numberOfPixelsToDraw,
@@ -389,22 +375,14 @@ bool FractalBitmapFactory::generateBitmap(
 							this->bitmapUpdated = true;
 						}
 					}
-					unsigned int pointReferenceIndex = currentNumberOfDrawnPixels - pointIndex;
-					processedPoints[pointReferenceIndex] = 1;
+					WaitForSingleObject(noPointsDecrementMutex, INFINITE);
+					this->numberOfDrawnPixels--;
+					ReleaseMutex(noPointsDecrementMutex);
 				}
 			}
 		);
-		while (this->numberOfDrawnPixels > numberOfPixelsToDraw && *continueOperation) {
-			for (unsigned int i = 0; i < numberOfPointsToProcess; i++)
-			{
-				if (processedPoints[i] == 1)
-				{
-					this->numberOfDrawnPixels--;
-					processedPoints[i] == 2;
-				}
-			}
-		}
-		delete[] processedPoints;
+		while (this->numberOfDrawnPixels > numberOfPixelsToDraw && *continueOperation) {}
+		CloseHandle(noPointsDecrementMutex);
 	}
 	this->isDrawingBitmap = false;
 	return true;
