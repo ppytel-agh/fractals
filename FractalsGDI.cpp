@@ -278,8 +278,9 @@ bool FractalBitmapFactory::generateBitmap(
 	{
 
 		unsigned short highestPixelValue = 0;
+		unsigned int currentNumberOfDrawnPixels = this->numberOfDrawnPixels;
 		concurrency::parallel_for(
-			this->numberOfDrawnPixels,
+			currentNumberOfDrawnPixels,
 			numberOfPixelsToDraw,
 			(unsigned int)1,
 			[&](unsigned int pointIndex)
@@ -330,25 +331,23 @@ bool FractalBitmapFactory::generateBitmap(
 				}
 			}
 		);
-		while (this->numberOfDrawnPixels < numberOfPixelsToDraw) {
-			if (!*continueOperation)
-			{
-				break;
-			}
-		}
+		while (this->numberOfDrawnPixels < numberOfPixelsToDraw && *continueOperation) {}
 	}
 	else if (numberOfPixelsToDraw < this->numberOfDrawnPixels)
 	{
+		unsigned int lastPointIndex = this->numberOfDrawnPixels - 1;
 		concurrency::parallel_for(
-			this->numberOfDrawnPixels,
 			numberOfPixelsToDraw,
-			(unsigned int)-1,
-			[&](unsigned int pointIndex)
+			this->numberOfDrawnPixels,
+			(unsigned int)1,
+			[&](unsigned int referencePointIndex)
 			{
 				if (*continueOperation)
 				{
+					unsigned int offset = referencePointIndex - numberOfPixelsToDraw;
+					unsigned int pointIndex = lastPointIndex - offset;
 					BitmapPixel pixel = {};
-					this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex - 1, pixel);
+					this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel);
 					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 					{
 						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
@@ -366,13 +365,8 @@ bool FractalBitmapFactory::generateBitmap(
 					this->numberOfDrawnPixels--;
 				}
 			}
-		);		
-		while (this->numberOfDrawnPixels > numberOfPixelsToDraw) {
-			if (!*continueOperation)
-			{
-				break;
-			}
-		}
+		);
+		while (this->numberOfDrawnPixels > numberOfPixelsToDraw && *continueOperation) {}
 	}
 	this->isDrawingBitmap = false;
 	return true;
