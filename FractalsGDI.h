@@ -59,17 +59,11 @@ class FractalBitmapFactory
 {
 private:
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
-	BITMAP bitmapData;
-	unsigned short bitsPerScanline;
-	unsigned int noBytesRequired;
-	BYTE* pixelBytes;
 	bool isDrawingBitmap;
-	HBITMAP bitmapHandle;
-	bool bitmapUpdated;
 	std::atomic_uchar* pixelCount;
 	unsigned int maxNumberOfPointsToProcess;
-	unsigned int numberOfPixels;
 	bool* pointsIncludedInBitmap;
+	MonochromaticBitmap bitmap;
 public:
 	FractalBitmapFactory(
 		std::shared_ptr<FractalPixels> fractalPixelsCalculator,

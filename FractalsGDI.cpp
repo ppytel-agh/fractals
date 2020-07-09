@@ -228,30 +228,12 @@ void MarkMononochromeBitmapAsBackground(BitmapPixel pixel, unsigned short bitsPe
 FractalBitmapFactory::FractalBitmapFactory(
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator,
 	unsigned int maxNumberOfPointsToProcess
-)
+): bitmap(fractalPixelsCalculator->getBitmapWidth(), fractalPixelsCalculator->getBitmapHeight())
 {
-	this->fractalPixelsCalculator = fractalPixelsCalculator;
-	this->bitmapData = {};
-	this->bitmapData.bmPlanes = 1;
-	this->bitmapData.bmBitsPixel = 1;
-	this->bitmapData.bmHeight = fractalPixelsCalculator->getBitmapHeight();
-	this->bitmapData.bmWidth = fractalPixelsCalculator->getBitmapWidth();
-	this->bitmapData.bmWidthBytes = ceil(fractalPixelsCalculator->getBitmapWidth() / 16.0f) * 2;
-	this->bitsPerScanline = this->bitmapData.bmWidthBytes * 8;	
-	this->noBytesRequired = this->bitmapData.bmWidthBytes * this->bitmapData.bmHeight;
-	this->pixelBytes = new BYTE[this->noBytesRequired];
-	memset(
-		this->pixelBytes,
-		255,
-		this->noBytesRequired
-	);
-	this->bitmapData.bmBits = (void*)this->pixelBytes;
+	this->fractalPixelsCalculator = fractalPixelsCalculator;		
 	this->isDrawingBitmap = false;
-	this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
-	this->bitmapUpdated = false;
-	this->numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
-	this->pixelCount = new std::atomic_uchar[this->numberOfPixels];
-	for (unsigned int i = 0; i < this->numberOfPixels; i++)
+	this->pixelCount = new std::atomic_uchar[this->bitmap.GetNumberOfPixels()];
+	for (unsigned int i = 0; i < this->bitmap.GetNumberOfPixels(); i++)
 	{
 		if (this->pixelCount[i] != 0)
 		{
@@ -269,7 +251,6 @@ FractalBitmapFactory::FractalBitmapFactory(
 
 FractalBitmapFactory::~FractalBitmapFactory()
 {
-	delete[] this->pixelBytes;
 	delete[] this->pixelCount;
 	delete[] this->pointsIncludedInBitmap;
 }
@@ -301,7 +282,7 @@ bool FractalBitmapFactory::generateBitmap(
 			//należy uwzględnić przypadek, gdy kalkulator pikseli jeszcze nie przetworzył tego punktu
 			if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
 			{
-				if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight && *continueOperation)
+				if (this->bitmap.IsPixelValid(pixel) && *continueOperation)
 				{
 					bool processPixel = false;
 					bool markAsText = false;
@@ -325,7 +306,7 @@ bool FractalBitmapFactory::generateBitmap(
 					}
 					if (processPixel && *continueOperation)
 					{
-						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+						unsigned int pixelIndex = this->bitmap.GetPixelIndex(pixel);
 						if (markAsText)
 						{
 							this->pixelCount[pixelIndex]++;
@@ -333,12 +314,10 @@ bool FractalBitmapFactory::generateBitmap(
 							if (this->pixelCount[pixelIndex] == 1)
 							{
 								//jeżeli jest to pierwszy punkt wskazujacy ten piksel to zamarkuj go kolorem tekstu
-								MarkMononochromeBitmapAsText(
-									pixel,
-									this->bitsPerScanline,
-									this->pixelBytes
-								);								
-								this->bitmapUpdated = true;
+								this->bitmap.MarkPixelAsText(
+									this->bitmap.GetPixelData(pixel)
+								);
+								this->bitmap.bitmapUpdated();
 							}
 						}
 						else
@@ -348,12 +327,10 @@ bool FractalBitmapFactory::generateBitmap(
 							if (this->pixelCount[pixelIndex] == 0)
 							{
 								//jeżeli nie ma już punktów wskazujących ten piksel to zamaluj go kolorem tła
-								MarkMononochromeBitmapAsBackground(
-									pixel,
-									this->bitsPerScanline,
-									this->pixelBytes
-								);								
-								this->bitmapUpdated = true;
+								this->bitmap.MarkPixelAsBackground(
+									this->bitmap.GetPixelData(pixel)
+								);
+								this->bitmap.bitmapUpdated();
 							}
 						}
 					}						
@@ -373,55 +350,18 @@ bool FractalBitmapFactory::generateBitmap(
 
 bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
 {
-	if (this->bitmapUpdated)
-	{
-		DeleteObject(this->bitmapHandle);
-		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
-		this->bitmapUpdated = false;
-	}
-	else
-	{
-		return false;
-	}
-	HDC sourceDC = CreateCompatibleDC(bitmapBuffer);
-	SelectObject(sourceDC, this->bitmapHandle);
-	bool result = BitBlt(
-		bitmapBuffer,
-		0,
-		0,
-		this->bitmapData.bmWidth,
-		this->bitmapData.bmHeight,
-		sourceDC,
-		0,
-		0,
-		SRCCOPY
-	);
-	if (!result)
-	{
-		DWORD error = GetLastError();
-		char x = 'd';
-	}
-	DeleteDC(sourceDC);
-	return result;
-
+	bool handleUpdated;
+	return this->bitmap.copyIntoBuffer(bitmapBuffer, handleUpdated);
 }
 
 void FractalBitmapFactory::reset(void)
 {
-	if (this->bitmapHandle != NULL)
+	this->bitmap.Clear();
+	for (unsigned int i = 0; i < this->bitmap.GetNumberOfPixels(); i++)
 	{
-		DeleteObject(this->bitmapHandle);
+		if (this->pixelCount[i] != 0)
+		{
+			this->pixelCount[i] = 0;
+		}
 	}
-	this->bitmapHandle = NULL;
-	memset(
-		this->pixelBytes,
-		255,
-		this->noBytesRequired
-	);
-	unsigned int numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
-	memset(
-		this->pixelCount,
-		0,
-		numberOfPixels
-	);
 }

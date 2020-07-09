@@ -470,6 +470,11 @@ unsigned short Bitmap::GetHeight(void)
 	return this->bitmapData.bmHeight;
 }
 
+unsigned int Bitmap::GetNumberOfPixels(void)
+{
+	return this->numberOfPixels;
+}
+
 bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)
 {
 	if (this->updateHandle)

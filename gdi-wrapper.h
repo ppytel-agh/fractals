@@ -87,7 +87,6 @@ private:
 	unsigned int numberOfPixels;
 protected:
 	BITMAP bitmapData;
-	void bitmapUpdated(void);
 public:
 	Bitmap(
 		unsigned short width,
@@ -95,10 +94,12 @@ public:
 	);
 	unsigned short GetWidth(void);
 	unsigned short GetHeight(void);
+	unsigned int GetNumberOfPixels(void);
 	bool IsPixelValid(BitmapPixel pixel);
 	bool IsPixelIndexValid(unsigned int pixelIndex);
 	unsigned int GetPixelIndex(BitmapPixel pixel);
 	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
+	void bitmapUpdated(void);
 };
 
 struct MonochromaticPixelData
