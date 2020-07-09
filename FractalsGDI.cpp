@@ -261,9 +261,9 @@ FractalBitmapFactory::FractalBitmapFactory(
 	this->maxNumberOfPointsToProcess = maxNumberOfPointsToProcess;
 	this->pointsIncludedInBitmap = new bool[this->maxNumberOfPointsToProcess];
 	memset(
-		this->pixelCount,
-		false,
-		this->maxNumberOfPointsToProcess
+		this->pointsIncludedInBitmap,
+		0,
+		sizeof(bool) * this->maxNumberOfPointsToProcess
 	);
 }
 
@@ -329,26 +329,28 @@ bool FractalBitmapFactory::generateBitmap(
 						if (markAsText)
 						{
 							this->pixelCount[pixelIndex]++;
+							this->pointsIncludedInBitmap[pointIndex] = true;
 							if (this->pixelCount[pixelIndex] == 1)
 							{
 								MarkMononochromeBitmapAsText(
 									pixel,
 									this->bitsPerScanline,
 									this->pixelBytes
-								);
+								);								
 								this->bitmapUpdated = true;
 							}
 						}
 						else
 						{
 							this->pixelCount[pixelIndex]--;
+							this->pointsIncludedInBitmap[pointIndex] = false;
 							if (this->pixelCount[pixelIndex] == 0)
 							{
 								MarkMononochromeBitmapAsBackground(
 									pixel,
 									this->bitsPerScanline,
 									this->pixelBytes
-								);
+								);								
 								this->bitmapUpdated = true;
 							}
 						}
