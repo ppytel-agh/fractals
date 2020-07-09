@@ -533,6 +533,7 @@ MonochromaticBitmap::MonochromaticBitmap(unsigned short width, unsigned short he
 	this->bitsPerScanline = bytesPerScanline * 8;
 	this->noBytesRequired = bytesPerScanline * this->GetHeight();
 	this->pixelBitClusters = new BYTE[this->noBytesRequired];
+	this->Clear();
 	this->bitmapData.bmBitsPixel = 1;
 	this->bitmapData.bmPlanes = 1;
 	this->bitmapData.bmWidthBytes = bytesPerScanline;
