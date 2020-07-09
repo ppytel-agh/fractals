@@ -332,6 +332,7 @@ bool FractalBitmapFactory::generateBitmap(
 							this->pointsIncludedInBitmap[pointIndex] = true;
 							if (this->pixelCount[pixelIndex] == 1)
 							{
+								//jeżeli jest to pierwszy punkt wskazujacy ten piksel to zamarkuj go kolorem tekstu
 								MarkMononochromeBitmapAsText(
 									pixel,
 									this->bitsPerScanline,
@@ -346,6 +347,7 @@ bool FractalBitmapFactory::generateBitmap(
 							this->pointsIncludedInBitmap[pointIndex] = false;
 							if (this->pixelCount[pixelIndex] == 0)
 							{
+								//jeżeli nie ma już punktów wskazujących ten piksel to zamaluj go kolorem tła
 								MarkMononochromeBitmapAsBackground(
 									pixel,
 									this->bitsPerScanline,
@@ -364,7 +366,7 @@ bool FractalBitmapFactory::generateBitmap(
 			processedPoints.push_back(pointIndex);
 		}
 	);
-	while (processedPoints.size() < numberOfPointsToProcess) {};
+	while (processedPoints.size() < numberOfPointsToProcess && *continueOperation) {};
 	this->isDrawingBitmap = false;
 	return allPointsFound;
 }
