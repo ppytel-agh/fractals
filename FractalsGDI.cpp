@@ -226,7 +226,8 @@ void MarkMononochromeBitmapAsBackground(BitmapPixel pixel, unsigned short bitsPe
 }
 
 FractalBitmapFactory::FractalBitmapFactory(
-	std::shared_ptr<FractalPixels> fractalPixelsCalculator
+	std::shared_ptr<FractalPixels> fractalPixelsCalculator,
+	unsigned int maxNumberOfPointsToProcess
 )
 {
 	this->fractalPixelsCalculator = fractalPixelsCalculator;
@@ -245,16 +246,24 @@ FractalBitmapFactory::FractalBitmapFactory(
 		this->noBytesRequired
 	);
 	this->bitmapData.bmBits = (void*)this->pixelBytes;
-	this->numberOfDrawnPixels = 0;
 	this->isDrawingBitmap = false;
 	this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
 	this->bitmapUpdated = false;
-	unsigned int numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
-	this->pixelCount = new unsigned char[numberOfPixels];
+	this->numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
+	this->pixelCount = new std::atomic_uchar[this->numberOfPixels];
+	for (unsigned int i = 0; i < this->numberOfPixels; i++)
+	{
+		if (this->pixelCount[i] != 0)
+		{
+			this->pixelCount[i] = 0;
+		}
+	}
+	this->maxNumberOfPointsToProcess = maxNumberOfPointsToProcess;
+	this->pointsIncludedInBitmap = new bool[this->maxNumberOfPointsToProcess];
 	memset(
 		this->pixelCount,
-		0,
-		numberOfPixels
+		false,
+		this->maxNumberOfPointsToProcess
 	);
 }
 
@@ -262,6 +271,7 @@ FractalBitmapFactory::~FractalBitmapFactory()
 {
 	delete[] this->pixelBytes;
 	delete[] this->pixelCount;
+	delete[] this->pointsIncludedInBitmap;
 }
 
 bool FractalBitmapFactory::generateBitmap(
@@ -273,119 +283,90 @@ bool FractalBitmapFactory::generateBitmap(
 	{
 		return false;
 	}
-	this->isDrawingBitmap = true;
-	if (numberOfPixelsToDraw > this->numberOfDrawnPixels)
+	unsigned int numberOfPointsToProcess = this->maxNumberOfPointsToProcess;
+	if (numberOfPixelsToDraw > numberOfPointsToProcess)
 	{
-
-		unsigned short highestPixelValue = 0;
-		HANDLE noPointsIncrementMutex = CreateMutexW(
-			NULL,
-			FALSE,
-			NULL
-		);
-		concurrency::parallel_for(
-			this->numberOfDrawnPixels,
-			numberOfPixelsToDraw,
-			(unsigned int)1,
-			[&](unsigned int pointIndex)
-			{
-				
-				if (*continueOperation)
-				{
-					unsigned int numberOfCalculatedPixels = 0;
-					do
-					{
-						if (!*continueOperation)
-						{
-							break;
-						}
-						numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
-						if (numberOfCalculatedPixels > pointIndex)
-						{
-							BitmapPixel pixel = {};
-							bool pointFound = false;
-							do
-							{
-								if (!*continueOperation)
-								{
-									break;
-								}
-								pointFound = this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel);
-								if (pointFound)
-								{
-									if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
-									{
-										MarkMononochromeBitmapAsText(
-											pixel,
-											this->bitsPerScanline,
-											this->pixelBytes
-										);
-										this->bitmapUpdated = true;
-										unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-										this->pixelCount[pixelIndex]++;
-										if (this->pixelCount[pixelIndex] > highestPixelValue)
-										{
-											highestPixelValue = this->pixelCount[pixelIndex];
-										}
-									}
-									WaitForSingleObject(noPointsIncrementMutex, INFINITE);
-									this->numberOfDrawnPixels++;
-									ReleaseMutex(noPointsIncrementMutex);
-								}
-							} while (!pointFound);
-						}
-					} while (numberOfCalculatedPixels <= pointIndex);					
-				}
-			}
-		);
-		while (this->numberOfDrawnPixels < numberOfPixelsToDraw && *continueOperation) {}
-		CloseHandle(noPointsIncrementMutex);
+		return false;
 	}
-	else if (numberOfPixelsToDraw < this->numberOfDrawnPixels)
-	{
-		unsigned int lastPointIndex = this->numberOfDrawnPixels - 1;
-		HANDLE noPointsDecrementMutex = CreateMutexW(
-			NULL,
-			FALSE,
-			NULL
-		);
-		concurrency::parallel_for(
-			numberOfPixelsToDraw,
-			this->numberOfDrawnPixels,
-			(unsigned int)1,
-			[&](unsigned int referencePointIndex)
+	this->isDrawingBitmap = true;
+	concurrency::concurrent_vector<unsigned int>processedPoints;
+	bool allPointsFound = true;
+	concurrency::parallel_for(
+		(unsigned int)0,
+		numberOfPointsToProcess,
+		(unsigned int) 1,
+		[&](unsigned int pointIndex)
+		{
+			BitmapPixel pixel = {};
+			//należy uwzględnić przypadek, gdy kalkulator pikseli jeszcze nie przetworzył tego punktu
+			if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
 			{
-				if (*continueOperation)
+				if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight && *continueOperation)
 				{
-					unsigned int offset = referencePointIndex - numberOfPixelsToDraw;
-					unsigned int pointIndex = lastPointIndex - offset;
-					BitmapPixel pixel = {};
-					this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel);
-					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+					bool processPixel = false;
+					bool markAsText = false;
+					if (pointIndex < numberOfPixelsToDraw)
 					{
-						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-						this->pixelCount[pixelIndex]--;
-						if (this->pixelCount[pixelIndex] == 0)
+						//narysuj
+						if (!this->pointsIncludedInBitmap[pointIndex])
 						{
-							MarkMononochromeBitmapAsBackground(
-								pixel,
-								this->bitsPerScanline,
-								this->pixelBytes
-							);
-							this->bitmapUpdated = true;
+							//przetwórz jeżeli nie jest jeszcze uwzględniony
+							processPixel = true;
+							markAsText = true;
 						}
 					}
-					WaitForSingleObject(noPointsDecrementMutex, INFINITE);
-					this->numberOfDrawnPixels--;
-					ReleaseMutex(noPointsDecrementMutex);
+					else
+					{
+						if (this->pointsIncludedInBitmap[pointIndex])
+						{
+							//przetwórz jeżeli jest już uwzględniony
+							processPixel = true;
+						}
+					}
+					if (processPixel && *continueOperation)
+					{
+						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+						if (markAsText)
+						{
+							this->pixelCount[pixelIndex]++;
+							if (this->pixelCount[pixelIndex] == 1)
+							{
+								MarkMononochromeBitmapAsText(
+									pixel,
+									this->bitsPerScanline,
+									this->pixelBytes
+								);
+								this->bitmapUpdated = true;
+							}
+						}
+						else
+						{
+							this->pixelCount[pixelIndex]--;
+							if (this->pixelCount[pixelIndex] == 0)
+							{
+								MarkMononochromeBitmapAsBackground(
+									pixel,
+									this->bitsPerScanline,
+									this->pixelBytes
+								);
+								this->bitmapUpdated = true;
+							}
+						}
+						this->pixelCount[pixelIndex]++;
+
+					}						
 				}
 			}
-		);
-		while (this->numberOfDrawnPixels > numberOfPixelsToDraw && *continueOperation) {}
-		CloseHandle(noPointsDecrementMutex);
-	}
+			else
+			{
+				allPointsFound = false;
+			}		
+			processedPoints.push_back(pointIndex);
+		}
+	);
+	while (processedPoints.size() < numberOfPointsToProcess) {};
 	this->isDrawingBitmap = false;
-	return true;
+	return allPointsFound;
 }
 
 bool FractalBitmapFactory::copyIntoBuffer(HDC bitmapBuffer)
@@ -435,16 +416,10 @@ void FractalBitmapFactory::reset(void)
 		255,
 		this->noBytesRequired
 	);
-	this->numberOfDrawnPixels = 0;
 	unsigned int numberOfPixels = this->bitmapData.bmWidth * this->bitmapData.bmHeight;
 	memset(
 		this->pixelCount,
 		0,
 		numberOfPixels
 	);
-}
-
-unsigned int FractalBitmapFactory::getNumberOfDrawnPixels(void)
-{
-	return this->numberOfDrawnPixels;
 }

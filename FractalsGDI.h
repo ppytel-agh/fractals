@@ -63,14 +63,17 @@ private:
 	unsigned short bitsPerScanline;
 	unsigned int noBytesRequired;
 	BYTE* pixelBytes;
-	unsigned int numberOfDrawnPixels;
 	bool isDrawingBitmap;
 	HBITMAP bitmapHandle;
 	bool bitmapUpdated;
-	unsigned char* pixelCount;
+	std::atomic_uchar* pixelCount;
+	unsigned int maxNumberOfPointsToProcess;
+	unsigned int numberOfPixels;
+	bool* pointsIncludedInBitmap;
 public:
 	FractalBitmapFactory(
-		std::shared_ptr<FractalPixels> fractalPixelsCalculator
+		std::shared_ptr<FractalPixels> fractalPixelsCalculator,
+		unsigned int maxNumberOfPointsToProcess
 	);
 	~FractalBitmapFactory();
 	bool generateBitmap(
@@ -79,5 +82,4 @@ public:
 	);
 	bool copyIntoBuffer(HDC bitmapBuffer);
 	void reset(void);
-	unsigned int getNumberOfDrawnPixels(void);
 };
