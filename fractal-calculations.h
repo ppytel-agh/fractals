@@ -4,6 +4,7 @@
 #include <concurrent_unordered_map.h>
 #include <cstdlib>
 #include <ppl.h>
+#include "gdi-wrapper.h"
 
 class FractalPoints
 {
@@ -24,12 +25,6 @@ public:
 	bool getPoint(unsigned int index, Point& output);
 	bool pointsAreCalculated(void);
 
-};
-
-struct BitmapPixel
-{
-	unsigned short x;
-	unsigned short y;
 };
 
 class BitmapPixelsCalculator

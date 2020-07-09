@@ -73,27 +73,57 @@ void markMonochromeBitmapPixelBlack(
 	unsigned short pixelY
 );
 
+struct BitmapPixel
+{
+	unsigned short x;
+	unsigned short y;
+};
+
 class Bitmap
 {
 private:
-	BITMAP bitmapData;
 	bool updateHandle;
 	HBITMAP bitmapHandle;
 	unsigned int numberOfPixels;
+	BITMAP bitmapData;
+protected:
+	void SetNumberOfBytesPerScanline(LONG numberOfBytes);
+	void bitmapUpdated(void);
+	bool IsPixelValid(BitmapPixel pixel);
+	bool IsPixelIndexValid(unsigned int pixelIndex);
 public:
 	Bitmap(
 		unsigned short width,
 		unsigned short height
 	);
 	bool GetPixelIndex(
-		unsigned short pixelX,
-		unsigned short pixelY,
+		BitmapPixel pixel,
 		unsigned int& output
 	);
+	unsigned short GetWidth(void);
+	unsigned short GetHeight(void);
 	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
 };
 
 class MonochromaticBitmap : public Bitmap
 {
-
+private:
+	struct PixelData
+	{
+		unsigned int byteIndex;
+		BYTE bytePointer;
+	};
+	unsigned short bitsPerScanline;
+	unsigned int noBytesRequired;
+	BYTE* pixelBitClusters;
+	bool GetPixelData(BitmapPixel pixel, PixelData& output);
+public:
+	MonochromaticBitmap(
+		unsigned short width,
+		unsigned short height
+	);
+	~MonochromaticBitmap();
+	bool MarkPixelAsText(BitmapPixel pixel);
+	bool MarkPixelAsBackground(BitmapPixel pixel);
+	void Clear(void);
 };
