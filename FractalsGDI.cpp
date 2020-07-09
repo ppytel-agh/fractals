@@ -354,8 +354,6 @@ bool FractalBitmapFactory::generateBitmap(
 								this->bitmapUpdated = true;
 							}
 						}
-						this->pixelCount[pixelIndex]++;
-
 					}						
 				}
 			}
