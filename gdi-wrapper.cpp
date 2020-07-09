@@ -435,11 +435,24 @@ Bitmap::Bitmap(unsigned short width, unsigned short height)
 	this->bitmapData.bmHeight = height;
 	this->updateHandle = false;
 	this->bitmapHandle = NULL;
+	this->numberOfPixels = width * height;
 }
 
-unsigned int Bitmap::GetPixelIndex(unsigned short pixelX, unsigned short pixelY)
+bool Bitmap::GetPixelIndex(
+	unsigned short pixelX,
+	unsigned short pixelY,
+	unsigned int& output
+)
 {
-	return pixelY * this->bitmapData.bmWidth + pixelX;
+	if (pixelX < this->bitmapData.bmWidth && pixelY < this->bitmapData.bmHeight)
+	{
+		output = pixelY * this->bitmapData.bmWidth + pixelX;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)

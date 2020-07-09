@@ -79,14 +79,21 @@ private:
 	BITMAP bitmapData;
 	bool updateHandle;
 	HBITMAP bitmapHandle;
+	unsigned int numberOfPixels;
 public:
 	Bitmap(
 		unsigned short width,
 		unsigned short height
 	);
-	unsigned int GetPixelIndex(
+	bool GetPixelIndex(
 		unsigned short pixelX,
-		unsigned short pixelY
+		unsigned short pixelY,
+		unsigned int& output
 	);
 	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
+};
+
+class MonochromaticBitmap : public Bitmap
+{
+
 };
