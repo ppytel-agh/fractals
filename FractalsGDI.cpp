@@ -276,6 +276,7 @@ bool FractalBitmapFactory::generateBitmap(
 	this->isDrawingBitmap = true;
 	if (numberOfPixelsToDraw > this->numberOfDrawnPixels)
 	{
+
 		unsigned short highestPixelValue = 0;
 		concurrency::parallel_for(
 			this->numberOfDrawnPixels,
@@ -288,13 +289,21 @@ bool FractalBitmapFactory::generateBitmap(
 					unsigned int numberOfCalculatedPixels = 0;
 					do
 					{
+						if (!*continueOperation)
+						{
+							break;
+						}
 						numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
-						if (numberOfCalculatedPixels >= (pointIndex - 1))
+						if (numberOfCalculatedPixels > pointIndex)
 						{
 							BitmapPixel pixel = {};
 							bool pointFound = false;
 							do
 							{
+								if (!*continueOperation)
+								{
+									break;
+								}
 								pointFound = this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel);
 								if (pointFound)
 								{
@@ -317,11 +326,16 @@ bool FractalBitmapFactory::generateBitmap(
 								}
 							} while (!pointFound);
 						}
-					} while (numberOfCalculatedPixels < pointIndex);					
+					} while (numberOfCalculatedPixels <= pointIndex);					
 				}
 			}
 		);
-		while (this->numberOfDrawnPixels < numberOfPixelsToDraw) {}
+		while (this->numberOfDrawnPixels < numberOfPixelsToDraw) {
+			if (!*continueOperation)
+			{
+				break;
+			}
+		}
 	}
 	else if (numberOfPixelsToDraw < this->numberOfDrawnPixels)
 	{
@@ -353,7 +367,12 @@ bool FractalBitmapFactory::generateBitmap(
 				}
 			}
 		);		
-		while (this->numberOfDrawnPixels > numberOfPixelsToDraw) {}
+		while (this->numberOfDrawnPixels > numberOfPixelsToDraw) {
+			if (!*continueOperation)
+			{
+				break;
+			}
+		}
 	}
 	this->isDrawingBitmap = false;
 	return true;
