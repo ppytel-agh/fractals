@@ -89,41 +89,38 @@ private:
 protected:
 	void SetNumberOfBytesPerScanline(LONG numberOfBytes);
 	void bitmapUpdated(void);
-	bool IsPixelValid(BitmapPixel pixel);
-	bool IsPixelIndexValid(unsigned int pixelIndex);
 public:
 	Bitmap(
 		unsigned short width,
 		unsigned short height
 	);
-	bool GetPixelIndex(
-		BitmapPixel pixel,
-		unsigned int& output
-	);
 	unsigned short GetWidth(void);
 	unsigned short GetHeight(void);
+	bool IsPixelValid(BitmapPixel pixel);
+	bool IsPixelIndexValid(unsigned int pixelIndex);
+	unsigned int GetPixelIndex(BitmapPixel pixel);
 	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
 };
 
+struct MonochromaticPixelData
+{
+	unsigned int byteIndex;
+	BYTE byteBitPointer;
+};
 class MonochromaticBitmap : public Bitmap
 {
-private:
-	struct PixelData
-	{
-		unsigned int byteIndex;
-		BYTE bytePointer;
-	};
+private:	
 	unsigned short bitsPerScanline;
 	unsigned int noBytesRequired;
 	BYTE* pixelBitClusters;
-	bool GetPixelData(BitmapPixel pixel, PixelData& output);
 public:
 	MonochromaticBitmap(
 		unsigned short width,
 		unsigned short height
 	);
 	~MonochromaticBitmap();
-	bool MarkPixelAsText(BitmapPixel pixel);
-	bool MarkPixelAsBackground(BitmapPixel pixel);
+	MonochromaticPixelData GetPixelData(BitmapPixel pixel);
+	void MarkPixelAsText(MonochromaticPixelData pixelData);
+	void MarkPixelAsBackground(MonochromaticPixelData pixelData);
 	void Clear(void);
 };

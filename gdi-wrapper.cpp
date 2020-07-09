@@ -452,26 +452,17 @@ Bitmap::Bitmap(unsigned short width, unsigned short height)
 {
 	this->bitmapData = {};
 	this->bitmapData.bmWidth = width;
-	this->bitmapData.bmHeight = height;	
+	this->bitmapData.bmHeight = height;
 	this->updateHandle = false;
 	this->bitmapHandle = NULL;
 	this->numberOfPixels = width * height;
 }
 
-bool Bitmap::GetPixelIndex(
-	BitmapPixel pixel,
-	unsigned int& output
+unsigned int Bitmap::GetPixelIndex(
+	BitmapPixel pixel
 )
 {
-	if (IsPixelValid(pixel))
-	{
-		output = pixel.y * this->bitmapData.bmWidth + pixel.x;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return pixel.y * this->bitmapData.bmWidth + pixel.x;
 }
 
 unsigned short Bitmap::GetWidth(void)
@@ -485,7 +476,7 @@ unsigned short Bitmap::GetHeight(void)
 }
 
 bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)
-{	
+{
 	if (this->updateHandle)
 	{
 		DeleteObject(this->bitmapHandle);
@@ -525,24 +516,18 @@ bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)
 	return result;
 }
 
-bool MonochromaticBitmap::GetPixelData(BitmapPixel pixel, PixelData& output)
+MonochromaticPixelData MonochromaticBitmap::GetPixelData(BitmapPixel pixel)
 {
-	if (IsPixelValid(pixel))
-	{
-		unsigned int pixelBitIndex = (pixel.y * this->bitsPerScanline) + pixel.x;
-		output.byteIndex = pixelBitIndex / 8;
-		unsigned char offsetInByte = (pixelBitIndex % 8);
-		unsigned char moveToTheLeft = (7 - offsetInByte);
-		output.bytePointer = 1 << moveToTheLeft;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	unsigned int pixelBitIndex = (pixel.y * this->bitsPerScanline) + pixel.x;
+	unsigned char offsetInByte = (pixelBitIndex % 8);
+	unsigned char moveToTheLeft = (7 - offsetInByte);
+	return MonochromaticPixelData{
+		pixelBitIndex / 8,
+		(BYTE)(1 << moveToTheLeft)
+	};
 }
 
-MonochromaticBitmap::MonochromaticBitmap(unsigned short width, unsigned short height): Bitmap(width, height)
+MonochromaticBitmap::MonochromaticBitmap(unsigned short width, unsigned short height) : Bitmap(width, height)
 {
 	LONG bytesPerScanline = ceil(width / 16.0f) * 2;
 	this->SetNumberOfBytesPerScanline(bytesPerScanline);
@@ -556,32 +541,14 @@ MonochromaticBitmap::~MonochromaticBitmap()
 	delete[] this->pixelBitClusters;
 }
 
-bool MonochromaticBitmap::MarkPixelAsText(BitmapPixel pixel)
+void MonochromaticBitmap::MarkPixelAsText(MonochromaticPixelData pixelData)
 {
-	PixelData pixelData = {};
-	if (GetPixelData(pixel, pixelData))
-	{
-		this->pixelBitClusters[pixelData.byteIndex] &= ~pixelData.bytePointer;//dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	this->pixelBitClusters[pixelData.byteIndex] &= ~pixelData.byteBitPointer;//dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
 }
 
-bool MonochromaticBitmap::MarkPixelAsBackground(BitmapPixel pixel)
+void MonochromaticBitmap::MarkPixelAsBackground(MonochromaticPixelData pixelData)
 {
-	PixelData pixelData = {};
-	if (GetPixelData(pixel, pixelData))
-	{
-		this->pixelBitClusters[pixelData.byteIndex] |= pixelData.bytePointer;//dodano inwersję ponieważ fraktal musi przyjąć kolor tekstu czyli 0
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	this->pixelBitClusters[pixelData.byteIndex] |= pixelData.byteBitPointer;
 }
 
 void MonochromaticBitmap::Clear(void)
