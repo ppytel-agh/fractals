@@ -285,29 +285,39 @@ bool FractalBitmapFactory::generateBitmap(
 			{
 				if (*continueOperation)
 				{
-					while (this->fractalPixelsCalculator->getNumberOfCalculatedPixels() < pointIndex)
+					unsigned int numberOfCalculatedPixels = 0;
+					do
 					{
-						BitmapPixel pixel = {};
-						while (!this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
+						numberOfCalculatedPixels = this->fractalPixelsCalculator->getNumberOfCalculatedPixels();
+						if (numberOfCalculatedPixels >= (pointIndex - 1))
 						{
-							if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+							BitmapPixel pixel = {};
+							bool pointFound = false;
+							do
 							{
-								MarkMononochromeBitmapAsText(
-									pixel,
-									this->bitsPerScanline,
-									this->pixelBytes
-								);
-								this->bitmapUpdated = true;
-								unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-								this->pixelCount[pixelIndex]++;
-								if (this->pixelCount[pixelIndex] > highestPixelValue)
+								pointFound = this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel);
+								if (pointFound)
 								{
-									highestPixelValue = this->pixelCount[pixelIndex];
+									if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+									{
+										MarkMononochromeBitmapAsText(
+											pixel,
+											this->bitsPerScanline,
+											this->pixelBytes
+										);
+										this->bitmapUpdated = true;
+										unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+										this->pixelCount[pixelIndex]++;
+										if (this->pixelCount[pixelIndex] > highestPixelValue)
+										{
+											highestPixelValue = this->pixelCount[pixelIndex];
+										}
+									}
+									this->numberOfDrawnPixels++;
 								}
-							}
-							this->numberOfDrawnPixels++;
+							} while (!pointFound);
 						}
-					}
+					} while (numberOfCalculatedPixels < pointIndex);					
 				}
 			}
 		);
@@ -324,24 +334,22 @@ bool FractalBitmapFactory::generateBitmap(
 				if (*continueOperation)
 				{
 					BitmapPixel pixel = {};
-					if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex - 1, pixel))
+					this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex - 1, pixel);
+					if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
 					{
-						if (pixel.x < this->bitmapData.bmWidth && pixel.y < this->bitmapData.bmHeight)
+						unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
+						this->pixelCount[pixelIndex]--;
+						if (this->pixelCount[pixelIndex] == 0)
 						{
-							unsigned int pixelIndex = pixel.y * this->bitmapData.bmWidth + pixel.x;
-							this->pixelCount[pixelIndex]--;
-							if (this->pixelCount[pixelIndex] == 0)
-							{
-								MarkMononochromeBitmapAsBackground(
-									pixel,
-									this->bitsPerScanline,
-									this->pixelBytes
-								);
-								this->bitmapUpdated = true;
-							}
+							MarkMononochromeBitmapAsBackground(
+								pixel,
+								this->bitsPerScanline,
+								this->pixelBytes
+							);
+							this->bitmapUpdated = true;
 						}
-						this->numberOfDrawnPixels--;
 					}
+					this->numberOfDrawnPixels--;
 				}
 			}
 		);		
