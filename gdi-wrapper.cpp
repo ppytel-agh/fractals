@@ -428,11 +428,6 @@ void markMonochromeBitmapPixelBlack(
 	}
 }
 
-void Bitmap::SetNumberOfBytesPerScanline(LONG numberOfBytes)
-{
-	this->bitmapData.bmWidthBytes = numberOfBytes;
-}
-
 void Bitmap::bitmapUpdated(void)
 {
 	this->updateHandle = true;
@@ -530,10 +525,13 @@ MonochromaticPixelData MonochromaticBitmap::GetPixelData(BitmapPixel pixel)
 MonochromaticBitmap::MonochromaticBitmap(unsigned short width, unsigned short height) : Bitmap(width, height)
 {
 	LONG bytesPerScanline = ceil(width / 16.0f) * 2;
-	this->SetNumberOfBytesPerScanline(bytesPerScanline);
 	this->bitsPerScanline = bytesPerScanline * 8;
 	this->noBytesRequired = bytesPerScanline * this->GetHeight();
 	this->pixelBitClusters = new BYTE[this->noBytesRequired];
+	this->bitmapData.bmBitsPixel = 1;
+	this->bitmapData.bmPlanes = 1;
+	this->bitmapData.bmWidthBytes = bytesPerScanline;
+	this->bitmapData.bmBits = (void*)this->pixelBitClusters;
 }
 
 MonochromaticBitmap::~MonochromaticBitmap()

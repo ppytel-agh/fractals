@@ -85,9 +85,8 @@ private:
 	bool updateHandle;
 	HBITMAP bitmapHandle;
 	unsigned int numberOfPixels;
-	BITMAP bitmapData;
 protected:
-	void SetNumberOfBytesPerScanline(LONG numberOfBytes);
+	BITMAP bitmapData;
 	void bitmapUpdated(void);
 public:
 	Bitmap(
