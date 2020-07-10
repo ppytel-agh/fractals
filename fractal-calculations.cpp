@@ -218,6 +218,18 @@ FractalPixelsV2::FractalPixelsV2(
 	unsigned int numberOfPixels = pixelCalculator.GetBitmapSize().GetNumberOfPixels();
 	this->pixelPoints = new concurrency::concurrent_vector<unsigned int>[numberOfPixels];
 	this->numberOfProcessedPoints = 0;
+	this->numberOfContinuousProcessedPoints = 0;
+	this->pointsProcessed = NULL;
+	this->numberOfStoredPoints = 0;
+}
+
+FractalPixelsV2::~FractalPixelsV2()
+{
+	delete[] this->pixelPoints;	
+	if (this->numberOfStoredPoints > 0)
+	{
+		delete[] this->pointsProcessed;
+	}
 }
 
 bool FractalPixelsV2::calculatePixels(
@@ -231,7 +243,36 @@ bool FractalPixelsV2::calculatePixels(
 	}
 	else
 	{
+		if (this->numberOfStoredPoints == 0)
+		{
+			this->numberOfStoredPoints = numberOfPointsToProcess;
+			this->pointsProcessed = new bool[this->numberOfStoredPoints];
+		}
+		else if (this->numberOfStoredPoints < numberOfPointsToProcess)
+		{
+			bool* previousPointer = this->pointsProcessed;
+			unsigned int previousNo = this->numberOfStoredPoints;
+
+			this->numberOfStoredPoints = numberOfPointsToProcess;
+			this->pointsProcessed = new bool[this->numberOfStoredPoints];
+
+			memcpy(
+				this->pointsProcessed,
+				previousPointer,
+				sizeof(bool) * previousNo
+			);
+			delete[] previousPointer;
+		}
 		this->isCalculatingPixels = true;
+		unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
+
+		while (this->numberOfProcessedPoints < noCalculatedPoints && *continueOperation)
+		{
+
+		}
+		this->isCalculatingPixels = false;
+		return (numberOfPointsToProcess <= noCalculatedPoints);//czy przetworzono podaną liczbę punktów?
+		
 		bool anyPointsToProcess = false;
 		unsigned int firstPointToCalculateIndex = this->numberOfProcessedPoints;
 		while (this->numberOfProcessedPoints < numberOfPointsToProcess)
