@@ -778,9 +778,9 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 				OutputDebugStringW(stream.str().c_str());
 				HWND mainWindow = GetWindow(hDlg, GW_OWNER);
 				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
-				if (fractalWindowData->currentFractalBitmapGenerator != NULL)
+				if (fractalWindowData->currentFractalBitmapGeneratorV2 != NULL)
 				{
-					InitializeFractalBitmapThread(
+					InitializeFractalBitmapThreadV2(
 						fractalWindowData,
 						(unsigned int)currentPosition
 					);
