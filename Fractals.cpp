@@ -218,6 +218,15 @@ float FractalClipping::getYMax(void)
 	return this->yMax;
 }
 
+bool FractalClipping::IsPointValid(Point point)
+{
+	return (
+		point.GetX() > this->xMin && point.GetX() < this->xMax
+	) && (
+		point.GetY() > this->yMin && point.GetY() < this->yMax
+	);
+}
+
 Fractal::Fractal(): transformationRowsGroup(), clipping()
 {
 	this->numberOfProbabilities = 0;

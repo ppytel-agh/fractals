@@ -197,3 +197,83 @@ bool FractalPixels::getPixelByPointIndex(unsigned int pointIndex, BitmapPixel& o
 	}
 	return false;
 }
+
+AbstractFractalPixels::AbstractFractalPixels(std::shared_ptr<FractalPoints> pointsCalculator, FractalPixelCalculatorGDI pixelCalculator)
+{
+	this->pointsCalculator = pointsCalculator;
+	this->pixelCalculator = pixelCalculator;
+}
+
+FractalPixelCalculatorGDI AbstractFractalPixels::GetPixelCalculator(void)
+{
+	return this->pixelCalculator;
+}
+
+FractalPixelsV2::FractalPixelsV2(
+	std::shared_ptr<FractalPoints> pointsCalculator,
+	FractalPixelCalculatorGDI pixelCalculator
+):AbstractFractalPixels(pointsCalculator, pixelCalculator)
+{
+	this->isCalculatingPixels = false;	
+	this->pixelPoints = new concurrency::concurrent_vector<unsigned int> * [pixelCalculator.GetBitmapSize().GetNumberOfPixels()];
+}
+
+bool FractalPixelsV2::calculatePixels(
+	std::shared_ptr<bool> continueOperation,
+	unsigned int numberOfPointsToProcess
+)
+{
+	if (this->isCalculatingPixels)
+	{
+		return false;
+	}
+	else
+	{
+		this->isCalculatingPixels = true;
+		bool anyPointsToProcess = false;
+		concurrency::concurrent_vector<BitmapPixel>::iterator firstPixelIndex = this->calculatedPixels.begin();
+		std::atomic_uint32_t numberOfProcessedPoints = 0;
+		unsigned int noCalculatedPixels = this->calculatedPixels.size();
+		while (noCalculatedPixels < numberOfPointsToProcess)
+		{
+			if (*continueOperation)
+			{
+				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
+				if (noCalculatedPoints > noCalculatedPixels)
+				{
+					anyPointsToProcess = true;
+					unsigned int lastOutputtedPointIndex = noCalculatedPoints;
+
+					concurrency::parallel_for(
+						noCalculatedPixels,
+						lastOutputtedPointIndex,
+						(unsigned int)1,
+						[&](unsigned int pointIndex)
+					{
+						Point pointBuffer;
+						bool processPoint = true;
+						if (*continueOperation)
+						{
+							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
+							{
+								BitmapPixel pixel = this->pixelCalculator.CalculatePixel(pointBuffer);
+								concurrency::concurrent_vector<BitmapPixel>::iterator pushedPixelIterator = this->calculatedPixels.push_back(pixel);
+								int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator);
+								this->pointPixelIndexes[pointIndex] = pixelIndex;
+								numberOfProcessedPoints++;
+							}
+						}
+					}
+					);
+				}
+			}
+			else
+			{
+				break;
+			}
+			noCalculatedPixels = this->calculatedPixels.size();
+		}
+		this->isCalculatingPixels = false;
+		return anyPointsToProcess;
+	}
+}

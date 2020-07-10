@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <ppl.h>
 #include "gdi-wrapper.h"
+#include "FractalsGDI.h"
 
 class FractalPoints
 {
@@ -59,4 +60,33 @@ public:
 	unsigned short getBitmapWidth(void);
 	unsigned short getBitmapHeight(void);
 	bool getPixelByPointIndex(unsigned int pointIndex, BitmapPixel& output);
+};
+
+class AbstractFractalPixels : public BitmapPixelsCalculator
+{
+protected:
+	std::shared_ptr<FractalPoints> pointsCalculator;
+	FractalPixelCalculatorGDI pixelCalculator;
+public:
+	AbstractFractalPixels(
+		std::shared_ptr<FractalPoints> pointsCalculator,
+		FractalPixelCalculatorGDI pixelCalculator
+	);
+	FractalPixelCalculatorGDI GetPixelCalculator(void);
+};
+
+class FractalPixelsV2 : public AbstractFractalPixels
+{
+private:
+	bool isCalculatingPixels;
+	concurrency::concurrent_vector<unsigned int>** pixelPoints;
+public:
+	FractalPixelsV2(
+		std::shared_ptr<FractalPoints> pointsCalculator,
+		FractalPixelCalculatorGDI pixelCalculator
+	);
+	bool calculatePixels(
+		std::shared_ptr<bool> continueOperation,
+		unsigned int numberOfPointsToProcess
+	);
 };

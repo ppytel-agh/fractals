@@ -563,3 +563,40 @@ void MonochromaticBitmap::Clear(void)
 		this->noBytesRequired
 	);
 }
+
+BitmapDimensions::BitmapDimensions(unsigned short width, unsigned short height)
+{
+	this->width = width;
+	this->height = height;
+	this->numberOfPixels = numberOfPixels;
+}
+
+unsigned short BitmapDimensions::GetWidth(void)
+{
+	return this->width;
+}
+
+unsigned short BitmapDimensions::GetHeight(void)
+{
+	return this->height;
+}
+
+unsigned int BitmapDimensions::GetNumberOfPixels(void)
+{
+	return this->numberOfPixels;
+}
+
+unsigned int BitmapDimensions::GetPixelIndex(BitmapPixel pixel)
+{
+	return pixel.y * this->width + pixel.x;
+}
+
+bool BitmapDimensions::IsPixelValid(BitmapPixel pixel)
+{
+	return pixel.x < this->width&& pixel.y < this->height;
+}
+
+bool BitmapDimensions::IsPixelIndexValid(unsigned int pixelIndex)
+{
+	return pixelIndex < this->numberOfPixels;
+}

@@ -96,6 +96,7 @@ public:
 	float getXMax(void);
 	float getYMin(void);
 	float getYMax(void);
+	bool IsPointValid(Point point);
 };
 
 class Fractal

@@ -79,6 +79,25 @@ struct BitmapPixel
 	unsigned short y;
 };
 
+class BitmapDimensions
+{
+private:
+	unsigned short width;
+	unsigned short height;
+	unsigned int numberOfPixels;
+public:
+	BitmapDimensions(
+		unsigned short width,
+		unsigned short height
+	);
+	unsigned short GetWidth(void);
+	unsigned short GetHeight(void);
+	unsigned int GetNumberOfPixels(void);
+	unsigned int GetPixelIndex(BitmapPixel pixel);
+	bool IsPixelValid(BitmapPixel pixel);
+	bool IsPixelIndexValid(unsigned int pixelIndex);
+};
+
 class Bitmap
 {
 private:

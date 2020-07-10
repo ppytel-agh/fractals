@@ -106,3 +106,19 @@ public:
 	bool copyIntoBuffer(HDC bitmapBuffer);
 	void reset(void);
 };
+
+class FractalPixelCalculatorGDI
+{
+private:
+	PixelCalculator pixelCalculator;
+	FractalClipping clipping;
+	BitmapDimensions bitmapSize;
+public:
+	FractalPixelCalculatorGDI(
+		FractalClipping clipping,
+		BitmapDimensions bitmapSize
+	);
+	BitmapPixel CalculatePixel(Point fractalPoint);
+	FractalClipping GetClipping(void);
+	BitmapDimensions GetBitmapSize(void);
+};
