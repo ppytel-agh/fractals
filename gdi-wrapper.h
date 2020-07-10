@@ -94,6 +94,7 @@ public:
 	unsigned short GetHeight(void);
 	unsigned int GetNumberOfPixels(void);
 	unsigned int GetPixelIndex(BitmapPixel pixel);
+	BitmapPixel GetBitmapPixel(unsigned int pixelIndex);
 	bool IsPixelValid(BitmapPixel pixel);
 	bool IsPixelIndexValid(unsigned int pixelIndex);
 };

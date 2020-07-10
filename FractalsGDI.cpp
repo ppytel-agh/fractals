@@ -427,9 +427,12 @@ void FractalBitmapFactory::reset(void)
 }
 
 FractalBitmapFactoryV2::FractalBitmapFactoryV2(
-	std::shared_ptr<FractalPixels> fractalPixelsCalculator,
+	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculator,
 	unsigned int maxNumberOfPointsToProcess
-) : bitmap(fractalPixelsCalculator->getBitmapWidth(), fractalPixelsCalculator->getBitmapHeight())
+) : bitmap(
+	fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetWidth(),
+	fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetHeight()
+)
 {
 	this->fractalPixelsCalculator = fractalPixelsCalculator;
 	this->isDrawingBitmap = false;
@@ -457,7 +460,7 @@ FractalBitmapFactoryV2::~FractalBitmapFactoryV2()
 }
 
 bool FractalBitmapFactoryV2::generateBitmap(
-	unsigned int numberOfPixelsToDraw,
+	unsigned int numberOfPointsToRender,
 	std::shared_ptr<bool> continueOperation
 )
 {
@@ -465,86 +468,35 @@ bool FractalBitmapFactoryV2::generateBitmap(
 	{
 		return false;
 	}
-	unsigned int numberOfPointsToProcess = this->maxNumberOfPointsToProcess;
-	if (numberOfPixelsToDraw > numberOfPointsToProcess)
-	{
-		return false;
-	}
 	this->isDrawingBitmap = true;
 	concurrency::concurrent_vector<unsigned int>processedPoints;
+	std::atomic_uint32_t numberOfProcessedPixels = 0;
+	
 	bool allPointsFound = true;
 	concurrency::parallel_for(
 		(unsigned int)0,
-		numberOfPointsToProcess,
-		(unsigned int)1,
-		[&](unsigned int pointIndex)
-	{
-		BitmapPixel pixel = {};
-		//należy uwzględnić przypadek, gdy kalkulator pikseli jeszcze nie przetworzył tego punktu
-		if (this->fractalPixelsCalculator->getPixelByPointIndex(pointIndex, pixel))
+		this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetNumberOfPixels(),
+		(unsigned int) 1,
+		[&](unsigned int pixelIndex)
 		{
-			if (this->bitmap.IsPixelValid(pixel) && *continueOperation)
+			BitmapPixel pixel = {};
+			if (this->fractalPixelsCalculator->DoesPixelContainAnyPoint(pixelIndex, numberOfPointsToRender))
 			{
-				bool processPixel = false;
-				bool markAsText = false;
-				if (pointIndex < numberOfPixelsToDraw)
-				{
-					//narysuj
-					if (!this->pointsIncludedInBitmap[pointIndex])
-					{
-						//przetwórz jeżeli nie jest jeszcze uwzględniony
-						processPixel = true;
-						markAsText = true;
-					}
-				}
-				else
-				{
-					if (this->pointsIncludedInBitmap[pointIndex])
-					{
-						//przetwórz jeżeli jest już uwzględniony
-						processPixel = true;
-					}
-				}
-				if (processPixel && *continueOperation)
-				{
-					unsigned int pixelIndex = this->bitmap.GetPixelIndex(pixel);
-					if (markAsText)
-					{
-						this->pixelCount[pixelIndex]++;
-						this->pointsIncludedInBitmap[pointIndex] = true;
-						if (this->pixelCount[pixelIndex] == 1)
-						{
-							//jeżeli jest to pierwszy punkt wskazujacy ten piksel to zamarkuj go kolorem tekstu
-							this->bitmap.MarkPixelAsText(
-								this->bitmap.GetPixelData(pixel)
-							);
-							this->bitmap.bitmapUpdated();
-						}
-					}
-					else
-					{
-						this->pixelCount[pixelIndex]--;
-						this->pointsIncludedInBitmap[pointIndex] = false;
-						if (this->pixelCount[pixelIndex] == 0)
-						{
-							//jeżeli nie ma już punktów wskazujących ten piksel to zamaluj go kolorem tła
-							this->bitmap.MarkPixelAsBackground(
-								this->bitmap.GetPixelData(pixel)
-							);
-							this->bitmap.bitmapUpdated();
-						}
-					}
-				}
+				this->bitmap.MarkPixelAsText(
+					this->bitmap.GetPixelData(pixel)
+				);
 			}
+			else
+			{
+				this->bitmap.MarkPixelAsBackground(
+					this->bitmap.GetPixelData(pixel)
+				);
+			}
+			this->bitmap.bitmapUpdated();
+			numberOfProcessedPixels++;
 		}
-		else
-		{
-			allPointsFound = false;
-		}
-		processedPoints.push_back(pointIndex);
-	}
 	);
-	while (processedPoints.size() < numberOfPointsToProcess && *continueOperation) {};
+	while (numberOfProcessedPixels < this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetNumberOfPixels() && *continueOperation) {};
 	this->isDrawingBitmap = false;
 	return allPointsFound;
 }

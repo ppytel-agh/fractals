@@ -129,16 +129,16 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 		concurrency::concurrent_vector<BitmapPixel>::iterator firstPixelIndex = this->calculatedPixels.begin();
 		unsigned int numberOfProcessedPoints = 0;
 		unsigned int noCalculatedPixels = this->calculatedPixels.size();
-		while(noCalculatedPixels < this->numberOfPointsToProcess)
+		while (noCalculatedPixels < this->numberOfPointsToProcess)
 		{
 			if (*continueOperation)
 			{
-				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();						
+				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
 				if (noCalculatedPoints > noCalculatedPixels)
 				{
 					anyPointsToProcess = true;
 					unsigned int lastOutputtedPointIndex = noCalculatedPoints;
-					
+
 					concurrency::parallel_for(
 						noCalculatedPixels,
 						lastOutputtedPointIndex,
@@ -153,7 +153,7 @@ bool FractalPixels::calculatePixels(std::shared_ptr<bool> continueOperation)
 							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 							{
 								pixel.x = pixelCalculator.getPixelX(pointBuffer.GetX());
-								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());								
+								pixel.y = pixelCalculator.getPixelY(pointBuffer.GetY());
 								concurrency::concurrent_vector<BitmapPixel>::iterator pushedPixelIterator = this->calculatedPixels.push_back(pixel);
 								int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator);
 								this->pointPixelIndexes[pointIndex] = pixelIndex;
@@ -212,10 +212,12 @@ FractalPixelCalculatorGDI AbstractFractalPixels::GetPixelCalculator(void)
 FractalPixelsV2::FractalPixelsV2(
 	std::shared_ptr<FractalPoints> pointsCalculator,
 	FractalPixelCalculatorGDI pixelCalculator
-):AbstractFractalPixels(pointsCalculator, pixelCalculator)
+) :AbstractFractalPixels(pointsCalculator, pixelCalculator)
 {
-	this->isCalculatingPixels = false;	
-	this->pixelPoints = new concurrency::concurrent_vector<unsigned int> * [pixelCalculator.GetBitmapSize().GetNumberOfPixels()];
+	this->isCalculatingPixels = false;
+	unsigned int numberOfPixels = pixelCalculator.GetBitmapSize().GetNumberOfPixels();
+	this->pixelPoints = new concurrency::concurrent_vector<unsigned int>[numberOfPixels];
+	this->numberOfProcessedPoints = 0;
 }
 
 bool FractalPixelsV2::calculatePixels(
@@ -231,22 +233,18 @@ bool FractalPixelsV2::calculatePixels(
 	{
 		this->isCalculatingPixels = true;
 		bool anyPointsToProcess = false;
-		concurrency::concurrent_vector<BitmapPixel>::iterator firstPixelIndex = this->calculatedPixels.begin();
-		std::atomic_uint32_t numberOfProcessedPoints = 0;
-		unsigned int noCalculatedPixels = this->calculatedPixels.size();
-		while (noCalculatedPixels < numberOfPointsToProcess)
+		unsigned int firstPointToCalculateIndex = this->numberOfProcessedPoints;
+		while (this->numberOfProcessedPoints < numberOfPointsToProcess)
 		{
 			if (*continueOperation)
 			{
 				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
-				if (noCalculatedPoints > noCalculatedPixels)
+				if (noCalculatedPoints > this->numberOfProcessedPoints)
 				{
 					anyPointsToProcess = true;
-					unsigned int lastOutputtedPointIndex = noCalculatedPoints;
-
 					concurrency::parallel_for(
-						noCalculatedPixels,
-						lastOutputtedPointIndex,
+						firstPointToCalculateIndex,
+						noCalculatedPoints,
 						(unsigned int)1,
 						[&](unsigned int pointIndex)
 					{
@@ -256,24 +254,67 @@ bool FractalPixelsV2::calculatePixels(
 						{
 							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 							{
-								BitmapPixel pixel = this->pixelCalculator.CalculatePixel(pointBuffer);
-								concurrency::concurrent_vector<BitmapPixel>::iterator pushedPixelIterator = this->calculatedPixels.push_back(pixel);
-								int pixelIndex = std::distance(firstPixelIndex, pushedPixelIterator);
-								this->pointPixelIndexes[pointIndex] = pixelIndex;
-								numberOfProcessedPoints++;
+								if(this->pixelCalculator.GetClipping().IsPointValid(pointBuffer))
+								{
+									BitmapPixel pixel = this->pixelCalculator.CalculatePixel(pointBuffer);
+									unsigned int pixelIndex = this->pixelCalculator.GetBitmapSize().GetPixelIndex(pixel);
+									//jeżeli punkt był prawidłowy to piksel również powinien zawierać się w przedziale
+									this->pixelPoints[pixelIndex].push_back(pointIndex);
+								}
+								this->numberOfProcessedPoints++;
 							}
 						}
 					}
 					);
+					firstPointToCalculateIndex = noCalculatedPoints;
 				}
 			}
 			else
 			{
 				break;
 			}
-			noCalculatedPixels = this->calculatedPixels.size();
 		}
 		this->isCalculatingPixels = false;
 		return anyPointsToProcess;
 	}
+}
+
+bool FractalPixelsV2::DoesPixelContainAnyPoint(
+	unsigned int pixelIndex,
+	unsigned int renderedNumberOfPoints
+)
+{
+	for (unsigned char i = 0; i < this->pixelPoints[pixelIndex].size(); i++)
+	{		
+		if (this->pixelPoints[pixelIndex][i] < renderedNumberOfPoints)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FractalPixelsV2::DoesPixelContainAnyPoint2(unsigned int pixelIndex, unsigned int minPointIndex, unsigned int maxPointIndex)
+{
+	for (unsigned char i = 0; i < this->pixelPoints[pixelIndex].size(); i++)
+	{
+		if (this->pixelPoints[pixelIndex][i] >= minPointIndex && this->pixelPoints[pixelIndex][i] < maxPointIndex)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+unsigned char FractalPixelsV2::GetNumberOfPointsAtPixel(unsigned int pixelIndex, unsigned int minPointIndex, unsigned int maxPointIndex)
+{
+	unsigned char numberOfPointsAtPixel = 0;
+	for (unsigned char i = 0; i < this->pixelPoints[pixelIndex].size(); i++)
+	{
+		if (this->pixelPoints[pixelIndex][i] >= minPointIndex && this->pixelPoints[pixelIndex][i] < maxPointIndex)
+		{
+			numberOfPointsAtPixel++;
+		}
+	}
+	return numberOfPointsAtPixel;
 }

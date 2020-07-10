@@ -591,6 +591,14 @@ unsigned int BitmapDimensions::GetPixelIndex(BitmapPixel pixel)
 	return pixel.y * this->width + pixel.x;
 }
 
+BitmapPixel BitmapDimensions::GetBitmapPixel(unsigned int pixelIndex)
+{
+	return BitmapPixel{
+		pixelIndex % this->width,
+		pixelIndex / this->width
+	};
+}
+
 bool BitmapDimensions::IsPixelValid(BitmapPixel pixel)
 {
 	return pixel.x < this->width&& pixel.y < this->height;

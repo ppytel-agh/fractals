@@ -79,7 +79,8 @@ class FractalPixelsV2 : public AbstractFractalPixels
 {
 private:
 	bool isCalculatingPixels;
-	concurrency::concurrent_vector<unsigned int>** pixelPoints;
+	concurrency::concurrent_vector<unsigned int>* pixelPoints;
+	std::atomic_uint32_t numberOfProcessedPoints;
 public:
 	FractalPixelsV2(
 		std::shared_ptr<FractalPoints> pointsCalculator,
@@ -88,5 +89,19 @@ public:
 	bool calculatePixels(
 		std::shared_ptr<bool> continueOperation,
 		unsigned int numberOfPointsToProcess
+	);
+	bool DoesPixelContainAnyPoint(
+		unsigned int pixelIndex,
+		unsigned int renderedNumberOfPoints
+	);
+	bool DoesPixelContainAnyPoint2(
+		unsigned int pixelIndex,
+		unsigned int minPointIndex,
+		unsigned int maxPointIndex
+	);
+	unsigned char GetNumberOfPointsAtPixel(
+		unsigned int pixelIndex,
+		unsigned int minPointIndex,
+		unsigned int maxPointIndex
 	);
 };
