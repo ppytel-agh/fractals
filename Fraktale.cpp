@@ -1052,7 +1052,7 @@ void InitializeFractalBitmapThread(FractalWindowData* fractalWindowData, unsigne
 
 void InitializeFractalRender(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
 {
-	InitializeFractalRenderV1(
+	InitializeFractalRenderV2(
 		fractalWindowData,
 		bitmapWidth,
 		bitmapHeight

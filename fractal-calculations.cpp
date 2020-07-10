@@ -239,7 +239,7 @@ bool FractalPixelsV2::calculatePixels(
 	{		
 		this->isCalculatingPixels = true;
 		unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
-		unsigned int numberOfPointsToProcesInIteration = this->numberOfProcessedPoints - noCalculatedPoints;
+		unsigned int numberOfPointsToProcesInIteration = noCalculatedPoints - this->numberOfProcessedPoints;
 		bool* pointProcessedInIteration = new bool[numberOfPointsToProcesInIteration];
 		memset(
 			pointProcessedInIteration,
