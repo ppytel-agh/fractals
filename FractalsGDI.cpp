@@ -471,8 +471,12 @@ bool FractalBitmapFactoryV2::generateBitmap(
 	this->isDrawingBitmap = true;
 	concurrency::concurrent_vector<unsigned int>processedPoints;
 	std::atomic_uint32_t numberOfProcessedPixels = 0;
-	
-	bool allPointsFound = true;
+	unsigned int noProcesedPoints = this->fractalPixelsCalculator->GetNumberOfContinuousProcessedPoints();
+	bool allPointsFound = noProcesedPoints < numberOfPointsToRender;
+	if (!allPointsFound)
+	{
+		numberOfPointsToRender = noProcesedPoints;
+	}
 	concurrency::parallel_for(
 		(unsigned int)0,
 		this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetNumberOfPixels(),
@@ -492,7 +496,6 @@ bool FractalBitmapFactoryV2::generateBitmap(
 					this->bitmap.GetPixelData(pixel)
 				);
 			}
-			this->bitmap.bitmapUpdated();
 			numberOfProcessedPixels++;
 		}
 	);
