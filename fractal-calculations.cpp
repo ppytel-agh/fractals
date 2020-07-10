@@ -219,17 +219,11 @@ FractalPixelsV2::FractalPixelsV2(
 	this->pixelPoints = new concurrency::concurrent_vector<unsigned int>[numberOfPixels];
 	this->numberOfProcessedPoints = 0;
 	this->numberOfContinuousProcessedPoints = 0;
-	this->pointsProcessed = NULL;
-	this->numberOfStoredPoints = 0;
 }
 
 FractalPixelsV2::~FractalPixelsV2()
 {
 	delete[] this->pixelPoints;	
-	if (this->numberOfStoredPoints > 0)
-	{
-		delete[] this->pointsProcessed;
-	}
 }
 
 bool FractalPixelsV2::calculatePixels(
@@ -242,81 +236,54 @@ bool FractalPixelsV2::calculatePixels(
 		return false;
 	}
 	else
-	{
-		if (this->numberOfStoredPoints == 0)
-		{
-			this->numberOfStoredPoints = numberOfPointsToProcess;
-			this->pointsProcessed = new bool[this->numberOfStoredPoints];
-		}
-		else if (this->numberOfStoredPoints < numberOfPointsToProcess)
-		{
-			bool* previousPointer = this->pointsProcessed;
-			unsigned int previousNo = this->numberOfStoredPoints;
-
-			this->numberOfStoredPoints = numberOfPointsToProcess;
-			this->pointsProcessed = new bool[this->numberOfStoredPoints];
-
-			memcpy(
-				this->pointsProcessed,
-				previousPointer,
-				sizeof(bool) * previousNo
-			);
-			delete[] previousPointer;
-		}
+	{		
 		this->isCalculatingPixels = true;
 		unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
-
-		while (this->numberOfProcessedPoints < noCalculatedPoints && *continueOperation)
-		{
-
-		}
-		this->isCalculatingPixels = false;
-		return (numberOfPointsToProcess <= noCalculatedPoints);//czy przetworzono podaną liczbę punktów?
-		
-		bool anyPointsToProcess = false;
+		unsigned int numberOfPointsToProcesInIteration = this->numberOfProcessedPoints - noCalculatedPoints;
+		bool* pointProcessedInIteration = new bool[numberOfPointsToProcesInIteration];
+		memset(
+			pointProcessedInIteration,
+			0,
+			numberOfPointsToProcesInIteration
+		);
 		unsigned int firstPointToCalculateIndex = this->numberOfProcessedPoints;
-		while (this->numberOfProcessedPoints < numberOfPointsToProcess)
+		concurrency::parallel_for(
+			firstPointToCalculateIndex,
+			noCalculatedPoints,
+			(unsigned int)1,
+			[&](unsigned int pointIndex)
 		{
+			Point pointBuffer;
+			bool processPoint = true;
+			unsigned int pointOffset = pointIndex - firstPointToCalculateIndex;
 			if (*continueOperation)
 			{
-				unsigned int noCalculatedPoints = this->pointsCalculator->getNumberOfCalculatedPoints();
-				if (noCalculatedPoints > this->numberOfProcessedPoints)
+				if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
 				{
-					anyPointsToProcess = true;
-					concurrency::parallel_for(
-						firstPointToCalculateIndex,
-						noCalculatedPoints,
-						(unsigned int)1,
-						[&](unsigned int pointIndex)
+					if (this->pixelCalculator.GetClipping().IsPointValid(pointBuffer))
 					{
-						Point pointBuffer;
-						bool processPoint = true;
-						if (*continueOperation)
-						{
-							if (this->pointsCalculator->getPoint(pointIndex, pointBuffer))
-							{
-								if(this->pixelCalculator.GetClipping().IsPointValid(pointBuffer))
-								{
-									BitmapPixel pixel = this->pixelCalculator.CalculatePixel(pointBuffer);
-									unsigned int pixelIndex = this->pixelCalculator.GetBitmapSize().GetPixelIndex(pixel);
-									//jeżeli punkt był prawidłowy to piksel również powinien zawierać się w przedziale
-									this->pixelPoints[pixelIndex].push_back(pointIndex);
-								}
-								this->numberOfProcessedPoints++;
-							}
-						}
+						BitmapPixel pixel = this->pixelCalculator.CalculatePixel(pointBuffer);
+						unsigned int pixelIndex = this->pixelCalculator.GetBitmapSize().GetPixelIndex(pixel);
+						//jeżeli punkt był prawidłowy to piksel również powinien zawierać się w przedziale
+						this->pixelPoints[pixelIndex].push_back(pointIndex);
 					}
-					);
-					firstPointToCalculateIndex = noCalculatedPoints;
+					pointProcessedInIteration[pointOffset] = true;
+					this->numberOfProcessedPoints++;
 				}
 			}
-			else
+		}
+		);
+		unsigned int processedPointOffset = 0;
+		while (this->numberOfProcessedPoints < noCalculatedPoints && *continueOperation)
+		{
+			if (pointProcessedInIteration[processedPointOffset])
 			{
-				break;
+				this->numberOfContinuousProcessedPoints++;
+				processedPointOffset++;
 			}
 		}
 		this->isCalculatingPixels = false;
-		return anyPointsToProcess;
+		return (numberOfPointsToProcess <= noCalculatedPoints);//czy przetworzono podaną liczbę punktów?		
 	}
 }
 
@@ -358,4 +325,9 @@ unsigned char FractalPixelsV2::GetNumberOfPointsAtPixel(unsigned int pixelIndex,
 		}
 	}
 	return numberOfPointsAtPixel;
+}
+
+unsigned int FractalPixelsV2::GetNumberOfContinuousProcessedPoints(void)
+{
+	return this->numberOfContinuousProcessedPoints;
 }

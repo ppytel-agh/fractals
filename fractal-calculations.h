@@ -81,9 +81,7 @@ private:
 	bool isCalculatingPixels;
 	concurrency::concurrent_vector<unsigned int>* pixelPoints;
 	std::atomic_uint32_t numberOfProcessedPoints;
-	unsigned int numberOfContinuousProcessedPoints;
-	bool* pointsProcessed;
-	unsigned int numberOfStoredPoints;
+	unsigned int numberOfContinuousProcessedPoints;	
 public:
 	FractalPixelsV2(
 		std::shared_ptr<FractalPoints> pointsCalculator,
@@ -108,4 +106,5 @@ public:
 		unsigned int minPointIndex,
 		unsigned int maxPointIndex
 	);
+	unsigned int GetNumberOfContinuousProcessedPoints(void);
 };
