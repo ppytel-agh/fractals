@@ -717,16 +717,10 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 
 						InitializeFractalPointsCalculator(fractalWindowData);
 						InitializeFractalPointsThread(fractalWindowData);
-						InitializeFractalPixelsCalculator(
+						InitializeFractalRender(
 							fractalWindowData,
 							bitmapWidth,
 							bitmapHeight
-						);
-						InitializeFractalPixelsThread(fractalWindowData);
-						InitializeFractalBitmapGenerator(fractalWindowData);
-						InitializeFractalBitmapThread(
-							fractalWindowData,
-							fractalWindowData->numberOfPointsToProcess
 						);
 
 						fractalWindowData->fractalImage->offsetX = 0;
@@ -947,16 +941,10 @@ void UpdateFractalBitmap(
 		backgroundBrush
 	);
 
-	InitializeFractalPixelsCalculator(
+	InitializeFractalRender(
 		windowData,
 		newWidth,
 		newHeight
-	);
-	InitializeFractalPixelsThread(windowData);
-	InitializeFractalBitmapGenerator(windowData);
-	InitializeFractalBitmapThread(
-		windowData,
-		windowData->numberOfPointsToProcess
 	);
 
 	windowData->fractalImage->offsetX = newOffsetX;
@@ -1059,6 +1047,21 @@ void InitializeFractalBitmapThread(FractalWindowData* fractalWindowData, unsigne
 		fractalBitmapThreadData,
 		0,
 		&fractalWindowData->createFractalBitmapThreadId
+	);
+}
+
+void InitializeFractalRender(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
+{
+	InitializeFractalPixelsCalculator(
+		fractalWindowData,
+		bitmapWidth,
+		bitmapHeight
+	);
+	InitializeFractalPixelsThread(fractalWindowData);
+	InitializeFractalBitmapGenerator(fractalWindowData);
+	InitializeFractalBitmapThread(
+		fractalWindowData,
+		fractalWindowData->numberOfPointsToProcess
 	);
 }
 

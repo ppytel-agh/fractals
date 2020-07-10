@@ -159,3 +159,9 @@ void InitializeFractalBitmapThread(
 	FractalWindowData* fractalWindowData,
 	unsigned int numberOfPointsToRender
 );
+
+void InitializeFractalRender(
+	FractalWindowData* fractalWindowData,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);
