@@ -274,7 +274,7 @@ bool FractalPixelsV2::calculatePixels(
 		}
 		);
 		unsigned int processedPointOffset = 0;
-		while (this->numberOfProcessedPoints < noCalculatedPoints && *continueOperation)
+		while (this->numberOfContinuousProcessedPoints < noCalculatedPoints && *continueOperation)
 		{
 			if (pointProcessedInIteration[processedPointOffset])
 			{

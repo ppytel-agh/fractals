@@ -1072,6 +1072,16 @@ DWORD __stdcall MonochromaticBitmapThreadV2(LPVOID inputPointer)
 			operationData.numberOfPixelsToProcess,
 			operationData.processThread
 		);
+		if (operationData.fractalBitmapFactory->copyIntoBuffer(
+			operationData.viewBufferDC
+		))
+		{
+			InvalidateRect(
+				operationData.viewWindowHandle,
+				NULL,
+				FALSE
+			);
+		}
 	} while (!allPointsProcessed && *operationData.processThread);
 	return 0;
 }
@@ -1088,7 +1098,7 @@ DWORD __stdcall FractalPixelsCalculatorThreadV2(LPVOID inputPointer)
 		allPointsProcessed = operationData.fractalPixelsOutput->calculatePixels(
 			operationData.processThread,
 			operationData.numberOfPointsToProcess
-		);
+		);		
 	} while (!allPointsProcessed && *operationData.processThread);
 
 	return 0;
@@ -1117,7 +1127,7 @@ void InitializeFractalPixelsThreadV2(FractalWindowData* fractalWindowData, unsig
 	FractalPixelsCalculatorThreadDataV2* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadDataV2{};
 	fractalPixelCalculatorData->processThread = fractalWindowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
 	fractalPixelCalculatorData->fractalPixelsOutput = fractalWindowData->fractalPixelsCalculatorV2;
-	fractalPixelCalculatorData->numberOfPointsToProcess = numberOfPointsToRender;
+	fractalPixelCalculatorData->numberOfPointsToProcess = numberOfPointsToRender;	
 	CreateThread(
 		NULL,
 		0,
@@ -1146,6 +1156,8 @@ void InitializeFractalBitmapThreadV2(FractalWindowData* fractalWindowData, unsig
 	fractalBitmapThreadData->numberOfPixelsToProcess = numberOfPointsToRender;
 	fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 	fractalBitmapThreadData->fractalBitmapFactory = fractalWindowData->currentFractalBitmapGeneratorV2;
+	fractalBitmapThreadData->viewWindowHandle = fractalWindowData->windowHandle;
+	fractalBitmapThreadData->viewBufferDC = fractalWindowData->fractalImage->deviceContext;
 	HANDLE createFractalBitmapThreadHandle = CreateThread(
 		NULL,
 		0,

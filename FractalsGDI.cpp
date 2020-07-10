@@ -472,18 +472,18 @@ bool FractalBitmapFactoryV2::generateBitmap(
 	concurrency::concurrent_vector<unsigned int>processedPoints;
 	std::atomic_uint32_t numberOfProcessedPixels = 0;
 	unsigned int noProcesedPoints = this->fractalPixelsCalculator->GetNumberOfContinuousProcessedPoints();
-	bool allPointsFound = noProcesedPoints < numberOfPointsToRender;
-	if (!allPointsFound)
+	bool notAllPointsWereProcessed = noProcesedPoints < numberOfPointsToRender;
+	if (notAllPointsWereProcessed)
 	{
 		numberOfPointsToRender = noProcesedPoints;
-	}
+	}	
 	concurrency::parallel_for(
 		(unsigned int)0,
 		this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetNumberOfPixels(),
 		(unsigned int) 1,
 		[&](unsigned int pixelIndex)
 		{
-			BitmapPixel pixel = {};
+			BitmapPixel pixel = this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetBitmapPixel(pixelIndex);
 			if (this->fractalPixelsCalculator->DoesPixelContainAnyPoint(pixelIndex, numberOfPointsToRender))
 			{
 				this->bitmap.MarkPixelAsText(
@@ -496,12 +496,13 @@ bool FractalBitmapFactoryV2::generateBitmap(
 					this->bitmap.GetPixelData(pixel)
 				);
 			}
+			this->bitmap.bitmapUpdated();
 			numberOfProcessedPixels++;
 		}
 	);
 	while (numberOfProcessedPixels < this->fractalPixelsCalculator->GetPixelCalculator().GetBitmapSize().GetNumberOfPixels() && *continueOperation) {};
 	this->isDrawingBitmap = false;
-	return allPointsFound;
+	return !notAllPointsWereProcessed;
 }
 
 bool FractalBitmapFactoryV2::copyIntoBuffer(HDC bitmapBuffer)

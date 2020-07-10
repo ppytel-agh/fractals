@@ -173,6 +173,8 @@ struct MonochromaticBitmapThreadDataV2
 	std::shared_ptr<bool> processThread;
 	unsigned int numberOfPixelsToProcess;
 	std::shared_ptr<FractalBitmapFactoryV2> fractalBitmapFactory;
+	HWND viewWindowHandle;
+	HDC viewBufferDC;
 };
 DWORD WINAPI MonochromaticBitmapThreadV2(LPVOID);
 
@@ -182,6 +184,7 @@ struct FractalPixelsCalculatorThreadDataV2
 	std::shared_ptr<bool> processThread;
 	std::shared_ptr<FractalPixelsV2> fractalPixelsOutput;
 	unsigned int numberOfPointsToProcess;
+	
 };
 DWORD WINAPI FractalPixelsCalculatorThreadV2(LPVOID);
 
