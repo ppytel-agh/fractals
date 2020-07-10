@@ -1052,16 +1052,10 @@ void InitializeFractalBitmapThread(FractalWindowData* fractalWindowData, unsigne
 
 void InitializeFractalRender(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
 {
-	InitializeFractalPixelsCalculator(
+	InitializeFractalRenderV1(
 		fractalWindowData,
 		bitmapWidth,
 		bitmapHeight
-	);
-	InitializeFractalPixelsThread(fractalWindowData);
-	InitializeFractalBitmapGenerator(fractalWindowData);
-	InitializeFractalBitmapThread(
-		fractalWindowData,
-		fractalWindowData->numberOfPointsToProcess
 	);
 }
 
@@ -1159,6 +1153,39 @@ void InitializeFractalBitmapThreadV2(FractalWindowData* fractalWindowData, unsig
 		fractalBitmapThreadData,
 		0,
 		&fractalWindowData->createFractalBitmapThreadId
+	);
+}
+
+void InitializeFractalRenderV1(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
+{
+	InitializeFractalPixelsCalculator(
+		fractalWindowData,
+		bitmapWidth,
+		bitmapHeight
+	);
+	InitializeFractalPixelsThread(fractalWindowData);
+	InitializeFractalBitmapGenerator(fractalWindowData);
+	InitializeFractalBitmapThread(
+		fractalWindowData,
+		fractalWindowData->numberOfPointsToProcess
+	);
+}
+
+void InitializeFractalRenderV2(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
+{
+	InitializeFractalPixelsCalculatorV2(
+		fractalWindowData,
+		bitmapWidth,
+		bitmapHeight
+	);
+	InitializeFractalPixelsThreadV2(
+		fractalWindowData,
+		fractalWindowData->numberOfPointsToProcess
+	);
+	InitializeFractalBitmapGeneratorV2(fractalWindowData);
+	InitializeFractalBitmapThreadV2(
+		fractalWindowData,
+		fractalWindowData->numberOfPointsToProcess
 	);
 }
 
