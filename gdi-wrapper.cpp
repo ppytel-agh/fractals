@@ -583,12 +583,14 @@ BitmapDimensions::BitmapDimensions(unsigned short width, unsigned short height)
 {
 	this->width = width;
 	this->height = height;
-	this->numberOfPixels = numberOfPixels;
+	this->numberOfPixels = width * height;
 }
 
-BitmapDimensions::BitmapDimensions(BitmapDimensions& prototype)
+BitmapDimensions::BitmapDimensions(const BitmapDimensions& prototype)
 {
-	BitmapDimensions(prototype.width, prototype.height);
+	this->width = prototype.width;
+	this->height = prototype.height;
+	this->numberOfPixels = prototype.numberOfPixels;
 }
 
 unsigned short BitmapDimensions::GetWidth(void)

@@ -14,6 +14,7 @@ public:
 		FractalClipping clipping,
 		BitmapDimensions bitmapSize
 	);
+	FractalPixelCalculatorGDI(const FractalPixelCalculatorGDI& prototype);
 	BitmapPixel CalculatePixel(Point fractalPoint);
 	FractalClipping GetClipping(void);
 	BitmapDimensions GetBitmapSize(void);

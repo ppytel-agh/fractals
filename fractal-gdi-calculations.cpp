@@ -17,6 +17,13 @@ FractalPixelCalculatorGDI::FractalPixelCalculatorGDI(
 	this->bitmapSize = bitmapSize;
 }
 
+FractalPixelCalculatorGDI::FractalPixelCalculatorGDI(const FractalPixelCalculatorGDI& prototype)
+{
+	this->pixelCalculator = prototype.pixelCalculator;
+	this->clipping = prototype.clipping;
+	this->bitmapSize = prototype.bitmapSize;
+}
+
 BitmapPixel FractalPixelCalculatorGDI::CalculatePixel(Point fractalPoint)
 {
 	return BitmapPixel{

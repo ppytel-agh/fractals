@@ -91,7 +91,7 @@ public:
 		unsigned short width,
 		unsigned short height
 	);
-	BitmapDimensions(BitmapDimensions& prototype);
+	BitmapDimensions(const BitmapDimensions& prototype);
 	unsigned short GetWidth(void);
 	unsigned short GetHeight(void);
 	unsigned int GetNumberOfPixels(void);

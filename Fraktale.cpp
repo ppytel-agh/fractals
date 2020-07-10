@@ -962,7 +962,7 @@ void InitializeFractalPointsCalculator(FractalWindowData* fractalWindowData)
 			*fractalWindowData->fractal,
 			Point(0, 0)
 		)
-		);
+	);
 }
 
 void InitializeFractalPointsThread(
@@ -1062,6 +1062,103 @@ void InitializeFractalRender(FractalWindowData* fractalWindowData, unsigned shor
 	InitializeFractalBitmapThread(
 		fractalWindowData,
 		fractalWindowData->numberOfPointsToProcess
+	);
+}
+
+DWORD __stdcall MonochromaticBitmapThreadV2(LPVOID inputPointer)
+{
+	MonochromaticBitmapThreadDataV2* input = (MonochromaticBitmapThreadDataV2*)inputPointer;
+	MonochromaticBitmapThreadDataV2 operationData = *input;
+	delete input;
+	//operationData.fractalBitmapFactory->reset();
+	bool allPointsProcessed = false;
+	do
+	{
+		allPointsProcessed = operationData.fractalBitmapFactory->generateBitmap(
+			operationData.numberOfPixelsToProcess,
+			operationData.processThread
+		);
+	} while (!allPointsProcessed && *operationData.processThread);
+	return 0;
+}
+
+DWORD __stdcall FractalPixelsCalculatorThreadV2(LPVOID inputPointer)
+{
+	FractalPixelsCalculatorThreadDataV2* input = (FractalPixelsCalculatorThreadDataV2*)inputPointer;
+	FractalPixelsCalculatorThreadDataV2 operationData = *input;
+	delete input;
+
+	bool allPointsProcessed = false;
+	do
+	{
+		allPointsProcessed = operationData.fractalPixelsOutput->calculatePixels(
+			operationData.processThread,
+			operationData.numberOfPointsToProcess
+		);
+	} while (!allPointsProcessed && *operationData.processThread);
+
+	return 0;
+}
+
+void InitializeFractalPixelsCalculatorV2(FractalWindowData* fractalWindowData, unsigned short bitmapWidth, unsigned short bitmapHeight)
+{
+	fractalWindowData->fractalPixelsCalculatorV2 = std::shared_ptr < FractalPixelsV2>(new  FractalPixelsV2(
+		fractalWindowData->currentFractalPoints,
+		FractalPixelCalculatorGDI(
+			fractalWindowData->fractal->getClipping(),
+			BitmapDimensions(
+				bitmapWidth,
+				bitmapHeight
+			)
+		)
+	));
+}
+
+void InitializeFractalPixelsThreadV2(FractalWindowData* fractalWindowData, unsigned int numberOfPointsToRender)
+{
+	if (fractalWindowData->processFractalPixelsThread != NULL)
+	{
+		*fractalWindowData->processFractalPixelsThread = false;
+	}
+	FractalPixelsCalculatorThreadDataV2* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadDataV2{};
+	fractalPixelCalculatorData->processThread = fractalWindowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
+	fractalPixelCalculatorData->fractalPixelsOutput = fractalWindowData->fractalPixelsCalculatorV2;
+	fractalPixelCalculatorData->numberOfPointsToProcess = numberOfPointsToRender;
+	CreateThread(
+		NULL,
+		0,
+		FractalPixelsCalculatorThreadV2,
+		fractalPixelCalculatorData,
+		0,
+		&fractalWindowData->calculateFractalPixelsThreadId
+	);
+}
+
+void InitializeFractalBitmapGeneratorV2(FractalWindowData* fractalWindowData)
+{
+	fractalWindowData->currentFractalBitmapGeneratorV2 = std::shared_ptr<FractalBitmapFactoryV2>(new FractalBitmapFactoryV2(
+		fractalWindowData->fractalPixelsCalculatorV2,
+		fractalWindowData->numberOfPointsToProcess
+	));
+}
+
+void InitializeFractalBitmapThreadV2(FractalWindowData* fractalWindowData, unsigned int numberOfPointsToRender)
+{
+	if (fractalWindowData->processFractalBitmapThread != NULL)
+	{
+		*fractalWindowData->processFractalBitmapThread = false;
+	}
+	MonochromaticBitmapThreadDataV2* fractalBitmapThreadData = new MonochromaticBitmapThreadDataV2{};
+	fractalBitmapThreadData->numberOfPixelsToProcess = numberOfPointsToRender;
+	fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
+	fractalBitmapThreadData->fractalBitmapFactory = fractalWindowData->currentFractalBitmapGeneratorV2;
+	HANDLE createFractalBitmapThreadHandle = CreateThread(
+		NULL,
+		0,
+		MonochromaticBitmapThreadV2,
+		fractalBitmapThreadData,
+		0,
+		&fractalWindowData->createFractalBitmapThreadId
 	);
 }
 

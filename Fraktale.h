@@ -86,6 +86,8 @@ struct FractalWindowData
 	short updateOffsetY;
 	std::shared_ptr<FractalBitmapFactory> currentFractalBitmapGenerator;
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
+	std::shared_ptr<FractalBitmapFactoryV2> currentFractalBitmapGeneratorV2;
+	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculatorV2;
 };
 
 struct FractalFormDialogData
@@ -164,4 +166,39 @@ void InitializeFractalRender(
 	FractalWindowData* fractalWindowData,
 	unsigned short bitmapWidth,
 	unsigned short bitmapHeight
+);
+
+struct MonochromaticBitmapThreadDataV2
+{
+	std::shared_ptr<bool> processThread;
+	unsigned int numberOfPixelsToProcess;
+	std::shared_ptr<FractalBitmapFactoryV2> fractalBitmapFactory;
+};
+DWORD WINAPI MonochromaticBitmapThreadV2(LPVOID);
+
+
+struct FractalPixelsCalculatorThreadDataV2
+{
+	std::shared_ptr<bool> processThread;
+	std::shared_ptr<FractalPixelsV2> fractalPixelsOutput;
+	unsigned int numberOfPointsToProcess;
+};
+DWORD WINAPI FractalPixelsCalculatorThreadV2(LPVOID);
+
+void InitializeFractalPixelsCalculatorV2(
+	FractalWindowData* fractalWindowData,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);
+void InitializeFractalPixelsThreadV2(
+	FractalWindowData* fractalWindowData,
+	unsigned int numberOfPointsToRender
+);
+
+void InitializeFractalBitmapGeneratorV2(
+	FractalWindowData* fractalWindowData
+);
+void InitializeFractalBitmapThreadV2(
+	FractalWindowData* fractalWindowData,
+	unsigned int numberOfPointsToRender
 );
