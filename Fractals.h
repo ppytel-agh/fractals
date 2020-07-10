@@ -136,6 +136,7 @@ private:
 	float xDelta;
 	float yDelta;
 public:
+	PixelCalculator();
 	PixelCalculator(
 		unsigned short gxMax,
 		unsigned short gyMax,

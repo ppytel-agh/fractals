@@ -102,3 +102,18 @@ void UpdateFractalBitmap(
 	short newOffsetY,
 	float newScale
 );
+
+class MessageProcessor
+{
+private:
+	HACCEL hAccelTable;
+	HWND dialogHandle; //formDialogHandle
+	FractalFormDialogData* fractalDialogData;
+public:
+	MessageProcessor(
+		HACCEL hAccelTable,
+		HWND dialogHandle,
+		FractalFormDialogData* fractalDialogData
+	);
+	void ProcessMessage(MSG msg);
+};

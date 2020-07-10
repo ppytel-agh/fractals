@@ -86,10 +86,12 @@ private:
 	unsigned short height;
 	unsigned int numberOfPixels;
 public:
+	BitmapDimensions();
 	BitmapDimensions(
 		unsigned short width,
 		unsigned short height
 	);
+	BitmapDimensions(BitmapDimensions& prototype);
 	unsigned short GetWidth(void);
 	unsigned short GetHeight(void);
 	unsigned int GetNumberOfPixels(void);
@@ -108,6 +110,7 @@ private:
 protected:
 	BITMAP bitmapData;
 public:
+	Bitmap();
 	Bitmap(
 		unsigned short width,
 		unsigned short height
@@ -134,6 +137,7 @@ private:
 	unsigned int noBytesRequired;
 	BYTE* pixelBitClusters;
 public:
+	MonochromaticBitmap();
 	MonochromaticBitmap(
 		unsigned short width,
 		unsigned short height

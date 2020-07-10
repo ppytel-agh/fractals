@@ -443,6 +443,11 @@ bool Bitmap::IsPixelIndexValid(unsigned int pixelIndex)
 	return pixelIndex < this->numberOfPixels;
 }
 
+Bitmap::Bitmap()
+{
+	Bitmap(0, 0);
+}
+
 Bitmap::Bitmap(unsigned short width, unsigned short height)
 {
 	this->bitmapData = {};
@@ -527,6 +532,11 @@ MonochromaticPixelData MonochromaticBitmap::GetPixelData(BitmapPixel pixel)
 	};
 }
 
+MonochromaticBitmap::MonochromaticBitmap()
+{
+	MonochromaticBitmap(0, 0);
+}
+
 MonochromaticBitmap::MonochromaticBitmap(unsigned short width, unsigned short height) : Bitmap(width, height)
 {
 	LONG bytesPerScanline = ceil(width / 16.0f) * 2;
@@ -564,11 +574,21 @@ void MonochromaticBitmap::Clear(void)
 	);
 }
 
+BitmapDimensions::BitmapDimensions()
+{
+	BitmapDimensions(0, 0);
+}
+
 BitmapDimensions::BitmapDimensions(unsigned short width, unsigned short height)
 {
 	this->width = width;
 	this->height = height;
 	this->numberOfPixels = numberOfPixels;
+}
+
+BitmapDimensions::BitmapDimensions(BitmapDimensions& prototype)
+{
+	BitmapDimensions(prototype.width, prototype.height);
 }
 
 unsigned short BitmapDimensions::GetWidth(void)

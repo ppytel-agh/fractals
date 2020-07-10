@@ -352,6 +352,14 @@ unsigned char Fractal::getNumberOfProbabilities(void)
 	return this->numberOfProbabilities;
 }
 
+PixelCalculator::PixelCalculator():fractal()
+{
+	this->gxMax = 0;
+	this->gyMax = 0;
+	this->xDelta = 0.0f;
+	this->yDelta = 0.0f;
+}
+
 PixelCalculator::PixelCalculator(
 	unsigned short gxMax,
 	unsigned short gyMax,

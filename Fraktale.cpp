@@ -1140,3 +1140,33 @@ void UpdateFractalBitmap(
 	windowData->fractalImage->height = newHeight;
 
 }
+
+MessageProcessor::MessageProcessor(
+	HACCEL hAccelTable,
+	HWND dialogHandle,
+	FractalFormDialogData* fractalDialogData
+)
+{
+	this->hAccelTable = hAccelTable;
+	this->dialogHandle = dialogHandle;
+	this->fractalDialogData = fractalDialogData;	
+}
+
+void MessageProcessor::ProcessMessage(MSG msg)
+{
+	bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
+	/*
+	Wywołania IsDialogMessage są lipne, bo jakakolwiek zmiana w liście okien aplikacji wymaga dostosowania tego kodu.
+	Przydałaby się drobna klasa do zarządzania oknami dialogowymi w ramach danego wątku.
+	*/
+	bool isDialog = IsDialogMessage(dialogHandle, &msg);
+	if (fractalDialogData->importDialogWindowHandle != NULL)
+	{
+		isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
+	}
+	if (!isTranslated && !isDialog)
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+}

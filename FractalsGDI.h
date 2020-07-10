@@ -114,6 +114,7 @@ private:
 	FractalClipping clipping;
 	BitmapDimensions bitmapSize;
 public:
+	FractalPixelCalculatorGDI();
 	FractalPixelCalculatorGDI(
 		FractalClipping clipping,
 		BitmapDimensions bitmapSize

@@ -522,6 +522,10 @@ void FractalBitmapFactoryV2::reset(void)
 	}
 }
 
+FractalPixelCalculatorGDI::FractalPixelCalculatorGDI(): pixelCalculator(), clipping(), bitmapSize()
+{
+}
+
 FractalPixelCalculatorGDI::FractalPixelCalculatorGDI(
 	FractalClipping clipping,
 	BitmapDimensions bitmapSize
@@ -529,7 +533,7 @@ FractalPixelCalculatorGDI::FractalPixelCalculatorGDI(
 	bitmapSize.GetWidth(),
 	bitmapSize.GetHeight(),
 	clipping
-)
+) , bitmapSize(bitmapSize), clipping(clipping)
 {
 	this->clipping = clipping;
 	this->bitmapSize = bitmapSize;
