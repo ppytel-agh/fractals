@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <ppl.h>
 #include "gdi-wrapper.h"
-#include "FractalsGDI.h"
+#include "fractal-gdi-calculations.h"
 
 class FractalPoints
 {

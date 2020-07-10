@@ -615,7 +615,7 @@ BitmapPixel BitmapDimensions::GetBitmapPixel(unsigned int pixelIndex)
 {
 	return BitmapPixel{
 		pixelIndex % this->width,
-		pixelIndex / this->width
+		(unsigned short)(pixelIndex / this->width)
 	};
 }
 

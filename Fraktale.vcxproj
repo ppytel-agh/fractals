@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="debug-helper.h" />
     <ClInclude Include="fractal-calculations.h" />
+    <ClInclude Include="fractal-gdi-calculations.h" />
     <ClInclude Include="Fractals.h" />
     <ClInclude Include="FractalsGDI.h" />
     <ClInclude Include="FractalsGUI.h" />
@@ -155,6 +156,7 @@
   <ItemGroup>
     <ClCompile Include="debug-helper.cpp" />
     <ClCompile Include="fractal-calculations.cpp" />
+    <ClCompile Include="fractal-gdi-calculations.cpp" />
     <ClCompile Include="Fractals.cpp" />
     <ClCompile Include="FractalsGDI.cpp" />
     <ClCompile Include="FractalsGUI.cpp" />

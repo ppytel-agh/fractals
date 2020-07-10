@@ -5,6 +5,7 @@
 #include <ppl.h>
 #include "gdi-wrapper.h"
 #include "fractal-calculations.h"
+#include "fractal-gdi-calculations.h"
 #include "ppl.h"
 
 class FractalDrawing
@@ -105,21 +106,4 @@ public:
 	);
 	bool copyIntoBuffer(HDC bitmapBuffer);
 	void reset(void);
-};
-
-class FractalPixelCalculatorGDI
-{
-private:
-	PixelCalculator pixelCalculator;
-	FractalClipping clipping;
-	BitmapDimensions bitmapSize;
-public:
-	FractalPixelCalculatorGDI();
-	FractalPixelCalculatorGDI(
-		FractalClipping clipping,
-		BitmapDimensions bitmapSize
-	);
-	BitmapPixel CalculatePixel(Point fractalPoint);
-	FractalClipping GetClipping(void);
-	BitmapDimensions GetBitmapSize(void);
 };
