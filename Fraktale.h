@@ -85,6 +85,7 @@ struct FractalWindowData
 	short updateOffsetX;
 	short updateOffsetY;
 	std::shared_ptr<FractalBitmapFactory> currentFractalBitmapGenerator;
+	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
 };
 
 struct FractalFormDialogData
@@ -134,3 +135,27 @@ public:
 	);
 	int messageLoop(void);
 };
+
+void InitializeFractalPointsCalculator(
+	FractalWindowData* fractalWindowData
+);
+void InitializeFractalPointsThread(
+	FractalWindowData* fractalWindowData
+);
+
+void InitializeFractalPixelsCalculator(
+	FractalWindowData* fractalWindowData,
+	unsigned short bitmapWidth,
+	unsigned short bitmapHeight
+);
+void InitializeFractalPixelsThread(
+	FractalWindowData* fractalWindowData
+);
+
+void InitializeFractalBitmapGenerator(
+	FractalWindowData* fractalWindowData
+);
+void InitializeFractalBitmapThread(
+	FractalWindowData* fractalWindowData,
+	unsigned int numberOfPointsToRender
+);
