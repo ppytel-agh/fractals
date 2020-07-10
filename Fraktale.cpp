@@ -37,88 +37,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HWND dialogHandle = fractalWindowData->dialogWindowHandle;
 	FractalFormDialogData* fractalDialogData = (FractalFormDialogData*)GetWindowLong(dialogHandle, GWL_USERDATA);
 
-	std::chrono::steady_clock::time_point lastPaintingTS = std::chrono::high_resolution_clock::now();
-	unsigned char framecapMS = 16;
-	// Main message loop:
-	while (1)
-	{
-		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-
-			switch (msg.message)
-			{
-				case WM_QUIT:
-					return (int)msg.wParam;
-				case WM_KEYUP:
-					{
-						bool framecapChanged = false;
-						switch (msg.wParam)
-						{
-							case VK_ADD:
-								if (framecapMS < 50)
-								{
-									framecapMS++;
-									framecapChanged = true;
-								}
-								break;
-							case VK_SUBTRACT:
-								if (framecapMS > 0)
-								{
-									framecapMS--;
-									framecapChanged = true;
-								}
-								break;
-						}
-						if (framecapChanged)
-						{
-							std::wstringstream stream;
-							stream << L"Nowy framecap - " << framecapMS << L"\n";
-							OutputDebugStringW(stream.str().c_str());
-						}
-					}
-					break;
-			}
-
-			bool isTranslated = TranslateAccelerator(msg.hwnd, hAccelTable, &msg);
-			/*
-			Wywołania IsDialogMessage są lipne, bo jakakolwiek zmiana w liście okien aplikacji wymaga dostosowania tego kodu.
-			Przydałaby się drobna klasa do zarządzania oknami dialogowymi w ramach danego wątku.
-			*/
-			bool isDialog = IsDialogMessage(dialogHandle, &msg);
-			if (fractalDialogData->importDialogWindowHandle != NULL)
-			{
-				isDialog = IsDialogMessage(fractalDialogData->importDialogWindowHandle, &msg);
-			}
-			if (!isTranslated && !isDialog)
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-		}
-
-		Sleep(1);
-		//sprawdzanie, czy bitmapa fraktala została zaktualizowana w celu wywołania przerysowania okna
-		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
-		{
-			std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
-			long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastPaintingTS).count();
-			if (noMillisecondsSinceLastPainting > framecapMS)
-			{
-				lastPaintingTS = currentTS;
-				if (fractalWindowData->currentFractalBitmapGenerator->copyIntoBuffer(
-					fractalWindowData->fractalImage->deviceContext
-				))
-				{
-					InvalidateRect(
-						mainWindowHandle,
-						NULL,
-						FALSE
-					);
-				}
-			}
-		}
-
-	}
+	RealTimeMessageLoop msgLoop(
+		MessageProcessor(
+			hAccelTable,
+			dialogHandle,
+			fractalDialogData
+		),
+		fractalWindowData,
+		mainWindowHandle
+	);
+	return msgLoop.messageLoop();
 }
 
 
@@ -842,7 +770,7 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 							}
 							MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
 							fractalBitmapThreadData->numberOfPixelsToProcess = fractalWindowData->numberOfPointsToProcess;
-							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });						
+							fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 							fractalWindowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 								fractalPixels,
 								fractalWindowData->numberOfPointsToProcess
@@ -1118,7 +1046,7 @@ void UpdateFractalBitmap(
 		}
 		MonochromaticBitmapThreadData* fractalBitmapThreadData = new MonochromaticBitmapThreadData{};
 		fractalBitmapThreadData->processThread = windowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
-		fractalBitmapThreadData->numberOfPixelsToProcess = windowData->numberOfPointsToProcess;	
+		fractalBitmapThreadData->numberOfPixelsToProcess = windowData->numberOfPointsToProcess;
 		windowData->currentFractalBitmapGenerator = fractalBitmapThreadData->fractalBitmapFactory = std::shared_ptr<FractalBitmapFactory>(new FractalBitmapFactory(
 			fractalPixels,
 			windowData->numberOfPointsToProcess
@@ -1149,7 +1077,7 @@ MessageProcessor::MessageProcessor(
 {
 	this->hAccelTable = hAccelTable;
 	this->dialogHandle = dialogHandle;
-	this->fractalDialogData = fractalDialogData;	
+	this->fractalDialogData = fractalDialogData;
 }
 
 void MessageProcessor::ProcessMessage(MSG msg)
@@ -1168,5 +1096,87 @@ void MessageProcessor::ProcessMessage(MSG msg)
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+	}
+}
+
+RealTimeMessageLoop::RealTimeMessageLoop(
+	MessageProcessor msgProcessor,
+	FractalWindowData* fractalWindowData,
+	HWND mainWindowHandle
+): msgProcessor(msgProcessor)
+{
+	this->fractalWindowData = fractalWindowData;
+	this->mainWindowHandle = mainWindowHandle;
+	this->lastPaintingTS = std::chrono::high_resolution_clock::now();
+	this->framecapMS = 16;
+}
+
+int RealTimeMessageLoop::messageLoop(void)
+{
+	MSG msg;
+	while (1)
+	{
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+
+			switch (msg.message)
+			{
+				case WM_QUIT:
+					return (int)msg.wParam;
+				case WM_KEYUP:
+					{
+						bool framecapChanged = false;
+						switch (msg.wParam)
+						{
+							case VK_ADD:
+								if (framecapMS < 50)
+								{
+									framecapMS++;
+									framecapChanged = true;
+								}
+								break;
+							case VK_SUBTRACT:
+								if (framecapMS > 0)
+								{
+									framecapMS--;
+									framecapChanged = true;
+								}
+								break;
+						}
+						if (framecapChanged)
+						{
+							std::wstringstream stream;
+							stream << L"Nowy framecap - " << framecapMS << L"\n";
+							OutputDebugStringW(stream.str().c_str());
+						}
+					}
+					break;
+			}
+
+			this->msgProcessor.ProcessMessage(msg);
+		}
+
+		Sleep(1);
+		//sprawdzanie, czy bitmapa fraktala została zaktualizowana w celu wywołania przerysowania okna
+		if (fractalWindowData->currentFractalBitmapGenerator != NULL)
+		{
+			std::chrono::steady_clock::time_point currentTS = std::chrono::high_resolution_clock::now();
+			long long noMillisecondsSinceLastPainting = std::chrono::duration_cast<std::chrono::milliseconds>(currentTS - lastPaintingTS).count();
+			if (noMillisecondsSinceLastPainting > framecapMS)
+			{
+				lastPaintingTS = currentTS;
+				if (fractalWindowData->currentFractalBitmapGenerator->copyIntoBuffer(
+					fractalWindowData->fractalImage->deviceContext
+				))
+				{
+					InvalidateRect(
+						mainWindowHandle,
+						NULL,
+						FALSE
+					);
+				}
+			}
+		}
+
 	}
 }

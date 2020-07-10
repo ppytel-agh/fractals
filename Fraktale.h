@@ -117,3 +117,20 @@ public:
 	);
 	void ProcessMessage(MSG msg);
 };
+
+class RealTimeMessageLoop
+{
+private:
+	MessageProcessor msgProcessor;
+	FractalWindowData* fractalWindowData;
+	HWND mainWindowHandle;
+	std::chrono::steady_clock::time_point lastPaintingTS;
+	unsigned char framecapMS;
+public:
+	RealTimeMessageLoop(
+		MessageProcessor msgProcessor,
+		FractalWindowData* fractalWindowData,
+		HWND mainWindowHandle
+	);
+	int messageLoop(void);
+};
