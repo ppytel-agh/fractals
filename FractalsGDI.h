@@ -59,17 +59,46 @@ class FractalBitmapFactory
 {
 private:
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
+	BITMAP bitmapData;
+	unsigned short bitsPerScanline;
+	unsigned int noBytesRequired;
+	BYTE* pixelBytes;
 	bool isDrawingBitmap;
+	HBITMAP bitmapHandle;
+	bool bitmapUpdated;
 	std::atomic_uchar* pixelCount;
 	unsigned int maxNumberOfPointsToProcess;
+	unsigned int numberOfPixels;
 	bool* pointsIncludedInBitmap;
-	MonochromaticBitmap bitmap;
 public:
 	FractalBitmapFactory(
 		std::shared_ptr<FractalPixels> fractalPixelsCalculator,
 		unsigned int maxNumberOfPointsToProcess
 	);
 	~FractalBitmapFactory();
+	bool generateBitmap(
+		unsigned int numberOfPixelsToDraw,
+		std::shared_ptr<bool> continueOperation
+	);
+	bool copyIntoBuffer(HDC bitmapBuffer);
+	void reset(void);
+};
+
+class FractalBitmapFactoryV2
+{
+private:
+	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
+	bool isDrawingBitmap;
+	std::atomic_uchar* pixelCount;
+	unsigned int maxNumberOfPointsToProcess;
+	bool* pointsIncludedInBitmap;
+	MonochromaticBitmap bitmap;
+public:
+	FractalBitmapFactoryV2(
+		std::shared_ptr<FractalPixels> fractalPixelsCalculator,
+		unsigned int maxNumberOfPointsToProcess
+	);
+	~FractalBitmapFactoryV2();
 	bool generateBitmap(
 		unsigned int numberOfPixelsToDraw,
 		std::shared_ptr<bool> continueOperation
