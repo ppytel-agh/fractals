@@ -217,3 +217,86 @@ void InitializeFractalRenderV2(
 	unsigned short bitmapWidth,
 	unsigned short bitmapHeight
 );
+
+class IntVector2D
+{
+private:
+	short x;
+	short y;
+public:
+	IntVector2D();
+	IntVector2D(short x, short y);
+	IntVector2D(const IntVector2D& prototype);
+	short GetX(void);
+	short GetY(void);
+	IntVector2D operator+(const IntVector2D& rightHand);
+	IntVector2D operator-(const IntVector2D& rightHand);
+	void operator+=(const IntVector2D& rightHand);
+	void operator-=(const IntVector2D& rightHand);
+};
+
+class Viewport
+{
+private:
+	HWND viewportWindowHandle;
+public:
+	Viewport(HWND viewportWindowHandle);
+	void RefreshViewport(void);
+	BitmapDimensions GetViewportDimensions(void);
+};
+
+class BitmapHandleInterface
+{
+public:
+	virtual HBITMAP GetBitmapHandle(void) = 0;
+};
+
+class BitmapInViewport
+{
+private:
+	Viewport viewport;
+	BitmapHandleInterface* bitmapHandle;
+public:
+	BitmapInViewport(
+		Viewport viewport,
+		BitmapHandleInterface* bitmapHandle
+	);
+	Viewport& GetViewport(void);
+	bool CopyIntoBuffer(
+		HDC viewportBufferDC,
+		int sourceX,
+		int sourceY,
+		int destinationX,
+		int destinationY,
+		int widthOfCopiedRect,
+		int heightOfCopiedRect
+	);
+};
+
+class BitmapMovableInViewport
+{
+private:
+	IntVector2D offset;
+	BitmapInViewport bitmapInViewport;
+public:
+	void MoveBitmap(IntVector2D delta);
+	BitmapInViewport& GetBitmapInViewport(void);
+	bool DrawInRepaintBuffer(
+		HDC repaintBufferDC,
+		RECT viewportRepaintRect
+	);
+};
+
+class ScalableBitmapInViewport
+{
+private:
+	float currentScaleRatio;
+	BitmapMovableInViewport currentMovableBitmap;
+public:
+	static const float minScaleRatio;
+	static const float maxScaleRatio;
+	ScalableBitmapInViewport();
+	~ScalableBitmapInViewport();
+	bool Zoom(float delta, BitmapPixel scalingReferencePoint);
+	BitmapMovableInViewport& GetMovableBitmap(void);
+};

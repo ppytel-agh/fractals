@@ -1312,3 +1312,168 @@ int RealTimeMessageLoop::messageLoop(void)
 
 	}
 }
+
+const float ScalableBitmapInViewport::minScaleRatio = 1.0f;
+const float ScalableBitmapInViewport::maxScaleRatio = 6.0f;
+
+ScalableBitmapInViewport::ScalableBitmapInViewport()
+{
+}
+
+ScalableBitmapInViewport::~ScalableBitmapInViewport()
+{
+}
+
+bool ScalableBitmapInViewport::Zoom(float delta, BitmapPixel scalingReferencePoint)
+{
+	//wylicz nową skalę
+	float newScaleRatio = this->currentScaleRatio + delta;
+
+	//obcięcie skali
+	if (newScaleRatio < this->minScaleRatio)
+	{
+		newScaleRatio = this->minScaleRatio;
+	}
+	else if (newScaleRatio > this->maxScaleRatio)
+	{
+		newScaleRatio = this->maxScaleRatio;
+	}
+
+	//sprawdź czy skala się w ogóle zmieniła
+	if (newScaleRatio != this->currentScaleRatio)
+	{
+
+	}
+	return false;
+}
+
+BitmapMovableInViewport& ScalableBitmapInViewport::GetMovableBitmap(void)
+{
+	return this->currentMovableBitmap;
+}
+
+Viewport::Viewport(HWND viewportWindowHandle)
+{
+	this->viewportWindowHandle = viewportWindowHandle;
+}
+
+void Viewport::RefreshViewport(void)
+{
+	InvalidateRect(
+		this->viewportWindowHandle,
+		NULL,
+		FALSE
+	);
+}
+
+BitmapDimensions Viewport::GetViewportDimensions(void)
+{
+	RECT clientRect;
+	GetClientRect(
+		this->viewportWindowHandle,
+		&clientRect
+	);
+	return BitmapDimensions(
+		clientRect.right,
+		clientRect.bottom
+	);
+}
+
+IntVector2D::IntVector2D()
+{
+	IntVector2D(0, 0);
+}
+
+IntVector2D::IntVector2D(short x, short y)
+{
+	this->x = x;
+	this->y = y;
+}
+
+IntVector2D::IntVector2D(const IntVector2D& prototype)
+{
+	this->x = prototype.x;
+	this->y = prototype.y;
+}
+
+short IntVector2D::GetX(void)
+{
+	return this->x;
+}
+
+short IntVector2D::GetY(void)
+{
+	return this->y;
+}
+
+IntVector2D IntVector2D::operator+(const IntVector2D& rightHand)
+{
+	return IntVector2D(
+		this->x + rightHand.x,
+		this->y + rightHand.y
+	);
+}
+
+IntVector2D IntVector2D::operator-(const IntVector2D& rightHand)
+{
+	return IntVector2D(
+		this->x - rightHand.x,
+		this->y - rightHand.y
+	);
+}
+
+void IntVector2D::operator+=(const IntVector2D& rightHand)
+{
+	this->x += rightHand.x;
+	this->y += rightHand.y;
+}
+
+void IntVector2D::operator-=(const IntVector2D& rightHand)
+{
+	this->x -= rightHand.x;
+	this->y -= rightHand.y;
+}
+
+void BitmapMovableInViewport::MoveBitmap(IntVector2D delta)
+{
+	this->offset += delta;
+	this->viewport.RefreshViewport();
+}
+
+BitmapInViewport& BitmapMovableInViewport::GetBitmapInViewport(void)
+{
+	return this->bitmapInViewport;
+}
+
+BitmapInViewport::BitmapInViewport(Viewport viewport, BitmapHandleInterface* bitmapHandle)
+{
+	this->viewport = viewport;
+	this->bitmapHandle = bitmapHandle;
+}
+
+Viewport& BitmapInViewport::GetViewport(void)
+{
+	return this->viewport;
+}
+
+bool BitmapInViewport::CopyIntoBuffer(HDC viewportBufferDC, int sourceX, int sourceY, int destinationX, int destinationY, int widthOfCopiedRect, int heightOfCopiedRect)
+{
+	HDC sourceDC = CreateCompatibleDC(viewportBufferDC);
+	SelectObject(
+		sourceDC,
+		this->bitmapHandle->GetBitmapHandle()
+	);
+	bool blitResult = BitBlt(
+		viewportBufferDC,
+		destinationX,
+		destinationY,
+		widthOfCopiedRect,
+		heightOfCopiedRect,
+		sourceDC,
+		sourceX,
+		sourceY,
+		SRCCOPY
+	);
+	DeleteDC(sourceDC);
+	return blitResult;
+}
