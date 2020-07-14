@@ -1316,11 +1316,8 @@ int RealTimeMessageLoop::messageLoop(void)
 const float ScalableBitmapInViewport::minScaleRatio = 1.0f;
 const float ScalableBitmapInViewport::maxScaleRatio = 6.0f;
 
-ScalableBitmapInViewport::ScalableBitmapInViewport()
-{
-}
-
-ScalableBitmapInViewport::~ScalableBitmapInViewport()
+ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitmap)
+	: currentMovableBitmap(bitmap)
 {
 }
 
@@ -1434,10 +1431,16 @@ void IntVector2D::operator-=(const IntVector2D& rightHand)
 	this->y -= rightHand.y;
 }
 
+BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapDimensionsInterface& bitmapDimensionsProvider)
+	:bitmapInViewport(bitmapInViewport), bitmapDimensionsProvider(bitmapDimensionsProvider)
+{
+
+}
+
 void BitmapMovableInViewport::MoveBitmap(IntVector2D delta)
 {
 	this->offset += delta;
-	this->viewport.RefreshViewport();
+	this->bitmapInViewport.GetViewport().RefreshViewport();
 }
 
 BitmapInViewport& BitmapMovableInViewport::GetBitmapInViewport(void)
@@ -1445,10 +1448,92 @@ BitmapInViewport& BitmapMovableInViewport::GetBitmapInViewport(void)
 	return this->bitmapInViewport;
 }
 
-BitmapInViewport::BitmapInViewport(Viewport viewport, BitmapHandleInterface* bitmapHandle)
+bool BitmapMovableInViewport::DrawInRepaintBuffer(HDC repaintBufferDC, RECT viewportRepaintRect)
 {
-	this->viewport = viewport;
-	this->bitmapHandle = bitmapHandle;
+	RECTProcessor rectProc(viewportRepaintRect);
+	IntVector2D repaintOffset = this->offset - rectProc.GetTopLeftVector();
+	IntVector2D repaintRectBottomRight = rectProc.GetBottomRightVector();
+	unsigned short repaintWidth = rectProc.GetWidth();
+	unsigned short repaintHeight = rectProc.GetHeight();
+
+	int sourceX = 0;
+	int sourceY = 0;
+	int copiedWidth = 0;
+	int copiedHeight = 0;
+	int destinationX = 0;
+	int destinationY = 0;
+	if (repaintOffset.GetX() < 0)
+	{
+		//lewa krawędź obrazka wystaje za lewą krawędź obszaru rysowania
+		copiedWidth = this->bitmapDimensionsProvider.GetBitmapDimensions().GetWidth() + repaintOffset.GetX();
+		if (copiedWidth <= 0)
+		{
+			//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
+			OutputDebugStringW(L"bitmapa poza lewą krawędzią");
+			return false;
+		}
+		else if (copiedWidth > repaintWidth)
+		{
+			//ogranicz kopiwany obszar do obszaru rysowania
+			copiedWidth = repaintWidth;
+		}
+		sourceX = -repaintOffset.GetX();
+	}
+	else
+	{
+		//lewa krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+		if (this->offset.GetX() >= repaintRectBottomRight.GetX())
+		{
+			//obrazek znajduje się w całości poza prawą krawędzia
+			OutputDebugStringW(L"bitmapa poza prawą krawędzią");
+			return false;
+		}
+		destinationX = repaintOffset.GetX();
+		copiedWidth = repaintWidth - repaintOffset.GetX();
+	}
+	if (repaintOffset.GetY() < 0)
+	{
+		//górna krawędź obrazka wystaje poza obszar rysowania
+		copiedHeight = this->bitmapDimensionsProvider.GetBitmapDimensions().GetHeight() + repaintOffset.GetY();
+		if (copiedHeight <= 0)
+		{
+			//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
+			OutputDebugStringW(L"bitmapa poza górną krawędzią");
+			return false;
+		}
+		else if (copiedHeight > repaintHeight)
+		{
+			//ogranicz kopiwany obszar do obszaru rysowania
+			copiedHeight = repaintHeight;
+		}
+		sourceY = -repaintOffset.GetY();
+	}
+	else
+	{
+		//górna krawędź obrazka zaczyna się wewnątrz obszaru rysowania
+		if (this->offset.GetY() >= repaintRectBottomRight.GetY())
+		{
+			//obrazek znajduje się w całości poza dolną krawędzia
+			OutputDebugStringW(L"bitmapa poza dolną krawędzią");
+			return false;
+		}
+		destinationY = repaintOffset.GetY();
+		copiedHeight = repaintHeight - repaintOffset.GetY();
+	}
+	return this->bitmapInViewport.CopyIntoBuffer(
+		repaintBufferDC,
+		sourceX,
+		sourceY,
+		destinationX,
+		destinationY,
+		copiedWidth,
+		copiedHeight
+	);
+}
+
+BitmapInViewport::BitmapInViewport(Viewport& viewport, BitmapHandleInterface& bitmapHandle)
+	:viewport(viewport), bitmapHandle(bitmapHandle)
+{
 }
 
 Viewport& BitmapInViewport::GetViewport(void)
@@ -1461,7 +1546,7 @@ bool BitmapInViewport::CopyIntoBuffer(HDC viewportBufferDC, int sourceX, int sou
 	HDC sourceDC = CreateCompatibleDC(viewportBufferDC);
 	SelectObject(
 		sourceDC,
-		this->bitmapHandle->GetBitmapHandle()
+		this->bitmapHandle.GetBitmapHandle()
 	);
 	bool blitResult = BitBlt(
 		viewportBufferDC,
@@ -1476,4 +1561,35 @@ bool BitmapInViewport::CopyIntoBuffer(HDC viewportBufferDC, int sourceX, int sou
 	);
 	DeleteDC(sourceDC);
 	return blitResult;
+}
+
+RECTProcessor::RECTProcessor(RECT rect)
+{
+	this->rect = rect;
+}
+
+unsigned short RECTProcessor::GetWidth(void)
+{
+	return this->rect.right - this->rect.left;
+}
+
+unsigned short RECTProcessor::GetHeight(void)
+{
+	return this->rect.bottom - this->rect.top;
+}
+
+IntVector2D RECTProcessor::GetTopLeftVector(void)
+{
+	return IntVector2D(
+		static_cast<short>(this->rect.left),
+		static_cast<short>(this->rect.top)
+	);
+}
+
+IntVector2D RECTProcessor::GetBottomRightVector(void)
+{
+	return IntVector2D(
+		static_cast<short>(this->rect.right),
+		static_cast<short>(this->rect.bottom)
+	);
 }

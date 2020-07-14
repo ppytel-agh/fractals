@@ -254,12 +254,12 @@ public:
 class BitmapInViewport
 {
 private:
-	Viewport viewport;
-	BitmapHandleInterface* bitmapHandle;
+	Viewport& viewport;
+	BitmapHandleInterface& bitmapHandle;
 public:
 	BitmapInViewport(
-		Viewport viewport,
-		BitmapHandleInterface* bitmapHandle
+		Viewport& viewport,
+		BitmapHandleInterface& bitmapHandle
 	);
 	Viewport& GetViewport(void);
 	bool CopyIntoBuffer(
@@ -273,12 +273,32 @@ public:
 	);
 };
 
+class RECTProcessor
+{
+private:
+	RECT rect;
+public:
+	RECTProcessor(RECT rect);
+	unsigned short GetWidth(void);
+	unsigned short GetHeight(void);
+	IntVector2D GetTopLeftVector(void);
+	IntVector2D GetBottomRightVector(void);
+};
+
+class BitmapDimensionsInterface
+{
+public:
+	virtual BitmapDimensions& GetBitmapDimensions(void) = 0;
+};
+
 class BitmapMovableInViewport
 {
 private:
 	IntVector2D offset;
-	BitmapInViewport bitmapInViewport;
+	BitmapInViewport& bitmapInViewport;
+	BitmapDimensionsInterface& bitmapDimensionsProvider;
 public:
+	BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapDimensionsInterface& bitmapDimensionsProvider);
 	void MoveBitmap(IntVector2D delta);
 	BitmapInViewport& GetBitmapInViewport(void);
 	bool DrawInRepaintBuffer(
@@ -291,12 +311,11 @@ class ScalableBitmapInViewport
 {
 private:
 	float currentScaleRatio;
-	BitmapMovableInViewport currentMovableBitmap;
+	BitmapMovableInViewport& currentMovableBitmap;
 public:
 	static const float minScaleRatio;
 	static const float maxScaleRatio;
-	ScalableBitmapInViewport();
-	~ScalableBitmapInViewport();
+	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap);
 	bool Zoom(float delta, BitmapPixel scalingReferencePoint);
 	BitmapMovableInViewport& GetMovableBitmap(void);
 };
