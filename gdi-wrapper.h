@@ -79,6 +79,12 @@ struct BitmapPixel
 	unsigned short y;
 };
 
+struct UShortSize2D
+{
+	unsigned short width;
+	unsigned short height;
+};
+
 class BitmapDimensions
 {
 private:
@@ -91,9 +97,11 @@ public:
 		unsigned short width,
 		unsigned short height
 	);
+	BitmapDimensions(UShortSize2D size);
 	BitmapDimensions(const BitmapDimensions& prototype);
 	unsigned short GetWidth(void);
 	unsigned short GetHeight(void);
+	UShortSize2D GetSize(void);
 	unsigned int GetNumberOfPixels(void);
 	unsigned int GetPixelIndex(BitmapPixel pixel);
 	BitmapPixel GetBitmapPixel(unsigned int pixelIndex);

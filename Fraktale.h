@@ -55,8 +55,231 @@ struct FractalPixelsCalculatorThreadData
 };
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
 
+class Viewport
+{
+private:
+	HWND viewportWindowHandle;
+public:
+	Viewport(HWND viewportWindowHandle);
+	void RefreshViewport(void);
+	BitmapDimensions GetViewportDimensions(void);
+};
+
+class PaintableInterface
+{
+public:
+	virtual bool  DrawInRepaintBuffer(HDC repaintBufferDC, RECT viewportRepaintRect) = 0;
+};
+
+
+
+
+struct FractalFormDialogData
+{
+	FractalDrawingUI* fractalUI;
+	HWND importDialogWindowHandle;
+	float drawingScale;
+};
+
+
+
+struct MonochromaticBitmapThreadDataV2
+{
+	MonochromaticBitmapThreadDataV2(Viewport& viewport) : viewport(viewport) {};
+	std::shared_ptr<bool> processThread;
+	unsigned int numberOfPixelsToProcess;
+	std::shared_ptr<FractalBitmapFactoryV2> fractalBitmapFactory;
+	HWND viewWindowHandle;
+	HDC viewBufferDC;
+	Viewport& viewport;
+};
+DWORD WINAPI MonochromaticBitmapThreadV2(LPVOID);
+
+
+struct FractalPixelsCalculatorThreadDataV2
+{
+	std::shared_ptr<bool> processThread;
+	std::shared_ptr<FractalPixelsV2> fractalPixelsOutput;
+	unsigned int numberOfPointsToProcess;
+	
+};
+DWORD WINAPI FractalPixelsCalculatorThreadV2(LPVOID);
+
+class IntVector2D
+{
+private:
+	short x;
+	short y;
+public:
+	IntVector2D();
+	IntVector2D(short x, short y);
+	IntVector2D(const IntVector2D& prototype);
+	short GetX(void);
+	short GetY(void);
+	IntVector2D operator+(const IntVector2D& rightHand);
+	IntVector2D operator-(const IntVector2D& rightHand);
+	void operator+=(const IntVector2D& rightHand);
+	void operator-=(const IntVector2D& rightHand);
+};
+
+
+
+class BitmapHandleProviderInterface
+{
+public:
+	virtual HBITMAP GetBitmapHandle(void) = 0;
+};
+
+class BitmapInViewport
+{
+private:
+	Viewport& viewport;
+	BitmapHandleProviderInterface& bitmapHandle;
+public:
+	BitmapInViewport(
+		Viewport& viewport,
+		BitmapHandleProviderInterface& bitmapHandle
+	);
+	Viewport& GetViewport(void);
+	bool CopyIntoBuffer(
+		HDC viewportBufferDC,
+		int sourceX,
+		int sourceY,
+		int destinationX,
+		int destinationY,
+		int widthOfCopiedRect,
+		int heightOfCopiedRect
+	);
+};
+
+class RECTProcessor
+{
+private:
+	RECT rect;
+public:
+	RECTProcessor(RECT rect);
+	unsigned short GetWidth(void);
+	unsigned short GetHeight(void);
+	IntVector2D GetTopLeftVector(void);
+	IntVector2D GetBottomRightVector(void);
+	UShortSize2D GetSize(void);
+};
+
+class BitmapDimensionsInterface
+{
+public:
+	virtual BitmapDimensions& GetBitmapDimensions(void) = 0;
+};
+
+class BitmapSizeProviderInterface
+{
+public: 
+	virtual UShortSize2D GetBitmapSize(void) = 0;
+};
+
+class BitmapToSizeGeneratorInterface
+{
+public:
+	virtual void GenerateBitmap(UShortSize2D bitmapSize) = 0;
+};
+
+class FractalBitmap: 
+	public BitmapToSizeGeneratorInterface,
+	public BitmapSizeProviderInterface,
+	public BitmapHandleProviderInterface
+{
+public:
+
+};
+
+
+class BitmapMovableInViewport: public PaintableInterface
+{
+private:
+	IntVector2D offset;
+	BitmapInViewport& bitmapInViewport;
+	BitmapSizeProviderInterface& bitmapSizeProvider;
+public:
+	BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapSizeProviderInterface& bitmapSizeProvider);
+	void MoveBitmap(IntVector2D delta);
+	BitmapInViewport& GetBitmapInViewport(void);
+	bool DrawInRepaintBuffer(
+		HDC repaintBufferDC,
+		RECT viewportRepaintRect
+	) override;
+};
+
+class ScalableBitmapInViewport
+{
+private:
+	float currentScaleRatio;
+	BitmapMovableInViewport& currentMovableBitmap;
+	BitmapToSizeGeneratorInterface& bitmapGenerator;
+public:
+	static const float minScaleRatio;
+	static const float maxScaleRatio;
+	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap);
+	bool Zoom(float delta, BitmapPixel scalingReferencePoint);
+	BitmapMovableInViewport& GetMovableBitmap(void);
+};
+
+class PaintingBufferLayerInterface
+{
+public:
+	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) = 0;
+};
+
+class FractalFacade: public PaintingBufferLayerInterface
+{
+private:
+	FractalDrawingUI& fractalUI;
+	BitmapMovableInViewport fractalMovableBitmap;
+public:
+	FractalFacade(FractalDrawingUI& fractalUI) :fractalUI(fractalUI) {};
+
+	// Inherited via PaintingBufferLayerInterface
+	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) override;
+	void Render(void);
+};
+
+/*
+	Klasa do przetwarzania WM_PAINT.
+	Należy utworzyć obiekt na stosie i wywołać rysowanie odpowiednich warstw.
+	Zdjęcie obiektu ze stosu skutkuje przerysowaniem bufora do okna.
+*/
+class WindowPaintingPipeline
+{
+private:
+	HWND windowHandle;
+	PAINTSTRUCT paintStruct;
+	HDC paintingDC;
+	HDC bufferDC;
+	HBITMAP paintingBufferBitmap;
+public:
+	WindowPaintingPipeline(HWND windowHandle);
+	~WindowPaintingPipeline();
+	void DrawLayer(PaintingBufferLayerInterface& paintingLayer);
+};
+
+class WindoManualResizing
+{
+private:
+	Viewport& viewport;
+	bool operationInProgress;
+	UShortSize2D sizeAtBeginningOfResizing;
+	UShortSize2D sizeAtEndOfResizing;
+public:
+	WindoManualResizing(Viewport& viewport);
+	bool IsWindowResizedManually(void);
+	void BeginManualResizing(void);
+	void EndManualResizing(void);
+	bool WindowSizeChangedDuringResizing(void);
+	UShortSize2D GetNewSize(void);
+};
+
 struct FractalWindowData
 {
+	FractalWindowData(Viewport& viewport, FractalFacade& fractalFacade) : viewport(viewport), fractalFacade(fractalFacade) {};
 	HWND windowHandle;
 	HWND dialogWindowHandle;
 	bool isResizedManually;
@@ -88,13 +311,8 @@ struct FractalWindowData
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
 	std::shared_ptr<FractalBitmapFactoryV2> currentFractalBitmapGeneratorV2;
 	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculatorV2;
-};
-
-struct FractalFormDialogData
-{
-	FractalDrawingUI* fractalUI;
-	HWND importDialogWindowHandle;
-	float drawingScale;
+	Viewport& viewport;
+	FractalFacade& fractalFacade;
 };
 
 void UpdateFractalBitmap(
@@ -168,26 +386,6 @@ void InitializeFractalRender(
 	unsigned short bitmapHeight
 );
 
-struct MonochromaticBitmapThreadDataV2
-{
-	std::shared_ptr<bool> processThread;
-	unsigned int numberOfPixelsToProcess;
-	std::shared_ptr<FractalBitmapFactoryV2> fractalBitmapFactory;
-	HWND viewWindowHandle;
-	HDC viewBufferDC;
-};
-DWORD WINAPI MonochromaticBitmapThreadV2(LPVOID);
-
-
-struct FractalPixelsCalculatorThreadDataV2
-{
-	std::shared_ptr<bool> processThread;
-	std::shared_ptr<FractalPixelsV2> fractalPixelsOutput;
-	unsigned int numberOfPointsToProcess;
-	
-};
-DWORD WINAPI FractalPixelsCalculatorThreadV2(LPVOID);
-
 void InitializeFractalPixelsCalculatorV2(
 	FractalWindowData* fractalWindowData,
 	unsigned short bitmapWidth,
@@ -217,105 +415,3 @@ void InitializeFractalRenderV2(
 	unsigned short bitmapWidth,
 	unsigned short bitmapHeight
 );
-
-class IntVector2D
-{
-private:
-	short x;
-	short y;
-public:
-	IntVector2D();
-	IntVector2D(short x, short y);
-	IntVector2D(const IntVector2D& prototype);
-	short GetX(void);
-	short GetY(void);
-	IntVector2D operator+(const IntVector2D& rightHand);
-	IntVector2D operator-(const IntVector2D& rightHand);
-	void operator+=(const IntVector2D& rightHand);
-	void operator-=(const IntVector2D& rightHand);
-};
-
-class Viewport
-{
-private:
-	HWND viewportWindowHandle;
-public:
-	Viewport(HWND viewportWindowHandle);
-	void RefreshViewport(void);
-	BitmapDimensions GetViewportDimensions(void);
-};
-
-class BitmapHandleInterface
-{
-public:
-	virtual HBITMAP GetBitmapHandle(void) = 0;
-};
-
-class BitmapInViewport
-{
-private:
-	Viewport& viewport;
-	BitmapHandleInterface& bitmapHandle;
-public:
-	BitmapInViewport(
-		Viewport& viewport,
-		BitmapHandleInterface& bitmapHandle
-	);
-	Viewport& GetViewport(void);
-	bool CopyIntoBuffer(
-		HDC viewportBufferDC,
-		int sourceX,
-		int sourceY,
-		int destinationX,
-		int destinationY,
-		int widthOfCopiedRect,
-		int heightOfCopiedRect
-	);
-};
-
-class RECTProcessor
-{
-private:
-	RECT rect;
-public:
-	RECTProcessor(RECT rect);
-	unsigned short GetWidth(void);
-	unsigned short GetHeight(void);
-	IntVector2D GetTopLeftVector(void);
-	IntVector2D GetBottomRightVector(void);
-};
-
-class BitmapDimensionsInterface
-{
-public:
-	virtual BitmapDimensions& GetBitmapDimensions(void) = 0;
-};
-
-class BitmapMovableInViewport
-{
-private:
-	IntVector2D offset;
-	BitmapInViewport& bitmapInViewport;
-	BitmapDimensionsInterface& bitmapDimensionsProvider;
-public:
-	BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapDimensionsInterface& bitmapDimensionsProvider);
-	void MoveBitmap(IntVector2D delta);
-	BitmapInViewport& GetBitmapInViewport(void);
-	bool DrawInRepaintBuffer(
-		HDC repaintBufferDC,
-		RECT viewportRepaintRect
-	);
-};
-
-class ScalableBitmapInViewport
-{
-private:
-	float currentScaleRatio;
-	BitmapMovableInViewport& currentMovableBitmap;
-public:
-	static const float minScaleRatio;
-	static const float maxScaleRatio;
-	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap);
-	bool Zoom(float delta, BitmapPixel scalingReferencePoint);
-	BitmapMovableInViewport& GetMovableBitmap(void);
-};

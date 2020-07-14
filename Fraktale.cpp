@@ -130,8 +130,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
 				FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
 				CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
+
 				//dane okna
-				FractalWindowData* windowData = new FractalWindowData{};
+				Viewport* windowViewport = new Viewport(hWnd);
+				FractalFacade* fractalFacade = new FractalFacade(
+					*dialogData->fractalUI
+				);
+				FractalWindowData* windowData = new FractalWindowData(
+					*windowViewport,
+					*fractalFacade
+				);
 				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
 
@@ -165,6 +173,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					&clientRect,
 					backgroundBrush
 				);
+
 
 				SetWindowLongW(
 					hWnd,
@@ -270,12 +279,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				);
 				EndPaint(hWnd, &ps);
 				windowData->lastPainingTS = std::chrono::high_resolution_clock::now();
+				break;
+				WindowPaintingPipeline paintingPipe(hWnd);
+				paintingPipe.DrawLayer(windowData->fractalFacade);
 			}
 			break;
 		case WM_DESTROY:
 			{
-
 				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				delete& fractalWindowData->viewport;
+				delete& fractalWindowData->fractalFacade;
 				PostQuitMessage(0);
 				break;
 			}
@@ -407,11 +420,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->fractalImage->offsetY += deltaY;
 					windowData->updateOffsetX = windowData->fractalImage->offsetX;
 					windowData->updateOffsetY = windowData->fractalImage->offsetY;
-					InvalidateRect(
-						hWnd,
-						NULL,
-						FALSE
-					);
+					windowData->viewport.RefreshViewport();
 					//zaktualizuj ostatnią pozycję kursora
 					windowData->lastPointerPosition->x = mouseX;
 					windowData->lastPointerPosition->y = mouseY;
@@ -962,7 +971,7 @@ void InitializeFractalPointsCalculator(FractalWindowData* fractalWindowData)
 			*fractalWindowData->fractal,
 			Point(0, 0)
 		)
-	);
+		);
 }
 
 void InitializeFractalPointsThread(
@@ -1076,11 +1085,7 @@ DWORD __stdcall MonochromaticBitmapThreadV2(LPVOID inputPointer)
 			operationData.viewBufferDC
 		))
 		{
-			InvalidateRect(
-				operationData.viewWindowHandle,
-				NULL,
-				FALSE
-			);
+			operationData.viewport.RefreshViewport();
 		}
 	} while (!allPointsProcessed && *operationData.processThread);
 	return 0;
@@ -1098,7 +1103,7 @@ DWORD __stdcall FractalPixelsCalculatorThreadV2(LPVOID inputPointer)
 		allPointsProcessed = operationData.fractalPixelsOutput->calculatePixels(
 			operationData.processThread,
 			operationData.numberOfPointsToProcess
-		);		
+		);
 	} while (!allPointsProcessed && *operationData.processThread);
 
 	return 0;
@@ -1127,7 +1132,7 @@ void InitializeFractalPixelsThreadV2(FractalWindowData* fractalWindowData, unsig
 	FractalPixelsCalculatorThreadDataV2* fractalPixelCalculatorData = new FractalPixelsCalculatorThreadDataV2{};
 	fractalPixelCalculatorData->processThread = fractalWindowData->processFractalPixelsThread = std::shared_ptr<bool>(new bool{ true });
 	fractalPixelCalculatorData->fractalPixelsOutput = fractalWindowData->fractalPixelsCalculatorV2;
-	fractalPixelCalculatorData->numberOfPointsToProcess = numberOfPointsToRender;	
+	fractalPixelCalculatorData->numberOfPointsToProcess = numberOfPointsToRender;
 	CreateThread(
 		NULL,
 		0,
@@ -1152,7 +1157,7 @@ void InitializeFractalBitmapThreadV2(FractalWindowData* fractalWindowData, unsig
 	{
 		*fractalWindowData->processFractalBitmapThread = false;
 	}
-	MonochromaticBitmapThreadDataV2* fractalBitmapThreadData = new MonochromaticBitmapThreadDataV2{};
+	MonochromaticBitmapThreadDataV2* fractalBitmapThreadData = new MonochromaticBitmapThreadDataV2(fractalWindowData->viewport);
 	fractalBitmapThreadData->numberOfPixelsToProcess = numberOfPointsToRender;
 	fractalBitmapThreadData->processThread = fractalWindowData->processFractalBitmapThread = std::shared_ptr<bool>(new bool{ true });
 	fractalBitmapThreadData->fractalBitmapFactory = fractalWindowData->currentFractalBitmapGeneratorV2;
@@ -1301,11 +1306,7 @@ int RealTimeMessageLoop::messageLoop(void)
 					fractalWindowData->fractalImage->deviceContext
 				))
 				{
-					InvalidateRect(
-						mainWindowHandle,
-						NULL,
-						FALSE
-					);
+					fractalWindowData->viewport.RefreshViewport();
 				}
 			}
 		}
@@ -1431,8 +1432,8 @@ void IntVector2D::operator-=(const IntVector2D& rightHand)
 	this->y -= rightHand.y;
 }
 
-BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapDimensionsInterface& bitmapDimensionsProvider)
-	:bitmapInViewport(bitmapInViewport), bitmapDimensionsProvider(bitmapDimensionsProvider)
+BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapSizeProviderInterface& bitmapSizeProvider)
+	:bitmapInViewport(bitmapInViewport), bitmapSizeProvider(bitmapSizeProvider)
 {
 
 }
@@ -1465,7 +1466,7 @@ bool BitmapMovableInViewport::DrawInRepaintBuffer(HDC repaintBufferDC, RECT view
 	if (repaintOffset.GetX() < 0)
 	{
 		//lewa krawędź obrazka wystaje za lewą krawędź obszaru rysowania
-		copiedWidth = this->bitmapDimensionsProvider.GetBitmapDimensions().GetWidth() + repaintOffset.GetX();
+		copiedWidth = this->bitmapSizeProvider.GetBitmapSize().width + repaintOffset.GetX();
 		if (copiedWidth <= 0)
 		{
 			//obrazek znajduje się w całości poza lewą krawędzią odrysowywanego obszaru
@@ -1494,7 +1495,7 @@ bool BitmapMovableInViewport::DrawInRepaintBuffer(HDC repaintBufferDC, RECT view
 	if (repaintOffset.GetY() < 0)
 	{
 		//górna krawędź obrazka wystaje poza obszar rysowania
-		copiedHeight = this->bitmapDimensionsProvider.GetBitmapDimensions().GetHeight() + repaintOffset.GetY();
+		copiedHeight = this->bitmapSizeProvider.GetBitmapSize().height + repaintOffset.GetY();
 		if (copiedHeight <= 0)
 		{
 			//obrazek znajduje się w całości poza górną krawędzią odrysowywanego obszaru
@@ -1531,7 +1532,7 @@ bool BitmapMovableInViewport::DrawInRepaintBuffer(HDC repaintBufferDC, RECT view
 	);
 }
 
-BitmapInViewport::BitmapInViewport(Viewport& viewport, BitmapHandleInterface& bitmapHandle)
+BitmapInViewport::BitmapInViewport(Viewport& viewport, BitmapHandleProviderInterface& bitmapHandle)
 	:viewport(viewport), bitmapHandle(bitmapHandle)
 {
 }
@@ -1592,4 +1593,108 @@ IntVector2D RECTProcessor::GetBottomRightVector(void)
 		static_cast<short>(this->rect.right),
 		static_cast<short>(this->rect.bottom)
 	);
+}
+
+UShortSize2D RECTProcessor::GetSize(void)
+{
+	return UShortSize2D{
+		this->GetWidth(),
+		this->GetHeight()
+	};
+}
+
+WindowPaintingPipeline::WindowPaintingPipeline(HWND windowHandle)
+{
+	this->windowHandle = windowHandle;
+	this->paintingDC = BeginPaint(this->windowHandle, &this->paintStruct);
+	this->bufferDC = CreateCompatibleDC(this->paintingDC);
+	RECTProcessor paintRectProcessor(this->paintStruct.rcPaint);
+	UShortSize2D repaintAreaSize = paintRectProcessor.GetSize();
+	this->paintingBufferBitmap = CreateCompatibleBitmap(this->paintingDC, repaintAreaSize.width, repaintAreaSize.height);
+	SelectObject(this->bufferDC, this->paintingBufferBitmap);
+
+	HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
+		this->windowHandle,
+		GCL_HBRBACKGROUND
+	);
+	RECT backgroundArea = {};
+	backgroundArea.right = repaintAreaSize.width;
+	backgroundArea.bottom = repaintAreaSize.height;
+	FillRect(
+		this->bufferDC,
+		&backgroundArea,
+		backgroundBrush
+	);
+}
+
+WindowPaintingPipeline::~WindowPaintingPipeline()
+{
+	RECTProcessor paintRectProcessor(this->paintStruct.rcPaint);
+	UShortSize2D repaintAreaSize = paintRectProcessor.GetSize();
+	//skopiuj bufor na ekran
+	BitBlt(
+		this->paintingDC,
+		this->paintStruct.rcPaint.left,
+		this->paintStruct.rcPaint.top,
+		repaintAreaSize.width,
+		repaintAreaSize.height,
+		this->bufferDC,
+		0,
+		0,
+		SRCCOPY
+	);
+	EndPaint(this->windowHandle, &this->paintStruct);
+}
+
+void WindowPaintingPipeline::DrawLayer(PaintingBufferLayerInterface& paintingLayer)
+{
+	paintingLayer.DrawInRepaintBuffer(
+		this->bufferDC,
+		this->paintStruct
+	);
+}
+
+void FractalFacade::DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData)
+{
+	this->fractalMovableBitmap.DrawInRepaintBuffer(
+		repaintBufferDC,
+		windowPaintingData.rcPaint
+	);
+}
+
+WindoManualResizing::WindoManualResizing(Viewport& viewport)
+	:viewport(viewport)
+{
+	this->operationInProgress = false;
+}
+
+bool WindoManualResizing::IsWindowResizedManually(void)
+{
+	return this->operationInProgress;
+}
+
+void WindoManualResizing::BeginManualResizing(void)
+{
+	this->operationInProgress = true;
+	this->sizeAtBeginningOfResizing = this->viewport.GetViewportDimensions().GetSize();
+}
+
+void WindoManualResizing::EndManualResizing(void)
+{
+	this->sizeAtEndOfResizing = this->viewport.GetViewportDimensions().GetSize();
+	this->operationInProgress = false;
+}
+
+bool WindoManualResizing::WindowSizeChangedDuringResizing(void)
+{
+	return (
+		(this->sizeAtBeginningOfResizing.width != this->sizeAtEndOfResizing.width)
+		||
+		(this->sizeAtBeginningOfResizing.height != this->sizeAtEndOfResizing.height)
+	);
+}
+
+UShortSize2D WindoManualResizing::GetNewSize(void)
+{
+	return this->sizeAtEndOfResizing;
 }
