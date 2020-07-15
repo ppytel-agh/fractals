@@ -22,8 +22,10 @@
 ATOM                MyRegisterClass(HINSTANCE hInstance, WCHAR szWindowClass[]);
 BOOL                InitInstance(HINSTANCE hInstance, int nCmdShow, WCHAR szWindowClass[], WCHAR szTitle[], HWND& hWnd);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK    WndProcV2(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	FractalFormDialogProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	FractalFormDialogProcV2(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	ImportFromPdfProc(HWND, UINT, WPARAM, LPARAM);
 
 //stałe
@@ -218,7 +220,7 @@ private:
 public:
 	static const float minScaleRatio;
 	static const float maxScaleRatio;
-	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap);
+	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap, BitmapToSizeGeneratorInterface& bitmapGenerator);
 	bool Zoom(float delta, BitmapPixel scalingReferencePoint);
 	BitmapMovableInViewport& GetMovableBitmap(void);
 };
@@ -240,6 +242,8 @@ public:
 	// Inherited via PaintingBufferLayerInterface
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) override;
 	void Render(void);
+	void MoveFractalImageInViewport(IntVector2D moveVector);
+	void ZoomFractalBitmap(float zoomDelta);
 };
 
 /*
@@ -288,7 +292,10 @@ public:
 
 struct FractalWindowData
 {
-	FractalWindowData(Viewport& viewport, FractalFacade& fractalFacade) : viewport(viewport), fractalFacade(fractalFacade) {};
+	FractalWindowData(Viewport& viewport, FractalFacade& fractalFacade, WindowManualResizing resizing, VectorTracking2D LMBPressedTracking)
+		: viewport(viewport), fractalFacade(fractalFacade), resizing(resizing), LMBPressedTracking(LMBPressedTracking) {
+		this->isLMBPressed = false;
+	};
 	HWND windowHandle;
 	HWND dialogWindowHandle;
 	bool isResizedManually;
@@ -320,8 +327,27 @@ struct FractalWindowData
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
 	std::shared_ptr<FractalBitmapFactoryV2> currentFractalBitmapGeneratorV2;
 	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculatorV2;
+	//nowe klasy
 	Viewport& viewport;
 	FractalFacade& fractalFacade;
+	WindowManualResizing& resizing;
+	bool isLMBPressed;
+	VectorTracking2D& LMBPressedTracking;
+};
+
+struct FractalWindowDataV2
+{
+	FractalWindowDataV2(Viewport& viewport, FractalFacade& fractalFacade, WindowManualResizing resizing, VectorTracking2D LMBPressedTracking)
+		: viewport(viewport), fractalFacade(fractalFacade), resizing(resizing), LMBPressedTracking(LMBPressedTracking) {
+		this->isLMBPressed = false;
+		this->isMinimized = false;
+	};
+	Viewport& viewport;
+	FractalFacade& fractalFacade;
+	bool isMinimized;
+	WindowManualResizing& resizing;
+	bool isLMBPressed;
+	VectorTracking2D& LMBPressedTracking;
 };
 
 void UpdateFractalBitmap(

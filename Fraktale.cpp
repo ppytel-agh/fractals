@@ -136,9 +136,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				FractalFacade* fractalFacade = new FractalFacade(
 					*dialogData->fractalUI
 				);
+				WindowManualResizing* resizing = new WindowManualResizing(*windowViewport);
+				VectorTracking2D* LMBTracking = new VectorTracking2D();
 				FractalWindowData* windowData = new FractalWindowData(
 					*windowViewport,
-					*fractalFacade
+					*fractalFacade,
+					*resizing,
+					*LMBTracking
 				);
 				windowData->windowHandle = hWnd;
 				windowData->dialogWindowHandle = dialogHandle;
@@ -180,6 +184,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					GWL_USERDATA,
 					(LONG)windowData
 				);
+			}
+			break;
+		case WM_DESTROY:
+			{
+				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+				delete& fractalWindowData->viewport;
+				delete& fractalWindowData->fractalFacade;
+				delete& fractalWindowData->resizing;
+				delete& fractalWindowData->LMBPressedTracking;
+				PostQuitMessage(0);
+				break;
 			}
 			break;
 		case WM_COMMAND:
@@ -279,18 +294,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				);
 				EndPaint(hWnd, &ps);
 				windowData->lastPainingTS = std::chrono::high_resolution_clock::now();
-				break;
-				WindowPaintingPipeline paintingPipe(hWnd);
-				paintingPipe.DrawLayer(windowData->fractalFacade);
-			}
-			break;
-		case WM_DESTROY:
-			{
-				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-				delete& fractalWindowData->viewport;
-				delete& fractalWindowData->fractalFacade;
-				PostQuitMessage(0);
-				break;
+
+				//nowy intefejs
+				/*WindowPaintingPipeline paintingPipe(hWnd);
+				paintingPipe.DrawLayer(windowData->fractalFacade);*/
 			}
 			break;
 		case WM_KEYDOWN:
@@ -309,6 +316,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				GetClientRect(hWnd, &currentSize);
 				windowData->previousWidth = currentSize.right;
 				windowData->previousHeight = currentSize.bottom;
+
+				//nowy intefejs
+				windowData->resizing.BeginManualResizing();
 			}
 			break;
 		case WM_EXITSIZEMOVE:
@@ -335,6 +345,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						1.0f
 					);
 				}
+
+				//nowy intefejs
+				windowData->resizing.EndManualResizing();
+				if (windowData->resizing.WindowSizeChangedDuringResizing())
+				{
+
+				}
 			}
 			break;
 		case WM_SIZE:
@@ -349,7 +366,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else if (wParam == SIZE_RESTORED)
 				{
-					if (windowData->isResizedManually)
+					if (windowData->isResizedManually || windowData->resizing.IsWindowResizedManually())
 					{
 						OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
 					}
@@ -426,6 +443,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					windowData->lastPointerPosition->y = mouseY;
 
 				}
+
+				//nowy intefejs
+				if (windowData->isLMBPressed)
+				{
+					IntVector2D currentMousePosition(mouseX, mouseY);
+					IntVector2D mouseDelta = windowData->LMBPressedTracking.GetDelta(currentMousePosition);
+					windowData->fractalFacade.MoveFractalImageInViewport(mouseDelta);
+					windowData->LMBPressedTracking.UpdateLastPosition(currentMousePosition);
+				}
 			}
 			break;
 		case WM_MOUSELEAVE:
@@ -438,6 +464,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					delete windowData->lastPointerPosition;
 					windowData->lastPointerPosition = NULL;
 				}
+
+				//nowy intefejs
+				windowData->isLMBPressed = false;
 			}
 			break;
 		case WM_MOUSEWHEEL:
@@ -464,7 +493,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					&mousePosition
 				);
 				//zaktualizuj skalę o przesunięcie kółka myszy
-				float newScaleRatio = windowData->updatedScale + ((float)(wheelDelta) / 1000.0f);
+				float scaleDelta = ((float)(wheelDelta) / 1000.0f);
+				float newScaleRatio = windowData->updatedScale + scaleDelta;
 				//nie oddalaj poniżej skali 1.0
 				if (newScaleRatio < 1.0f)
 				{
@@ -509,6 +539,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						newScaleRatio
 					);
 				}
+
+				//nowy interfejs
+				windowData->fractalFacade.ZoomFractalBitmap(scaleDelta);
 			}
 			break;
 		case WM_LBUTTONDOWN:
@@ -516,11 +549,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			OutputDebugStringW(L"Wciśnięto lewy przycisk myszy\n");
 			//rozpocznij "przesuwanie" fraktala
 			{
+				int mouseX = GET_X_LPARAM(lParam);
+				int mouseY = GET_Y_LPARAM(lParam);
 				FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
 				windowData->isFractalImageMoved = true;
 				windowData->lastPointerPosition = new POINT{};
-				windowData->lastPointerPosition->x = GET_X_LPARAM(lParam);
-				windowData->lastPointerPosition->y = GET_Y_LPARAM(lParam);
+				windowData->lastPointerPosition->x = mouseX;
+				windowData->lastPointerPosition->y = mouseY;
+
+				//nowy interfejs
+				windowData->isLMBPressed = true;
+				windowData->LMBPressedTracking.UpdateLastPosition(
+					IntVector2D(mouseX, mouseY)
+				);
 			}
 			break;
 		case WM_LBUTTONUP:
@@ -534,6 +575,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					delete windowData->lastPointerPosition;
 					windowData->lastPointerPosition = NULL;
 				}
+
+				//nowy interfejs
+				windowData->isLMBPressed = false;
 			}
 			break;
 		case WM_SETCURSOR:
@@ -551,7 +595,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					)
 				{
 					FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
-					if (windowData->isFractalImageMoved)
+					if (windowData->isFractalImageMoved || windowData->isLMBPressed)
 					{
 						SetCursor(
 							LoadCursorW(
@@ -579,6 +623,309 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (message == WM_CREATE)
+	{
+		//utwórz dialog box z formulrzem
+		HWND dialogHandle = CreateDialog(
+			(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+			MAKEINTRESOURCE(IDD_FRAKTALE_DIALOG),
+			hWnd,
+			(DLGPROC)FractalFormDialogProc
+		);
+		ShowWindow(dialogHandle, SW_SHOW);
+		//zainicjuj obiekt do rysowania fraktala na bazie rozdzielczości obszaru okna
+		FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(dialogHandle, GWL_USERDATA);
+		CREATESTRUCTW* createData = (CREATESTRUCTW*)lParam;
+
+		//dane okna
+		Viewport* windowViewport = new Viewport(hWnd);
+		FractalFacade* fractalFacade = new FractalFacade(
+			*dialogData->fractalUI
+		);
+		WindowManualResizing* resizing = new WindowManualResizing(*windowViewport);
+		VectorTracking2D* LMBTracking = new VectorTracking2D();
+		FractalWindowDataV2* windowData = new FractalWindowDataV2(
+			*windowViewport,
+			*fractalFacade,
+			*resizing,
+			*LMBTracking
+		);
+		SetWindowLongW(
+			hWnd,
+			GWL_USERDATA,
+			(LONG)windowData
+		);
+
+		//windowData->windowHandle = hWnd;
+		//windowData->dialogWindowHandle = dialogHandle;
+
+		////zainicjuj dane przesuwania obrazka
+		//windowData->fractalImage = new MovablePicture{};
+		//windowData->updatedScale = 1.0f;
+		//windowData->updateOffsetX = 0;
+		//windowData->updateOffsetY = 0;
+
+		////bufor obrazka fraktala, wypełnij kolorem tła
+		//HDC windowDC = GetDC(hWnd);
+		//windowData->fractalImage->deviceContext = CreateCompatibleDC(windowDC);
+		//ReleaseDC(hWnd, windowDC);
+		//RECT clientRect;
+		//GetClientRect(hWnd, &clientRect);
+		//windowData->fractalImage->bitmap = CreateCompatibleBitmap(
+		//	windowData->fractalImage->deviceContext,
+		//	clientRect.right,
+		//	clientRect.bottom
+		//);
+		//SelectObject(
+		//	windowData->fractalImage->deviceContext,
+		//	windowData->fractalImage->bitmap
+		//);
+		//HBRUSH backgroundBrush = (HBRUSH)GetClassLongW(
+		//	hWnd,
+		//	GCL_HBRBACKGROUND
+		//);
+		//FillRect(
+		//	windowData->fractalImage->deviceContext,
+		//	&clientRect,
+		//	backgroundBrush
+		//);		
+	}
+	else
+	{
+		FractalWindowDataV2* windowData = (FractalWindowDataV2*)GetWindowLongW(hWnd, GWL_USERDATA);
+		if (message == WM_DESTROY)
+		{
+			delete& windowData->viewport;
+			delete& windowData->fractalFacade;
+			delete& windowData->resizing;
+			delete& windowData->LMBPressedTracking;
+			PostQuitMessage(0);
+		}
+		else
+		{
+			switch (message)
+			{
+				case WM_COMMAND:
+					{
+						int wmId = LOWORD(wParam);
+						// Parse the menu selections:
+						switch (wmId)
+						{
+							case IDM_ABOUT:
+								DialogBox(
+									(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+									MAKEINTRESOURCE(IDD_ABOUTBOX),
+									hWnd,
+									About
+								);
+								break;
+							case IDM_EXIT:
+								DestroyWindow(hWnd);
+								break;
+							default:
+								return DefWindowProc(hWnd, message, wParam, lParam);
+						}
+					}
+					break;
+				case WM_PAINT:
+					{						
+						WindowPaintingPipeline paintingPipe(hWnd);
+						paintingPipe.DrawLayer(windowData->fractalFacade);
+					}
+					break;
+				case WM_KEYDOWN:
+					if (wParam == VK_ESCAPE || wParam == VK_RETURN)
+					{
+						return 0;
+					}
+					break;
+				case WM_ENTERSIZEMOVE:
+					//przechwytujemy początek zmiany rozmiaru okna, aby ustawić flagę "w trakcie zmiany rozmiaru"
+					windowData->resizing.BeginManualResizing();
+					break;
+				case WM_EXITSIZEMOVE:
+					//Jeżeli rozmiar okna jest inny niż przedtem, to zaktualizuj bitmapę fraktala pod nowy wymiar					
+					windowData->resizing.EndManualResizing();
+					if (windowData->resizing.WindowSizeChangedDuringResizing())
+					{
+
+					}					
+					break;
+				case WM_SIZE:
+					//maksymalizowanie i przywracanie rozmiaru okna powinny skutkować odrysowaniem bitmapy fraktala
+					{
+						bool resizeNow = false;
+						if (wParam == SIZE_MAXIMIZED)
+						{
+							OutputDebugStringW(L"Zmaksymalizowano okno\n");
+							resizeNow = true;
+						}
+						else if (wParam == SIZE_RESTORED)
+						{
+							if (windowData->resizing.IsWindowResizedManually())
+							{
+								OutputDebugStringW(L"Ręczna zmiana rozmiaru\n");
+							}
+							else if (windowData->isMinimized)
+							{
+								OutputDebugStringW(L"Odminimalizowano okno\n");
+								windowData->isMinimized = false;
+							}
+							else
+							{
+								OutputDebugStringW(L"Przywrócono rozmiar okna\n");
+								resizeNow = true;
+							}
+						}
+						else if (wParam == SIZE_MINIMIZED)
+						{
+							windowData->isMinimized = true;
+						}
+						if (resizeNow)
+						{
+							/*UpdateFractalBitmap(
+								windowData,
+								clientRect.right,
+								clientRect.bottom,
+								0,
+								0,
+								1.0f
+							);*/
+						}
+					}
+					break;
+				case WM_ERASEBKGND:
+					//nie czyść ekranu bez potrzeby, żeby uniknąć migotania
+					break;
+				case WM_MOUSEMOVE:
+					//jeżeli użytkownik przesuwa myszą z wciśniętym przyciskiem to należy przesuwać bitmapę względem viewportu
+					/*
+					przesuwanie bitmapy względem widoku możnaby owrapować przynajmiej jakąs funkcją
+					*/
+					{
+						int mouseX = GET_X_LPARAM(lParam);
+						int mouseY = GET_Y_LPARAM(lParam);
+						/*const WCHAR debugStringFormat[] = L"Pozycja myszy (%d, %d), przyciski %d\n";
+						LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
+						wsprintfW(debugString, debugStringFormat, mouseX, mouseY, wParam);
+						OutputDebugStringW(debugString);*/
+						//jeżeli mysz opuści okno, wyślij odpowiedni komunikat
+						TRACKMOUSEEVENT trackMouseEventData = {};
+						trackMouseEventData.cbSize = sizeof(TRACKMOUSEEVENT);
+						trackMouseEventData.dwFlags = TME_LEAVE;
+						trackMouseEventData.hwndTrack = hWnd;
+						BOOL trackMouseEventResult = TrackMouseEvent(&trackMouseEventData);
+						//przesuwanie fraktala						
+						if (windowData->isLMBPressed)
+						{
+							IntVector2D currentMousePosition(mouseX, mouseY);
+							IntVector2D mouseDelta = windowData->LMBPressedTracking.GetDelta(currentMousePosition);
+							windowData->fractalFacade.MoveFractalImageInViewport(mouseDelta);
+							windowData->LMBPressedTracking.UpdateLastPosition(currentMousePosition);
+						}
+					}
+					break;
+				case WM_MOUSELEAVE:
+					//reset flagi poruszania bitmapy
+					OutputDebugStringW(L"Opuszczono główne okno\n");						
+					windowData->isLMBPressed = false;
+					break;
+				case WM_MOUSEWHEEL:
+					//za pomocą kółka myszy można zoomować bitmapę fraktala
+					/*
+					Tę operacje również możnaby owrapować
+					*/
+					{
+						const WCHAR debugStringFormat[] = L"Scrollowanie: delta - %d, pozycja - (%d, %d)\n";
+						LPWSTR debugString = new WCHAR[sizeof(debugStringFormat) + 16];
+						char wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+						unsigned short positionX = GET_X_LPARAM(lParam);
+						unsigned short positionY = GET_Y_LPARAM(lParam);
+						wsprintfW(debugString, debugStringFormat, wheelDelta, positionX, positionY);
+						OutputDebugStringW(debugString);
+
+						float scaleDelta = ((float)(wheelDelta) / 1000.0f);
+						POINT mousePosition = {
+							positionX,
+							positionY
+						};
+						ScreenToClient(
+							hWnd,
+							&mousePosition
+						);
+
+						windowData->fractalFacade.ZoomFractalBitmap(scaleDelta);						
+					}
+					break;
+				case WM_LBUTTONDOWN:
+					//początek przesuwania bitmapy
+					OutputDebugStringW(L"Wciśnięto lewy przycisk myszy\n");
+					//rozpocznij "przesuwanie" fraktala
+					{
+						int mouseX = GET_X_LPARAM(lParam);
+						int mouseY = GET_Y_LPARAM(lParam);						
+						windowData->isLMBPressed = true;
+						windowData->LMBPressedTracking.UpdateLastPosition(
+							IntVector2D(mouseX, mouseY)
+						);
+					}
+					break;
+				case WM_LBUTTONUP:
+					//koniec przesuwania bitmapy
+					OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");					
+					windowData->isLMBPressed = false;
+					break;
+				case WM_SETCURSOR:
+					//ustaw kursor na "łapkę" jeśli jest wskazywany viewport
+					{
+						POINT cursorClientPosition = {};
+						GetCursorPos(&cursorClientPosition);
+						ScreenToClient(hWnd, &cursorClientPosition);
+						RECT clientArea = {};
+						GetClientRect(hWnd, &clientArea);
+						if (
+							(cursorClientPosition.x >= 0 && cursorClientPosition.x <= clientArea.right)
+							&&
+							(cursorClientPosition.y >= 0 && cursorClientPosition.y <= clientArea.bottom)
+							)
+						{
+							FractalWindowData* windowData = (FractalWindowData*)GetWindowLongW(hWnd, GWL_USERDATA);
+							if (windowData->isLMBPressed)
+							{
+								SetCursor(
+									LoadCursorW(
+										NULL,
+										IDC_UPARROW
+									)
+								);
+							}
+							else
+							{
+								SetCursor(
+									LoadCursorW(
+										NULL,
+										IDC_HAND
+									)
+								);
+							}
+						}
+						else
+						{
+							//jeżeli kursor jest poza obszarem client to wyświetl domyslny
+							return DefWindowProc(hWnd, message, wParam, lParam);
+						}
+					}
+					break;
+				default:
+					return DefWindowProc(hWnd, message, wParam, lParam);
+			}
+		}
 	}
 	return 0;
 }
@@ -798,6 +1145,84 @@ INT_PTR CALLBACK FractalFormDialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 			break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK FractalFormDialogProcV2(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (message == WM_INITDIALOG)
+	{
+		//zainicjuj klasę formularza
+		const unsigned char margin = 10;
+		FractalDrawingUI* formTest = new FractalDrawingUI(
+			hDlg,
+			margin,
+			margin
+		);
+		//zmień rozmiar dialog boxa aby pomieścił formularz
+		RECT rect = {};
+		rect.right = formTest->getWidth() + margin * 2;
+		rect.bottom = formTest->getHeight() + margin * 2;
+		DWORD dialogStyle = (DWORD)GetWindowLong(hDlg, GWL_STYLE);
+		DWORD dialogExStyle = (DWORD)GetWindowLong(hDlg, GWL_EXSTYLE);
+		AdjustWindowRectEx(
+			&rect,
+			dialogStyle,
+			FALSE,
+			dialogExStyle
+		);
+		SetWindowPos(
+			hDlg,
+			NULL,
+			0,
+			0,
+			rect.right - rect.left,
+			rect.bottom - rect.top,
+			SWP_NOZORDER | SWP_NOMOVE
+		);
+		//zapisz dane w oknie
+		FractalFormDialogData* dialogData = new FractalFormDialogData{};
+		dialogData->fractalUI = formTest;
+		dialogData->drawingScale = 1.0f;
+		SetWindowLongW(
+			hDlg,
+			GWL_USERDATA,
+			(LONG)dialogData
+		);
+		//ustaw wstępne dane formularza
+		formTest->getFractalDefinitionForm()->setValue(getDragonFractal());
+		formTest->setMaxNumberOfPointsToRender(initialNumberOfPointsToRender);
+		return TRUE;
+	}
+	else
+	{
+		FractalFormDialogData* dialogData = (FractalFormDialogData*)GetWindowLongW(hDlg, GWL_USERDATA);
+		if (message == WM_DESTROY)
+		{
+			//zniszcz obiekt formularza
+			delete dialogData->fractalUI;
+			delete dialogData;
+		}
+		else
+		{
+			dialogData->fractalUI->ProcessParentWindowMessage(message, wParam, lParam);
+			switch (message)
+			{
+				case WM_COMMAND:
+					if (lParam == 0)
+					{
+						WORD commandId = LOWORD(wParam);
+						switch (commandId)
+						{
+							//zapobiegaj zamknięciu modala po naciśnięciu ENTER lub ESC
+							case IDOK:
+							case IDCANCEL:
+								return (INT_PTR)TRUE;
+						}
+					}
+					break;
+			}
+		}
+	}
 }
 
 INT_PTR CALLBACK ImportFromPdfProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1317,8 +1742,8 @@ int RealTimeMessageLoop::messageLoop(void)
 const float ScalableBitmapInViewport::minScaleRatio = 1.0f;
 const float ScalableBitmapInViewport::maxScaleRatio = 6.0f;
 
-ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitmap)
-	: currentMovableBitmap(bitmap)
+ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitmap, BitmapToSizeGeneratorInterface& bitmapGenerator)
+	: currentMovableBitmap(bitmap), bitmapGenerator(bitmapGenerator)
 {
 }
 
@@ -1691,7 +2116,7 @@ bool WindowManualResizing::WindowSizeChangedDuringResizing(void)
 		(this->sizeAtBeginningOfResizing.width != this->sizeAtEndOfResizing.width)
 		||
 		(this->sizeAtBeginningOfResizing.height != this->sizeAtEndOfResizing.height)
-	);
+		);
 }
 
 UShortSize2D WindowManualResizing::GetNewSize(void)

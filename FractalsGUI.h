@@ -4,6 +4,7 @@
 #include "Fractals.h"
 #include <windowsx.h>
 #include "string-processing.h"
+#include <vector>
 
 //nagłówki potrzebne do tooltipów
 #include <CommCtrl.h>
@@ -323,6 +324,18 @@ public:
 	bool isCommandFromControl(LPARAM wmCommandlParam);
 };
 
+struct FractalRenderingData
+{
+	Fractal fractalData;
+	unsigned int numberOfPointsToRender;
+};
+
+class FractalUIRenderingSubsriberInterface
+{
+public:
+	virtual void RenderFractal(FractalRenderingData formData)
+};
+
 class FractalDrawingUI
 {
 private:
@@ -340,6 +353,8 @@ private:
 	LabelWrapper* numberOfPointsToRenderLabel;
 	HWND numberOfPointsUpDownHandle;
 	HWND currentNumberOfPointsRangeHandle;
+	std::vector< FractalUIRenderingSubsriberInterface&> renderSubscribers;
+	HWND parentWindow;
 public:
 	FractalDrawingUI(
 		HWND parent,
@@ -354,6 +369,8 @@ public:
 	ButtonWrapper* getImportbutton(void);
 	NaturalInput* getNumberOfPointsToRender(void);
 	void setMaxNumberOfPointsToRender(unsigned int maxNumberOfPointsToRender);
+	void ProcessParentWindowMessage(UINT message, WPARAM wParam, LPARAM lParam);
+	void SubscribeToFractalRendering(FractalUIRenderingSubsriberInterface& subscriber);
 };
 
 LPWSTR ansiToUnicode(const char* cString);

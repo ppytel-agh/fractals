@@ -842,6 +842,8 @@ bool FractalDefinitionForm::isValid(void)
 
 FractalDrawingUI::FractalDrawingUI(HWND parent, unsigned short offsetX, unsigned short offsetY)
 {	
+	this->parentWindow = parent;
+
 	this->fractalDefinition = new FractalDefinitionForm(
 		parent,
 		offsetX,
@@ -991,6 +993,144 @@ void FractalDrawingUI::setMaxNumberOfPointsToRender(unsigned int maxNumberOfPoin
 		TRUE,
 		maxNumberOfPointsToRender
 	);
+}
+
+void FractalDrawingUI::ProcessParentWindowMessage(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		case WM_NOTIFY:
+			{
+				NMHDR* message = (NMHDR*)lParam;
+				this->getFractalDefinitionForm()->processNotification(message);
+			}
+			break;
+		case WM_HSCROLL:
+			{
+				int currentPosition = SendMessageW(
+					(HWND)lParam,
+					TBM_GETPOS,
+					0,
+					0
+				);
+				std::wstringstream stream;
+				stream << "Pozycja range'a - " << currentPosition << L"\n";
+				OutputDebugStringW(stream.str().c_str());
+				/*
+				HWND mainWindow = GetWindow(hDlg, GW_OWNER);
+				FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
+				if (fractalWindowData->currentFractalBitmapGeneratorV2 != NULL)
+				{
+					InitializeFractalBitmapThreadV2(
+						fractalWindowData,
+						(unsigned int)currentPosition
+					);
+				}
+				*/
+			}
+			break;
+		case WM_COMMAND:
+			if (lParam != 0)			
+			{				
+				if (this->getRenderButton()->isCommandFromControl(lParam))
+				{
+					//przycisk "Renderuj"					
+					WORD notificationCode = HIWORD(wParam);
+					if (notificationCode == BN_CLICKED)
+					{
+						/*
+						Operację "renderowania" należy owrapować w funkcję,
+						tak aby była również możliwość jej wywołania po naciśnięciu klawisza.
+						*/
+						/*
+							Po naciśnięciu tego przycisku należy pobrać obiekt fraktala z formularza.
+							Jeżeli ten obiekt jest poprawny, to należy wykalkulować jego punkty
+							w przestrzeni matematycznej i odpowiednie piksele dla bitmapy.
+							W tym miejscu można przekazać operacje do osobnego wątku, tak aby kalkulacja punktów nie
+							blokowała innych komunikatów.
+
+						*/
+						//this->renderSubscribers.
+						//HWND mainWindow = GetWindow(hDlg, GW_OWNER);
+						//FractalWindowData* fractalWindowData = (FractalWindowData*)GetWindowLongW(mainWindow, GWL_USERDATA);
+
+
+
+						//Fractal fractalFromForm = this->getFractalDefinitionForm()->getValue();
+						//if (fractalWindowData->fractal != NULL)
+						//{
+						//	Fractal* fractalPointer = fractalWindowData->fractal;
+						//	fractalWindowData->fractal = NULL;
+						//	delete fractalWindowData->fractal;
+						//}
+						//fractalWindowData->fractal = new Fractal(fractalFromForm);
+
+						//RECT windowRect;
+						//GetClientRect(mainWindow, &windowRect);
+						//unsigned short bitmapWidth = windowRect.right;
+						//unsigned short bitmapHeight = windowRect.bottom;
+
+						////parametry skalowania
+						//fractalWindowData->updatedScale = 1.0f;
+						//fractalWindowData->updateOffsetX = 0;
+						//fractalWindowData->updateOffsetY = 0;
+
+						//if (this->getNumberOfPointsToRender()->isValid())
+						//{
+						//	fractalWindowData->numberOfPointsToProcess = this->getNumberOfPointsToRender()->getValue();
+						//}
+						//else
+						//{
+						//	fractalWindowData->numberOfPointsToProcess = initialNumberOfPointsToRender;
+						//}
+
+
+						//InitializeFractalPointsCalculator(fractalWindowData);
+						//InitializeFractalPointsThread(fractalWindowData);
+						//InitializeFractalRender(
+						//	fractalWindowData,
+						//	bitmapWidth,
+						//	bitmapHeight
+						//);
+
+						//fractalWindowData->fractalImage->offsetX = 0;
+						//fractalWindowData->fractalImage->offsetY = 0;
+						//fractalWindowData->fractalImage->scale = 1.0f;
+						//fractalWindowData->fractalImage->width = bitmapWidth;
+						//fractalWindowData->fractalImage->height = bitmapHeight;
+					}
+				}
+				else if (this->getImportbutton()->isCommandFromControl(lParam))
+				{
+					/*
+					Tutaj trzeba sprostować
+					*/
+					/*
+					HWND importDialogWindowHandle = CreateDialog(
+						(HINSTANCE)GetWindowLongPtr(this->parentWindow, GWLP_HINSTANCE),
+						MAKEINTRESOURCE(IDD_FRAKTALE_IMPORT_FROM_PDF),
+						hDlg,
+						(DLGPROC)ImportFromPdfProc
+					);
+					ShowWindow(importDialogWindowHandle, SW_SHOW);
+					*/
+				}
+				else
+				{
+					WORD notificationCode = HIWORD(wParam);
+					this->getFractalDefinitionForm()->processControlCommand(
+						notificationCode,
+						(HWND)lParam
+					);
+				}
+			}
+			break;
+	}
+}
+
+void FractalDrawingUI::SubscribeToFractalRendering(FractalUIRenderingSubsriberInterface& subscriber)
+{
+	this->renderSubscribers.push_back(subscriber);
 }
 
 void FractalDefinitionForm::processNotification(const NMHDR* message)
