@@ -261,7 +261,7 @@ public:
 	void DrawLayer(PaintingBufferLayerInterface& paintingLayer);
 };
 
-class WindoManualResizing
+class WindowManualResizing
 {
 private:
 	Viewport& viewport;
@@ -269,12 +269,21 @@ private:
 	UShortSize2D sizeAtBeginningOfResizing;
 	UShortSize2D sizeAtEndOfResizing;
 public:
-	WindoManualResizing(Viewport& viewport);
+	WindowManualResizing(Viewport& viewport);
 	bool IsWindowResizedManually(void);
 	void BeginManualResizing(void);
 	void EndManualResizing(void);
 	bool WindowSizeChangedDuringResizing(void);
 	UShortSize2D GetNewSize(void);
+};
+
+class VectorTracking2D
+{
+private:
+	IntVector2D lastPosition;
+public:
+	void UpdateLastPosition(IntVector2D position);
+	IntVector2D GetDelta(IntVector2D currentPosition);
 };
 
 struct FractalWindowData

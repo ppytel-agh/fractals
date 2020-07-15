@@ -1662,30 +1662,30 @@ void FractalFacade::DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& window
 	);
 }
 
-WindoManualResizing::WindoManualResizing(Viewport& viewport)
+WindowManualResizing::WindowManualResizing(Viewport& viewport)
 	:viewport(viewport)
 {
 	this->operationInProgress = false;
 }
 
-bool WindoManualResizing::IsWindowResizedManually(void)
+bool WindowManualResizing::IsWindowResizedManually(void)
 {
 	return this->operationInProgress;
 }
 
-void WindoManualResizing::BeginManualResizing(void)
+void WindowManualResizing::BeginManualResizing(void)
 {
 	this->operationInProgress = true;
 	this->sizeAtBeginningOfResizing = this->viewport.GetViewportDimensions().GetSize();
 }
 
-void WindoManualResizing::EndManualResizing(void)
+void WindowManualResizing::EndManualResizing(void)
 {
 	this->sizeAtEndOfResizing = this->viewport.GetViewportDimensions().GetSize();
 	this->operationInProgress = false;
 }
 
-bool WindoManualResizing::WindowSizeChangedDuringResizing(void)
+bool WindowManualResizing::WindowSizeChangedDuringResizing(void)
 {
 	return (
 		(this->sizeAtBeginningOfResizing.width != this->sizeAtEndOfResizing.width)
@@ -1694,7 +1694,17 @@ bool WindoManualResizing::WindowSizeChangedDuringResizing(void)
 	);
 }
 
-UShortSize2D WindoManualResizing::GetNewSize(void)
+UShortSize2D WindowManualResizing::GetNewSize(void)
 {
 	return this->sizeAtEndOfResizing;
+}
+
+void VectorTracking2D::UpdateLastPosition(IntVector2D position)
+{
+	this->lastPosition = position;
+}
+
+IntVector2D VectorTracking2D::GetDelta(IntVector2D currentCursorPosition)
+{
+	return currentCursorPosition - this->lastPosition;
 }
