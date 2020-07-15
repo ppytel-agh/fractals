@@ -4,7 +4,6 @@
 #include "Fractals.h"
 #include <windowsx.h>
 #include "string-processing.h"
-#include <vector>
 
 //nagłówki potrzebne do tooltipów
 #include <CommCtrl.h>
@@ -16,6 +15,8 @@
     "processorArchitecture='*' "\
     "publicKeyToken='6595b64144ccf1df' "\
     "language='*'\"")
+
+#include <vector>
 
 
 class InputWrapper
@@ -333,7 +334,7 @@ struct FractalRenderingData
 class FractalUIRenderingSubsriberInterface
 {
 public:
-	virtual void RenderFractal(FractalRenderingData formData)
+	virtual void RenderFractal(FractalRenderingData formData) = 0;
 };
 
 class FractalDrawingUI
@@ -353,7 +354,7 @@ private:
 	LabelWrapper* numberOfPointsToRenderLabel;
 	HWND numberOfPointsUpDownHandle;
 	HWND currentNumberOfPointsRangeHandle;
-	std::vector< FractalUIRenderingSubsriberInterface&> renderSubscribers;
+	std::vector< FractalUIRenderingSubsriberInterface*> renderSubscribers;
 	HWND parentWindow;
 public:
 	FractalDrawingUI(

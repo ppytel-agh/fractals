@@ -87,13 +87,11 @@ struct FractalFormDialogData
 
 struct MonochromaticBitmapThreadDataV2
 {
-	MonochromaticBitmapThreadDataV2(Viewport& viewport) : viewport(viewport) {};
 	std::shared_ptr<bool> processThread;
 	unsigned int numberOfPixelsToProcess;
 	std::shared_ptr<FractalBitmapFactoryV2> fractalBitmapFactory;
 	HWND viewWindowHandle;
 	HDC viewBufferDC;
-	Viewport& viewport;
 };
 DWORD WINAPI MonochromaticBitmapThreadV2(LPVOID);
 
@@ -235,7 +233,7 @@ class FractalFacade: public PaintingBufferLayerInterface
 {
 private:
 	FractalDrawingUI& fractalUI;
-	BitmapMovableInViewport fractalMovableBitmap;
+	//BitmapMovableInViewport fractalMovableBitmap;
 public:
 	FractalFacade(FractalDrawingUI& fractalUI) :fractalUI(fractalUI) {};
 
@@ -292,10 +290,6 @@ public:
 
 struct FractalWindowData
 {
-	FractalWindowData(Viewport& viewport, FractalFacade& fractalFacade, WindowManualResizing resizing, VectorTracking2D LMBPressedTracking)
-		: viewport(viewport), fractalFacade(fractalFacade), resizing(resizing), LMBPressedTracking(LMBPressedTracking) {
-		this->isLMBPressed = false;
-	};
 	HWND windowHandle;
 	HWND dialogWindowHandle;
 	bool isResizedManually;
@@ -326,13 +320,7 @@ struct FractalWindowData
 	std::shared_ptr<FractalBitmapFactory> currentFractalBitmapGenerator;
 	std::shared_ptr<FractalPixels> fractalPixelsCalculator;
 	std::shared_ptr<FractalBitmapFactoryV2> currentFractalBitmapGeneratorV2;
-	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculatorV2;
-	//nowe klasy
-	Viewport& viewport;
-	FractalFacade& fractalFacade;
-	WindowManualResizing& resizing;
-	bool isLMBPressed;
-	VectorTracking2D& LMBPressedTracking;
+	std::shared_ptr<FractalPixelsV2> fractalPixelsCalculatorV2;	
 };
 
 struct FractalWindowDataV2

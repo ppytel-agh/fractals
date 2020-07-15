@@ -1130,7 +1130,7 @@ void FractalDrawingUI::ProcessParentWindowMessage(UINT message, WPARAM wParam, L
 
 void FractalDrawingUI::SubscribeToFractalRendering(FractalUIRenderingSubsriberInterface& subscriber)
 {
-	this->renderSubscribers.push_back(subscriber);
+	this->renderSubscribers.push_back(&subscriber);
 }
 
 void FractalDefinitionForm::processNotification(const NMHDR* message)
