@@ -1038,6 +1038,14 @@ void FractalDrawingUI::ProcessParentWindowMessage(UINT message, WPARAM wParam, L
 					WORD notificationCode = HIWORD(wParam);
 					if (notificationCode == BN_CLICKED)
 					{
+						FractalRenderingData fractalData = {
+							this->getFractalDefinitionForm()->getValue(),
+							this->numberOfPointsToRender->getValue()
+						};
+						for (std::vector<FractalUIRenderingSubsriberInterface*>::iterator it = this->renderSubscribers.begin(); it != this->renderSubscribers.end(); ++it)
+						{
+							(*it)->RenderFractal(fractalData);
+						}
 						/*
 						Operację "renderowania" należy owrapować w funkcję,
 						tak aby była również możliwość jej wywołania po naciśnięciu klawisza.

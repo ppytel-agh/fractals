@@ -57,14 +57,26 @@ struct FractalPixelsCalculatorThreadData
 };
 DWORD WINAPI FractalPixelsCalculatorThread(LPVOID);
 
+class ViewportResizedSubsriberInterface
+{
+public:
+	virtual void OnViewportResized(UShortSize2D newViewportSize) = 0;
+};
+
 class Viewport
 {
 private:
 	HWND viewportWindowHandle;
+	std::vector<ViewportResizedSubsriberInterface*> resizingSubscribers;
+protected:
+	RECT GetClientAreaRect(void);
 public:
 	Viewport(HWND viewportWindowHandle);
 	void RefreshViewport(void);
 	BitmapDimensions GetViewportDimensions(void);
+	void SubscribeToViewportResizing(ViewportResizedSubsriberInterface& newSubscriber);
+	void TriggerResizingEvent(UShortSize2D newViewportSize);
+	UShortSize2D GetCurrentSize(void);
 };
 
 class PaintableInterface
@@ -229,19 +241,44 @@ public:
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) = 0;
 };
 
-class FractalFacade: public PaintingBufferLayerInterface
+class FractalProcessingInterface
+{
+public:
+	virtual BitmapMovableInViewport& GetCurrentFractalMovableBitmap(void) = 0;
+	virtual void InitializeFractalPointsCalculator(Fractal fractal) = 0;
+	virtual void CalculateFractalPoints(unsigned int numberOfPointsToCalculate) = 0;
+	virtual void InitializeNewFractalBitmap(UShortSize2D newBitmapSize) = 0;
+	virtual void DrawPointsOnFractalBitmap(unsigned int numberOfPointsToDraw) = 0;
+};
+
+class FractalFacade: public PaintingBufferLayerInterface, public FractalUIRenderingSubsriberInterface, public ViewportResizedSubsriberInterface
 {
 private:
-	FractalDrawingUI& fractalUI;
+	FractalProcessingInterface& fractalProcessing;
+	Viewport& viewport;
 	//BitmapMovableInViewport fractalMovableBitmap;
 public:
-	FractalFacade(FractalDrawingUI& fractalUI) :fractalUI(fractalUI) {};
+	FractalFacade(
+		FractalDrawingUI& fractalUI,
+		Viewport& viewport,
+		FractalProcessingInterface& fractalProcessing
+	) :fractalProcessing(fractalProcessing), viewport(viewport)
+	{
+		fractalUI.SubscribeToFractalRendering(*this);
+		viewport.SubscribeToViewportResizing(*this);
+	};
 
 	// Inherited via PaintingBufferLayerInterface
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) override;
-	void Render(void);
+
+	// Inherited via FractalUIRenderingSubsriberInterface
+	virtual void RenderFractal(FractalRenderingData formData) override;
+
+	// Inherited via ViewportResizedSubsriberInterface
+	virtual void OnViewportResized(UShortSize2D newViewportSize) override;
+
 	void MoveFractalImageInViewport(IntVector2D moveVector);
-	void ZoomFractalBitmap(float zoomDelta);
+	void ZoomFractalBitmap(float zoomDelta, BitmapPixel dilationCenterInViewport);	
 };
 
 /*

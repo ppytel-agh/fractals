@@ -592,9 +592,10 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 		//dane okna
 		Viewport* windowViewport = new Viewport(hWnd);
-		FractalFacade* fractalFacade = new FractalFacade(
+		FractalFacade* fractalFacade;/* = new FractalFacade(
 			*dialogData->fractalUI
 		);
+		*/
 		WindowManualResizing* resizing = new WindowManualResizing(*windowViewport);
 		VectorTracking2D* LMBTracking = new VectorTracking2D();
 		FractalWindowDataV2* windowData = new FractalWindowDataV2(
@@ -701,7 +702,9 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					windowData->resizing.EndManualResizing();
 					if (windowData->resizing.WindowSizeChangedDuringResizing())
 					{
-
+						windowData->viewport.TriggerResizingEvent(
+							windowData->resizing.GetNewSize()
+						);						
 					}					
 					break;
 				case WM_SIZE:
@@ -736,6 +739,9 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 						}
 						if (resizeNow)
 						{
+							windowData->viewport.TriggerResizingEvent(
+								windowData->viewport.GetCurrentSize()
+							);
 							/*UpdateFractalBitmap(
 								windowData,
 								clientRect.right,
@@ -806,8 +812,12 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 							hWnd,
 							&mousePosition
 						);
+						BitmapPixel viewportPixel = {
+							mousePosition.x,
+							mousePosition.y
+						};
 
-						windowData->fractalFacade.ZoomFractalBitmap(scaleDelta);						
+						windowData->fractalFacade.ZoomFractalBitmap(scaleDelta, viewportPixel);
 					}
 					break;
 				case WM_LBUTTONDOWN:
@@ -1729,6 +1739,16 @@ BitmapMovableInViewport& ScalableBitmapInViewport::GetMovableBitmap(void)
 	return this->currentMovableBitmap;
 }
 
+RECT Viewport::GetClientAreaRect(void)
+{
+	RECT clientRect;
+	GetClientRect(
+		this->viewportWindowHandle,
+		&clientRect
+	);
+	return clientRect;
+}
+
 Viewport::Viewport(HWND viewportWindowHandle)
 {
 	this->viewportWindowHandle = viewportWindowHandle;
@@ -1745,15 +1765,33 @@ void Viewport::RefreshViewport(void)
 
 BitmapDimensions Viewport::GetViewportDimensions(void)
 {
-	RECT clientRect;
-	GetClientRect(
-		this->viewportWindowHandle,
-		&clientRect
-	);
+	RECT clientRect = this->GetClientAreaRect();
 	return BitmapDimensions(
 		clientRect.right,
 		clientRect.bottom
 	);
+}
+
+void Viewport::SubscribeToViewportResizing(ViewportResizedSubsriberInterface& newSubscriber)
+{
+	this->resizingSubscribers.push_back(&newSubscriber);
+}
+
+void Viewport::TriggerResizingEvent(UShortSize2D newViewportSize)
+{
+	for (std::vector<ViewportResizedSubsriberInterface*>::iterator it = resizingSubscribers.begin(); it != resizingSubscribers.end(); ++it)
+	{
+		(*it)->OnViewportResized(newViewportSize);
+	}
+}
+
+UShortSize2D Viewport::GetCurrentSize(void)
+{
+	RECT clientRect = this->GetClientAreaRect();
+	return UShortSize2D{
+		clientRect.right,
+		clientRect.bottom
+	};
 }
 
 IntVector2D::IntVector2D()
@@ -2035,21 +2073,28 @@ void WindowPaintingPipeline::DrawLayer(PaintingBufferLayerInterface& paintingLay
 
 void FractalFacade::DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData)
 {
-	/*this->fractalMovableBitmap.DrawInRepaintBuffer(
+	this->fractalProcessing.GetCurrentFractalMovableBitmap().DrawInRepaintBuffer(
 		repaintBufferDC,
 		windowPaintingData.rcPaint
-	);*/
-}
-
-void FractalFacade::Render(void)
-{
+	);
 }
 
 void FractalFacade::MoveFractalImageInViewport(IntVector2D moveVector)
 {
+	this->fractalProcessing.GetCurrentFractalMovableBitmap().MoveBitmap(moveVector);
+	this->viewport.RefreshViewport();
 }
 
-void FractalFacade::ZoomFractalBitmap(float zoomDelta)
+void FractalFacade::ZoomFractalBitmap(float zoomDelta, BitmapPixel dilationCenterInViewport)
+{
+
+}
+
+void FractalFacade::RenderFractal(FractalRenderingData formData)
+{
+}
+
+void FractalFacade::OnViewportResized(UShortSize2D newViewportSize)
 {
 }
 
