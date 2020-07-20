@@ -1706,22 +1706,9 @@ int RealTimeMessageLoop::messageLoop(void)
 const float ScalableBitmapInViewport::minScaleRatio = 1.0f;
 const float ScalableBitmapInViewport::maxScaleRatio = 6.0f;
 
-void ScalableBitmapInViewport::OnBitmapGenerated(unsigned char generatedBitmapId, void* object)
-{
-	ScalableBitmapInViewport instance = *(ScalableBitmapInViewport*)object;
-	if (instance.generatedBitmapId = generatedBitmapId)
-	{
-		instance.currentScaleRatio = instance.updateScale;
-		instance.currentMovableBitmap.SetOffset(instance.updateOffset);
-	}
-}
-
 ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitmap, BitmapToSizeGeneratorInterface& bitmapGenerator)
 	: currentMovableBitmap(bitmap), bitmapGenerator(bitmapGenerator)
 {
-	this->updateScale = this->currentScaleRatio = 1.0f;
-	this->updateOffset = this->currentMovableBitmap.GetOffset();
-	this->generatedBitmapId = 0;
 }
 
 bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoint)
@@ -1742,26 +1729,24 @@ bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoi
 	//sprawdź czy skala się w ogóle zmieniła
 	if (newScaleRatio != this->currentScaleRatio)
 	{
-		IntVector2D referenceToOffset = this->updateOffset - scalingReferencePoint;
-		IntVector2D originalReferenceToOffset = referenceToOffset / this->updateScale;
+		IntVector2D referenceToOffset = this->currentMovableBitmap.GetOffset() - scalingReferencePoint;
+		IntVector2D originalReferenceToOffset = referenceToOffset / this->currentScaleRatio;
 		IntVector2D scaledVector = originalReferenceToOffset * newScaleRatio;
 		IntVector2D newOffset = scalingReferencePoint + scaledVector;
 
-		/*
-		Tutaj klasa musi zrequestować wygenerowanie nowej bitmapy w taki sposób,
-		żeby zaaplikowanie nowego offsetu odbyło się po pierwszej aktualizacji uchwytu.
-		Należy również upewnić się, że poprzednie requesty do generatora nie nadpiszą 
-		aktualnych danych.
-		*/
+		this->currentScaleRatio = newScaleRatio;
+		this->currentMovableBitmap.SetOffset(newOffset);
+
 		UShortSize2D currentViewportSize = this->currentMovableBitmap.GetBitmapInViewport().GetViewport().GetCurrentSize();
 		UShortSize2D newBitmapSize = {
 			currentViewportSize.width * newScaleRatio,
 			currentViewportSize.height * newScaleRatio
 		};
-		this->bitmapGenerator.GenerateBitmap(newBitmapSize, this, ++this->generatedBitmapId, OnBitmapGenerated);
+		this->bitmapGenerator.InitializeBitmap(newBitmapSize);
 
-		this->updateOffset = newOffset;
-		this->updateScale = newScaleRatio;
+		this->currentMovableBitmap.GetBitmapInViewport().GetViewport().RefreshViewport();
+
+		this->bitmapGenerator.DrawBitmapBuffer();
 	}
 	return false;
 }
@@ -2018,8 +2003,11 @@ void BitmapMovableInViewport::ResetOffset(void)
 bool BitmapMovableInViewport::SetOffset(IntVector2D newOffset)
 {
 	UShortSize2D currentBitmapSize = this->bitmapSizeProvider.GetBitmapSize();
-
-	return 
+	/*
+	Offset nie może sprawić, że bitmapa przestanie być widoczna.
+	*/
+	this->offset = newOffset;
+	return true;
 }
 
 IntVector2D BitmapMovableInViewport::GetOffset(void)
@@ -2166,7 +2154,11 @@ void FractalFacade::MoveFractalImageInViewport(IntVector2D moveVector)
 void FractalFacade::ZoomFractalBitmap(float zoomDelta, BitmapPixel dilationCenterInViewport)
 {
 	//tutaj należałoby zrobić asynchroniczny update offsetu już po podstawieniu nowej bitmapy
-	this->scalableFractalBitmap.Zoom(zoomDelta, dilationCenterInViewport);
+	IntVector2D scalingReference(
+		dilationCenterInViewport.x,
+		dilationCenterInViewport.y
+	);
+	this->scalableFractalBitmap.Zoom(zoomDelta, scalingReference);
 }
 
 void FractalFacade::RenderFractal(FractalRenderingData formData)
