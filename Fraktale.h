@@ -142,7 +142,7 @@ public:
 class BitmapHandleProviderInterface
 {
 public:
-	virtual HBITMAP GetBitmapHandle(void) = 0;
+	virtual bool GetBitmapHandle(HBITMAP& output) = 0;
 };
 
 class BitmapInViewport
@@ -232,7 +232,7 @@ public:
 Ta klasa powinna subskrybować event zmiany rozmiaru widoku.
 Można do niej również podpiąć interfejs warstwy renderowania tak aby wyświetlała aktualną skalę.
 */
-class ScalableBitmapInViewport
+class ScalableBitmapInViewport: public PaintableInterface
 {
 private:
 	float currentScaleRatio;
@@ -245,6 +245,9 @@ public:
 	bool Zoom(float delta, IntVector2D scalingReferencePoint);
 	BitmapMovableInViewport& GetMovableBitmap(void);
 	bool SetScaleRatio(float newScaleRatio);
+
+	// Inherited via PaintableInterface
+	virtual bool DrawInRepaintBuffer(HDC repaintBufferDC, RECT viewportRepaintRect) override;
 };
 
 class PaintingBufferLayerInterface
@@ -253,22 +256,43 @@ public:
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) = 0;
 };
 
-class FractalProcessingInterface: 
+class AbstractFractalProcessing: 
 	public BitmapHandleProviderInterface,
 	public BitmapSizeProviderInterface,
 	public BitmapToSizeGeneratorInterface
 {
+private:
+	Fractal fractalDefinition;
+	UShortSize2D bitmapSize;
+	unsigned int numberOfPointsToDraw;	
+protected:
+	Fractal GetFractalDefinition(void);
+	unsigned int GetNumberOfPointsToDraw(void);
+
+	BITMAP currentBitmapData;
+	BYTE* currentBitmapPixelBytes;
 public:
-	virtual void SetFractalDefinition(Fractal fractal) = 0;
-	virtual void SetFractalBitmapSize(UShortSize2D bitmapSize) = 0;
-	virtual void SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw) = 0;
-	virtual void ProcessNewValues(void);
+	AbstractFractalProcessing();
+	virtual ~AbstractFractalProcessing();
+	void SetFractalDefinition(Fractal fractal);
+	void SetFractalBitmapSize(UShortSize2D bitmapSize);
+	void SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw);
+	virtual void ProcessNewValues(void) = 0;
+
+	// Inherited via BitmapHandleProviderInterface
+	virtual bool GetBitmapHandle(HBITMAP& output) override;
+
+	UShortSize2D GetBitmapSize(void);
+
+	// Inherited via BitmapToSizeGeneratorInterface
+	virtual void InitializeBitmap(UShortSize2D bitmapSize) override;
+	virtual void DrawBitmapBuffer(void) override;
 };
 
 class FractalFacade: public PaintingBufferLayerInterface, public FractalUIRenderingSubsriberInterface, public ViewportResizedSubsriberInterface
 {
 private:
-	FractalProcessingInterface& fractalProcessing;
+	AbstractFractalProcessing& fractalProcessing;
 	Viewport& viewport;
 	BitmapInViewport fractalBitmapInViewport;
 	BitmapMovableInViewport fractalMovableBitmap;
@@ -277,7 +301,7 @@ public:
 	FractalFacade(
 		FractalDrawingUI& fractalUI,
 		Viewport& viewport,
-		FractalProcessingInterface& fractalProcessing
+		AbstractFractalProcessing& fractalProcessing
 	) : viewport(viewport),
 		fractalProcessing(fractalProcessing),
 		fractalBitmapInViewport(
