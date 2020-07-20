@@ -1706,11 +1706,22 @@ int RealTimeMessageLoop::messageLoop(void)
 const float ScalableBitmapInViewport::minScaleRatio = 1.0f;
 const float ScalableBitmapInViewport::maxScaleRatio = 6.0f;
 
+void ScalableBitmapInViewport::OnBitmapGenerated(unsigned char generatedBitmapId, void* object)
+{
+	ScalableBitmapInViewport instance = *(ScalableBitmapInViewport*)object;
+	if (instance.generatedBitmapId = generatedBitmapId)
+	{
+		instance.currentScaleRatio = instance.updateScale;
+		instance.currentMovableBitmap.SetOffset(instance.updateOffset);
+	}
+}
+
 ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitmap, BitmapToSizeGeneratorInterface& bitmapGenerator)
 	: currentMovableBitmap(bitmap), bitmapGenerator(bitmapGenerator)
 {
 	this->updateScale = this->currentScaleRatio = 1.0f;
 	this->updateOffset = this->currentMovableBitmap.GetOffset();
+	this->generatedBitmapId = 0;
 }
 
 bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoint)
@@ -1742,7 +1753,12 @@ bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoi
 		Należy również upewnić się, że poprzednie requesty do generatora nie nadpiszą 
 		aktualnych danych.
 		*/
-		
+		UShortSize2D currentViewportSize = this->currentMovableBitmap.GetBitmapInViewport().GetViewport().GetCurrentSize();
+		UShortSize2D newBitmapSize = {
+			currentViewportSize.width * newScaleRatio,
+			currentViewportSize.height * newScaleRatio
+		};
+		this->bitmapGenerator.GenerateBitmap(newBitmapSize, this, ++this->generatedBitmapId, OnBitmapGenerated);
 
 		this->updateOffset = newOffset;
 		this->updateScale = newScaleRatio;

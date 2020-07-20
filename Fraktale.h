@@ -194,7 +194,7 @@ public:
 class BitmapToSizeGeneratorInterface
 {
 public:
-	virtual void GenerateBitmap(UShortSize2D bitmapSize) = 0;
+	virtual void GenerateBitmap(UShortSize2D bitmapSize, void* object, unsigned char generateRequestId, void(*callback)(unsigned char generateRequestId, void* object) = 0;
 };
 
 class FractalBitmap: 
@@ -238,9 +238,11 @@ private:
 	BitmapToSizeGeneratorInterface& bitmapGenerator;
 	float updateScale;
 	IntVector2D updateOffset;
+	unsigned char generatedBitmapId;
 public:
 	static const float minScaleRatio;
 	static const float maxScaleRatio;
+	static void OnBitmapGenerated(unsigned char generatedBitmapId, void* object);
 	ScalableBitmapInViewport(BitmapMovableInViewport& bitmap, BitmapToSizeGeneratorInterface& bitmapGenerator);
 	bool Zoom(float delta, IntVector2D scalingReferencePoint);
 	BitmapMovableInViewport& GetMovableBitmap(void);
