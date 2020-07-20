@@ -1714,27 +1714,15 @@ ScalableBitmapInViewport::ScalableBitmapInViewport(BitmapMovableInViewport& bitm
 bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoint)
 {
 	//wylicz nową skalę
-	float newScaleRatio = this->currentScaleRatio + delta;
-
-	//obcięcie skali
-	if (newScaleRatio < this->minScaleRatio)
-	{
-		newScaleRatio = this->minScaleRatio;
-	}
-	else if (newScaleRatio > this->maxScaleRatio)
-	{
-		newScaleRatio = this->maxScaleRatio;
-	}
-
-	//sprawdź czy skala się w ogóle zmieniła
-	if (newScaleRatio != this->currentScaleRatio)
+	float previousScaleRatio = this->currentScaleRatio;
+	float newScaleRatio = previousScaleRatio + delta;
+	if (this->SetScaleRatio(newScaleRatio))
 	{
 		IntVector2D referenceToOffset = this->currentMovableBitmap.GetOffset() - scalingReferencePoint;
-		IntVector2D originalReferenceToOffset = referenceToOffset / this->currentScaleRatio;
+		IntVector2D originalReferenceToOffset = referenceToOffset / previousScaleRatio;
 		IntVector2D scaledVector = originalReferenceToOffset * newScaleRatio;
 		IntVector2D newOffset = scalingReferencePoint + scaledVector;
 
-		this->currentScaleRatio = newScaleRatio;
 		this->currentMovableBitmap.SetOffset(newOffset);
 
 		UShortSize2D currentViewportSize = this->currentMovableBitmap.GetBitmapInViewport().GetViewport().GetCurrentSize();
@@ -1748,7 +1736,10 @@ bool ScalableBitmapInViewport::Zoom(float delta, IntVector2D scalingReferencePoi
 
 		this->bitmapGenerator.DrawBitmapBuffer();
 	}
-	return false;
+	else
+	{
+		return false;
+	}
 }
 
 BitmapMovableInViewport& ScalableBitmapInViewport::GetMovableBitmap(void)
@@ -1758,7 +1749,16 @@ BitmapMovableInViewport& ScalableBitmapInViewport::GetMovableBitmap(void)
 
 bool ScalableBitmapInViewport::SetScaleRatio(float newScaleRatio)
 {
-	if (newScaleRatio >= this->minScaleRatio && newScaleRatio <= this->maxScaleRatio)
+	//obcięcie skali
+	if (newScaleRatio < this->minScaleRatio)
+	{
+		newScaleRatio = this->minScaleRatio;
+	}
+	else if (newScaleRatio > this->maxScaleRatio)
+	{
+		newScaleRatio = this->maxScaleRatio;
+	}
+	if (newScaleRatio != this->currentScaleRatio)
 	{
 		this->currentScaleRatio = newScaleRatio;
 		return true;
@@ -1895,6 +1895,15 @@ IntVector2D IntVector2D::operator*(const float& rightHand)
 	};
 }
 
+bool IntVector2D::operator==(const IntVector2D& rightHand)
+{
+	return (
+		this->x == rightHand.x
+		&&
+		this->y == rightHand.y
+	);
+}
+
 BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapSizeProviderInterface& bitmapSizeProvider)
 	:bitmapInViewport(bitmapInViewport), bitmapSizeProvider(bitmapSizeProvider)
 {
@@ -1903,8 +1912,8 @@ BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewp
 
 void BitmapMovableInViewport::MoveBitmap(IntVector2D delta)
 {
-	this->offset += delta;
-	this->bitmapInViewport.GetViewport().RefreshViewport();
+	IntVector2D newOffset = this->offset + delta;
+	this->SetOffset(newOffset);
 }
 
 BitmapInViewport& BitmapMovableInViewport::GetBitmapInViewport(void)
@@ -2002,12 +2011,69 @@ void BitmapMovableInViewport::ResetOffset(void)
 
 bool BitmapMovableInViewport::SetOffset(IntVector2D newOffset)
 {
+	UShortSize2D viewportSize = this->bitmapInViewport.GetViewport().GetCurrentSize();
 	UShortSize2D currentBitmapSize = this->bitmapSizeProvider.GetBitmapSize();
-	/*
-	Offset nie może sprawić, że bitmapa przestanie być widoczna.
-	*/
-	this->offset = newOffset;
-	return true;
+	IntVector2D bitmapBR(
+		newOffset.GetX() + currentBitmapSize.width,
+		newOffset.GetY() + currentBitmapSize.height
+	);
+	short offsetXToApply = newOffset.GetX();
+	short offsetYToApply = newOffset.GetY();
+	if (currentBitmapSize.width > viewportSize.width)
+	{
+		if (offsetXToApply > 0)
+		{
+			offsetXToApply = 0;
+		}
+		else if (bitmapBR.GetX() < viewportSize.width)
+		{
+			offsetXToApply = viewportSize.width - currentBitmapSize.width;
+		}
+	}
+	else
+	{
+		if (offsetXToApply < 0)
+		{
+			offsetXToApply = 0;
+		}
+		else if (bitmapBR.GetX() > viewportSize.width)
+		{
+			offsetXToApply = viewportSize.width - currentBitmapSize.width;
+		}
+	}
+	if (currentBitmapSize.height > viewportSize.height)
+	{
+		if (offsetYToApply > 0)
+		{
+			offsetYToApply = 0;
+		}
+		else if (bitmapBR.GetY() < viewportSize.height)
+		{
+			offsetYToApply = viewportSize.height - currentBitmapSize.height;
+		}
+	}
+	else
+	{
+		if (offsetYToApply < 0)
+		{
+			offsetYToApply = 0;
+		}
+		else if (bitmapBR.GetY() > viewportSize.height)
+		{
+			offsetYToApply = viewportSize.height - currentBitmapSize.height;
+		}
+	}
+	IntVector2D offsetToApply(offsetXToApply, offsetYToApply);
+	if (offsetToApply == this->offset)
+	{
+		return false;
+	}
+	else
+	{
+		this->offset = offsetToApply;
+		this->bitmapInViewport.GetViewport().RefreshViewport();
+		return true;
+	}	
 }
 
 IntVector2D BitmapMovableInViewport::GetOffset(void)

@@ -134,6 +134,7 @@ public:
 	void operator-=(const IntVector2D& rightHand);
 	IntVector2D operator/(const float& rightHand);
 	IntVector2D operator*(const float& rightHand);
+	bool operator==(const IntVector2D& rightHand);
 };
 
 
