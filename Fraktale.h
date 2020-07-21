@@ -256,6 +256,27 @@ public:
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) = 0;
 };
 
+class AbstractFractalDataProcessing
+{
+private:
+	Fractal fractalDefinition;
+	unsigned int maxNumberOfPointsToProcess;
+	Point firstPoint;
+};
+
+class AbstractFractalBitmapProcessing
+{
+
+};
+
+class AbstractMonochromaticFractalBitmap
+{
+private:
+	MonochromaticBitmap fractalBitmap;
+public:
+
+};
+
 class AbstractFractalProcessing: 
 	public BitmapHandleProviderInterface,
 	public BitmapSizeProviderInterface,
@@ -268,25 +289,15 @@ private:
 protected:
 	Fractal GetFractalDefinition(void);
 	unsigned int GetNumberOfPointsToDraw(void);
-
-	BITMAP currentBitmapData;
-	BYTE* currentBitmapPixelBytes;
 public:
 	AbstractFractalProcessing();
 	virtual ~AbstractFractalProcessing();
+	virtual void ProcessFractalData(void) = 0;
 	void SetFractalDefinition(Fractal fractal);
-	void SetFractalBitmapSize(UShortSize2D bitmapSize);
 	void SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw);
-	virtual void ProcessNewValues(void) = 0;
-
-	// Inherited via BitmapHandleProviderInterface
-	virtual bool GetBitmapHandle(HBITMAP& output) override;
-
+	virtual void InitializeBitmapWithCurrentSize(void) = 0;
+	void InitializeBitmap(UShortSize2D bitmapSize) override;
 	UShortSize2D GetBitmapSize(void);
-
-	// Inherited via BitmapToSizeGeneratorInterface
-	virtual void InitializeBitmap(UShortSize2D bitmapSize) override;
-	virtual void DrawBitmapBuffer(void) override;
 };
 
 class FractalFacade: public PaintingBufferLayerInterface, public FractalUIRenderingSubsriberInterface, public ViewportResizedSubsriberInterface
@@ -302,27 +313,7 @@ public:
 		FractalDrawingUI& fractalUI,
 		Viewport& viewport,
 		AbstractFractalProcessing& fractalProcessing
-	) : viewport(viewport),
-		fractalProcessing(fractalProcessing),
-		fractalBitmapInViewport(
-			viewport,
-			this->fractalProcessing
-		),
-		fractalMovableBitmap(
-			this->fractalBitmapInViewport,
-			this->fractalProcessing
-		),
-		scalableFractalBitmap(
-			this->fractalMovableBitmap,
-			this->fractalProcessing
-		)
-	{
-		fractalUI.SubscribeToFractalRendering(*this);
-		this->viewport.SubscribeToViewportResizing(*this);
-		this->fractalProcessing.SetFractalBitmapSize(
-			this->viewport.GetCurrentSize()
-		);
-	};
+	);
 
 	// Inherited via PaintingBufferLayerInterface
 	virtual void DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData) override;

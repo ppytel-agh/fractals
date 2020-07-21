@@ -2216,6 +2216,29 @@ void WindowPaintingPipeline::DrawLayer(PaintingBufferLayerInterface& paintingLay
 	);
 }
 
+FractalFacade::FractalFacade(FractalDrawingUI& fractalUI, Viewport& viewport, AbstractFractalProcessing& fractalProcessing)
+	: viewport(viewport),
+	fractalProcessing(fractalProcessing),
+	fractalBitmapInViewport(
+		viewport,
+		this->fractalProcessing
+	),
+	fractalMovableBitmap(
+		this->fractalBitmapInViewport,
+		this->fractalProcessing
+	),
+	scalableFractalBitmap(
+		this->fractalMovableBitmap,
+		this->fractalProcessing
+	)
+{
+	fractalUI.SubscribeToFractalRendering(*this);
+	this->viewport.SubscribeToViewportResizing(*this);
+	this->fractalProcessing.InitializeBitmap(
+		this->viewport.GetCurrentSize()
+	);
+};
+
 void FractalFacade::DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData)
 {
 	this->fractalMovableBitmap.DrawInRepaintBuffer(
@@ -2249,15 +2272,14 @@ void FractalFacade::RenderFractal(FractalRenderingData formData)
 	this->scalableFractalBitmap.SetScaleRatio(1.0f);
 	this->fractalMovableBitmap.ResetOffset();
 	this->fractalProcessing.SetFractalDefinition(formData.fractalData);
-	this->fractalProcessing.SetFractalBitmapSize(this->viewport.GetCurrentSize());
 	this->fractalProcessing.SetNumberOfPointsToRender(formData.numberOfPointsToRender);
-	this->fractalProcessing.ProcessNewValues();
+	this->fractalProcessing.DrawBitmapBuffer();
 }
 
 void FractalFacade::OnViewportResized(UShortSize2D newViewportSize)
 {
-	this->fractalProcessing.SetFractalBitmapSize(newViewportSize);
-	this->fractalProcessing.ProcessNewValues();
+	this->fractalProcessing.InitializeBitmap(newViewportSize);
+	this->fractalProcessing.DrawBitmapBuffer();
 }
 
 WindowManualResizing::WindowManualResizing(Viewport& viewport)
@@ -2317,16 +2339,6 @@ UShortSize2D AbstractFractalProcessing::GetBitmapSize(void)
 	return this->bitmapSize;
 }
 
-void AbstractFractalProcessing::InitializeBitmap(UShortSize2D bitmapSize)
-{
-	this->SetFractalBitmapSize(bitmapSize);
-
-}
-
-void AbstractFractalProcessing::DrawBitmapBuffer(void)
-{
-}
-
 unsigned int AbstractFractalProcessing::GetNumberOfPointsToDraw(void)
 {
 	return this->numberOfPointsToDraw;
@@ -2337,25 +2349,16 @@ AbstractFractalProcessing::AbstractFractalProcessing()
 {
 	this->bitmapSize = {};
 	this->numberOfPointsToDraw = 0;
-	this->currentBitmapPixelBytes = NULL;
 }
 
 AbstractFractalProcessing::~AbstractFractalProcessing()
 {
-	if (this->currentBitmapPixelBytes != NULL)
-	{
-		delete[] this->currentBitmapPixelBytes;
-	}
 }
 
 void AbstractFractalProcessing::SetFractalDefinition(Fractal fractal)
 {
 	this->fractalDefinition = fractal;
-}
-
-void AbstractFractalProcessing::SetFractalBitmapSize(UShortSize2D bitmapSize)
-{
-	this->bitmapSize = bitmapSize;
+	this->ProcessFractalData();
 }
 
 void AbstractFractalProcessing::SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw)
@@ -2363,8 +2366,8 @@ void AbstractFractalProcessing::SetNumberOfPointsToRender(unsigned int numberOfP
 	this->numberOfPointsToDraw = numberOfPointsToDraw;
 }
 
-bool AbstractFractalProcessing::GetBitmapHandle(HBITMAP& output)
+void AbstractFractalProcessing::InitializeBitmap(UShortSize2D bitmapSize)
 {
-	output = CreateBitmapIndirect(&this->currentBitmapData);
-	return (output != NULL);
+	this->bitmapSize = bitmapSize;
+	this->InitializeBitmapWithCurrentSize();
 }
