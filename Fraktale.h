@@ -264,17 +264,26 @@ private:
 	Point firstPoint;
 };
 
-class AbstractFractalBitmapProcessing
+class FractalBitmapDrawingInterface
 {
-
+public:
+	virtual void DrawFractalPixels(unsigned int numberOfPointsToProcess) = 0;
 };
 
-class AbstractMonochromaticFractalBitmap
+class FractalBitmapInterface
+{
+	virtual void Init(UShortSize2D bitmapSize) = 0;
+	virtual void DrawPixel(BitmapPixel pixel, std::vector<unsigned int> pointsAtPixel) = 0;
+};
+
+class MonochromaticFractalBitmap: public FractalBitmapInterface
 {
 private:
-	MonochromaticBitmap fractalBitmap;
+	MonochromaticBitmap monoBitmap;
 public:
-
+	// Inherited via FractalBitmapPixelsInterface
+	virtual void Init(UShortSize2D bitmapSize) override;
+	virtual void DrawPixel(BitmapPixel pixel, std::vector<unsigned int> pointsAtPixel) override;
 };
 
 class AbstractFractalProcessing: 

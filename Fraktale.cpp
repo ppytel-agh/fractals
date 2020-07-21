@@ -2371,3 +2371,35 @@ void AbstractFractalProcessing::InitializeBitmap(UShortSize2D bitmapSize)
 	this->bitmapSize = bitmapSize;
 	this->InitializeBitmapWithCurrentSize();
 }
+
+void MonochromaticFractalBitmap::Init(UShortSize2D bitmapSize)
+{
+	if (
+		(this->monoBitmap.GetWidth() == bitmapSize.width)
+		&&
+		(this->monoBitmap.GetHeight() == bitmapSize.height)
+	)
+	{
+		this->monoBitmap.Clear();
+	}
+	else
+	{
+		this->monoBitmap = MonochromaticBitmap(
+			bitmapSize.width,
+			bitmapSize.height
+		);
+	}
+}
+
+void MonochromaticFractalBitmap::DrawPixel(BitmapPixel pixel, std::vector<unsigned int> pointsAtPixel)
+{
+	MonochromaticPixelData pixelData = this->monoBitmap.GetPixelData(pixel);
+	if (pointsAtPixel.size() > 0)
+	{
+		this->monoBitmap.MarkPixelAsText(pixelData);
+	}
+	else
+	{
+		this->monoBitmap.MarkPixelAsBackground(pixelData);
+	}
+}
