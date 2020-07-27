@@ -199,14 +199,29 @@ public:
 	virtual void DrawBitmapBuffer(void) = 0;
 };
 
-class FractalBitmap: 
-	public BitmapToSizeGeneratorInterface,
-	public BitmapSizeProviderInterface,
-	public BitmapHandleProviderInterface
+class AbstractBitmapToSizeGenerator: public BitmapSizeProviderInterface, public BitmapToSizeGeneratorInterface
 {
+private:
+	UShortSize2D bitmapSize;
 public:
+	void SetBitmapSize(UShortSize2D newSize);
+	virtual void InitializeBitmapWithCurrentSize() = 0;
 
+	//BitmapSizeProviderInterface overrides
+	virtual UShortSize2D GetBitmapSize(void) override;
+
+	//BitmapToSizeGeneratorInterface
+	virtual void InitializeBitmap(UShortSize2D bitmapSize) override;
 };
+
+//class FractalBitmap: 
+//	public BitmapToSizeGeneratorInterface,
+//	public BitmapSizeProviderInterface,
+//	public BitmapHandleProviderInterface
+//{
+//public:
+//
+//};
 
 
 class BitmapMovableInViewport: public PaintableInterface
@@ -300,12 +315,10 @@ public:
 
 class AbstractFractalProcessing: 
 	public BitmapHandleProviderInterface,
-	public BitmapSizeProviderInterface,
-	public BitmapToSizeGeneratorInterface
+	public AbstractBitmapToSizeGenerator
 {
 private:
 	Fractal fractalDefinition;
-	UShortSize2D bitmapSize;
 	unsigned int maxNumberOfPoints;
 	unsigned int numberOfPointsToDraw;	
 protected:
@@ -315,21 +328,19 @@ protected:
 public:
 	AbstractFractalProcessing();
 	virtual ~AbstractFractalProcessing();
-	virtual void ProcessFractalData(void) = 0;
 	virtual void CalculateFractalPoints(void) = 0;
 	virtual void ConvertPointsToPixels(void) = 0;
 	void SetFractalDefinition(Fractal fractal);
 	void SetMaxNumberOfFractalPoints(unsigned int maxNumberOfPoints);
-	void SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw);
-	virtual void InitializeBitmapWithCurrentSize(void) = 0;
-	void InitializeBitmap(UShortSize2D bitmapSize) override;
-	UShortSize2D GetBitmapSize(void);
+	void SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw);	
 };
 
 class AbstractFratalProcessingWithBitmapInterface: public AbstractFractalProcessing
 {
 private:
 	FractalBitmapInterface& fractalDrawing;
+protected:
+	FractalBitmapInterface& GetFractalDrawing(void);
 public:
 	AbstractFratalProcessingWithBitmapInterface(
 		FractalBitmapInterface& fractalDrawing
@@ -346,18 +357,18 @@ private:
 	SynchronousFractalPointsCalculator* fractalPointsCalculator;
 	std::vector<Point> fractalPoints;
 	FractalPixelCalculatorGDI* fractalPixelCalculator;
+	BitmapDimensions bitmapDimensions;
 	std::vector<unsigned int>** pixelPoints;
 	void InitializeFractalPointsCalculator(void);
 	void InitializeFractalPixelCalculator(void);
+	void InitializePixelPoints(void);
 public:
 	SimpleFractalProcessing(
 		FractalBitmapInterface& fractalDrawing
 	);
-	virtual void InitializeBitmapWithCurrentSize(void) override;
-	virtual void DrawBitmapBuffer(void) override;
-	virtual void ProcessFractalData(void) override;
 	virtual void CalculateFractalPoints(void) override;
 	virtual void ConvertPointsToPixels(void) override;
+	virtual void DrawBitmapBuffer(void) override;
 };
 
 class FractalFacade: public PaintingBufferLayerInterface, public FractalUIRenderingSubsriberInterface, public ViewportResizedSubsriberInterface

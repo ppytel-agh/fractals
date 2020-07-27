@@ -1778,6 +1778,10 @@ bool ScalableBitmapInViewport::SetScaleRatio(float newScaleRatio)
 bool ScalableBitmapInViewport::DrawInRepaintBuffer(HDC repaintBufferDC, RECT viewportRepaintRect)
 {
 	//narysuj UI z aktualną skalą
+	this->currentMovableBitmap.DrawInRepaintBuffer(
+		repaintBufferDC,
+		viewportRepaintRect
+	);
 	return false;
 }
 
@@ -2245,11 +2249,7 @@ FractalFacade::FractalFacade(FractalDrawingUI& fractalUI, Viewport& viewport, Ab
 };
 
 void FractalFacade::DrawInRepaintBuffer(HDC repaintBufferDC, PAINTSTRUCT& windowPaintingData)
-{
-	this->fractalMovableBitmap.DrawInRepaintBuffer(
-		repaintBufferDC,
-		windowPaintingData.rcPaint
-	);
+{	
 	this->scalableFractalBitmap.DrawInRepaintBuffer(
 		repaintBufferDC,
 		windowPaintingData.rcPaint
@@ -2269,6 +2269,7 @@ void FractalFacade::ZoomFractalBitmap(float zoomDelta, BitmapPixel dilationCente
 		dilationCenterInViewport.x,
 		dilationCenterInViewport.y
 	);
+	//kalkulacja nowego rozmiaru bitmapy
 	this->scalableFractalBitmap.Zoom(zoomDelta, scalingReference);
 }
 
@@ -2277,13 +2278,21 @@ void FractalFacade::RenderFractal(FractalRenderingData formData)
 	this->scalableFractalBitmap.SetScaleRatio(1.0f);
 	this->fractalMovableBitmap.ResetOffset();
 	this->fractalProcessing.SetFractalDefinition(formData.fractalData);
+	this->fractalProcessing.SetMaxNumberOfFractalPoints(100000);
+	this->fractalProcessing.CalculateFractalPoints();
+	this->fractalProcessing.SetBitmapSize(this->viewport.GetViewportDimensions().GetSize());
+	this->fractalProcessing.ConvertPointsToPixels();
+	this->fractalProcessing.InitializeBitmapWithCurrentSize();
 	this->fractalProcessing.SetNumberOfPointsToRender(formData.numberOfPointsToRender);
 	this->fractalProcessing.DrawBitmapBuffer();
+	this->viewport.RefreshViewport();
 }
 
 void FractalFacade::OnViewportResized(UShortSize2D newViewportSize)
 {
-	this->fractalProcessing.InitializeBitmap(newViewportSize);
+	this->fractalProcessing.SetBitmapSize(this->viewport.GetViewportDimensions().GetSize());
+	this->fractalProcessing.ConvertPointsToPixels();
+	this->fractalProcessing.InitializeBitmapWithCurrentSize();
 	this->fractalProcessing.DrawBitmapBuffer();
 }
 
@@ -2344,11 +2353,6 @@ unsigned int AbstractFractalProcessing::GetMaxNumberOfPoints(void)
 	return this->maxNumberOfPoints;
 }
 
-UShortSize2D AbstractFractalProcessing::GetBitmapSize(void)
-{
-	return this->bitmapSize;
-}
-
 unsigned int AbstractFractalProcessing::GetNumberOfPointsToDraw(void)
 {
 	return this->numberOfPointsToDraw;
@@ -2357,7 +2361,6 @@ unsigned int AbstractFractalProcessing::GetNumberOfPointsToDraw(void)
 AbstractFractalProcessing::AbstractFractalProcessing()
 	:fractalDefinition()
 {
-	this->bitmapSize = {};
 	this->numberOfPointsToDraw = 0;
 }
 
@@ -2368,7 +2371,8 @@ AbstractFractalProcessing::~AbstractFractalProcessing()
 void AbstractFractalProcessing::SetFractalDefinition(Fractal fractal)
 {
 	this->fractalDefinition = fractal;
-	this->ProcessFractalData();
+	this->CalculateFractalPoints();
+	this->ConvertPointsToPixels();
 }
 
 void AbstractFractalProcessing::SetMaxNumberOfFractalPoints(unsigned int maxNumberOfPoints)
@@ -2379,12 +2383,6 @@ void AbstractFractalProcessing::SetMaxNumberOfFractalPoints(unsigned int maxNumb
 void AbstractFractalProcessing::SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw)
 {
 	this->numberOfPointsToDraw = numberOfPointsToDraw;
-}
-
-void AbstractFractalProcessing::InitializeBitmap(UShortSize2D bitmapSize)
-{
-	this->bitmapSize = bitmapSize;
-	this->InitializeBitmapWithCurrentSize();
 }
 
 MonochromaticFractalBitmap::MonochromaticFractalBitmap()
@@ -2448,6 +2446,11 @@ bool AbstractFractalBitmap::GetFractalBitmapHandle(HBITMAP& output)
 	}
 }
 
+FractalBitmapInterface& AbstractFratalProcessingWithBitmapInterface::GetFractalDrawing(void)
+{
+	return this->fractalDrawing;
+}
+
 AbstractFratalProcessingWithBitmapInterface::AbstractFratalProcessingWithBitmapInterface(FractalBitmapInterface& fractalDrawing)
 	:fractalDrawing(fractalDrawing)
 {
@@ -2465,7 +2468,7 @@ void AbstractFratalProcessingWithBitmapInterface::InitializeBitmapWithCurrentSiz
 
 void SimpleFractalProcessing::InitializeFractalPointsCalculator(void)
 {
-	if (this->fractalPointsCalculator == NULL)
+	if (this->fractalPointsCalculator != NULL)
 	{
 		delete this->fractalPointsCalculator;
 	}
@@ -2476,7 +2479,7 @@ void SimpleFractalProcessing::InitializeFractalPointsCalculator(void)
 
 void SimpleFractalProcessing::InitializeFractalPixelCalculator(void)
 {
-	if (this->fractalPixelCalculator == NULL)
+	if (this->fractalPixelCalculator != NULL)
 	{
 		delete this->fractalPixelCalculator;
 	}
@@ -2486,31 +2489,46 @@ void SimpleFractalProcessing::InitializeFractalPixelCalculator(void)
 	);
 }
 
+void SimpleFractalProcessing::InitializePixelPoints(void)
+{
+	if (this->pixelPoints != NULL)
+	{
+		for (unsigned int i = 0; i < bitmapDimensions.GetNumberOfPixels(); i++)
+		{
+			if (this->pixelPoints[i] != NULL)
+			{
+				delete this->pixelPoints[i];
+			}
+		}
+		delete[] this->pixelPoints;
+	}
+	this->bitmapDimensions = BitmapDimensions(this->GetBitmapSize());
+	this->pixelPoints = new std::vector<unsigned int> * [bitmapDimensions.GetNumberOfPixels()] {};
+	//memset(this->pixelPoints, NULL, sizeof(std::vector<unsigned int>*) * numberOfPixels);
+}
+
 SimpleFractalProcessing::SimpleFractalProcessing(FractalBitmapInterface& fractalDrawing)
-	:AbstractFratalProcessingWithBitmapInterface(fractalDrawing)
+	:AbstractFratalProcessingWithBitmapInterface(fractalDrawing),
+	bitmapDimensions()
 {
 	this->fractalPointsCalculator = NULL;
 	this->fractalPixelCalculator = NULL;
 	this->pixelPoints = NULL;
 }
 
-void SimpleFractalProcessing::InitializeBitmapWithCurrentSize(void)
-{	
-	AbstractFratalProcessingWithBitmapInterface::InitializeBitmapWithCurrentSize();
-}
-
-void SimpleFractalProcessing::ProcessFractalData(void)
+void SimpleFractalProcessing::CalculateFractalPoints(void)
 {
-	this->InitializeFractalPointsCalculator();	
+	this->InitializeFractalPointsCalculator();
 	this->fractalPoints = this->fractalPointsCalculator->CalculateFractalPoints(
 		Point(),
 		this->numberOfPointsToCalculate
 	);
-	BitmapDimensions bitmapDimensions(this->GetBitmapSize());
-	unsigned int numberOfPixels = bitmapDimensions.GetNumberOfPixels();
-	this->pixelPoints = new std::vector<unsigned int> * [numberOfPixels] {};
-	//memset(this->pixelPoints, NULL, sizeof(std::vector<unsigned int>*) * numberOfPixels);
+}
+
+void SimpleFractalProcessing::ConvertPointsToPixels(void)
+{	
 	this->InitializeFractalPixelCalculator();
+	this->InitializePixelPoints();
 	for (unsigned int i = 0; i < this->numberOfPointsToCalculate; i++)
 	{
 		BitmapPixel pointPixel = this->fractalPixelCalculator->CalculatePixel(this->fractalPoints[i]);
@@ -2520,4 +2538,36 @@ void SimpleFractalProcessing::ProcessFractalData(void)
 		}
 		this->pixelPoints[pixelIndex]->push_back(i);
 	}
+}
+
+void SimpleFractalProcessing::DrawBitmapBuffer(void)
+{
+	std::vector<unsigned int> emptyVector;
+	for (unsigned int i = 0; i < bitmapDimensions.GetNumberOfPixels(); i++)
+	{
+		BitmapPixel pixel = this->bitmapDimensions.GetBitmapPixel(i);
+		if (this->pixelPoints[i] == NULL) {
+			this->GetFractalDrawing().DrawPixel(pixel, emptyVector);
+		}
+		else
+		{
+			this->GetFractalDrawing().DrawPixel(pixel, *this->pixelPoints[i]);
+		}
+	}
+}
+
+UShortSize2D AbstractBitmapToSizeGenerator::GetBitmapSize(void)
+{
+	return this->bitmapSize;
+}
+
+void AbstractBitmapToSizeGenerator::InitializeBitmap(UShortSize2D bitmapSize)
+{
+	this->SetBitmapSize(bitmapSize);
+	this->InitializeBitmapWithCurrentSize();
+}
+
+void AbstractBitmapToSizeGenerator::SetBitmapSize(UShortSize2D newSize)
+{
+	this->bitmapSize = newSize;
 }
