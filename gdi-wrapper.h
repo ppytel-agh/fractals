@@ -131,6 +131,7 @@ public:
 	unsigned int GetPixelIndex(BitmapPixel pixel);
 	bool copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated);
 	void bitmapUpdated(void);
+	HBITMAP CreateBitmapHandle(void);
 };
 
 struct MonochromaticPixelData

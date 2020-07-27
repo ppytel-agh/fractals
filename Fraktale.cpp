@@ -592,10 +592,15 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 		//dane okna
 		Viewport* windowViewport = new Viewport(hWnd);
-		FractalFacade* fractalFacade;/* = new FractalFacade(
-			*dialogData->fractalUI
+		FractalBitmapInterface* fractalBitmapProcessing = new MonochromaticFractalBitmap();
+		AbstractFractalProcessing* fractalProcessing = new SimpleFractalProcessing(
+			*fractalBitmapProcessing
 		);
-		*/
+		FractalFacade* fractalFacade = new FractalFacade(
+			*dialogData->fractalUI,
+			*windowViewport,
+			*fractalProcessing
+		);		
 		WindowManualResizing* resizing = new WindowManualResizing(*windowViewport);
 		VectorTracking2D* LMBTracking = new VectorTracking2D();
 		FractalWindowDataV2* windowData = new FractalWindowDataV2(
@@ -682,7 +687,7 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					}
 					break;
 				case WM_PAINT:
-					{						
+					{
 						WindowPaintingPipeline paintingPipe(hWnd);
 						paintingPipe.DrawLayer(windowData->fractalFacade);
 					}
@@ -704,8 +709,8 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					{
 						windowData->viewport.TriggerResizingEvent(
 							windowData->resizing.GetNewSize()
-						);						
-					}					
+						);
+					}
 					break;
 				case WM_SIZE:
 					//maksymalizowanie i przywracanie rozmiaru okna powinny skutkować odrysowaniem bitmapy fraktala
@@ -786,7 +791,7 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					break;
 				case WM_MOUSELEAVE:
 					//reset flagi poruszania bitmapy
-					OutputDebugStringW(L"Opuszczono główne okno\n");						
+					OutputDebugStringW(L"Opuszczono główne okno\n");
 					windowData->isLMBPressed = false;
 					break;
 				case WM_MOUSEWHEEL:
@@ -826,7 +831,7 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					//rozpocznij "przesuwanie" fraktala
 					{
 						int mouseX = GET_X_LPARAM(lParam);
-						int mouseY = GET_Y_LPARAM(lParam);						
+						int mouseY = GET_Y_LPARAM(lParam);
 						windowData->isLMBPressed = true;
 						windowData->LMBPressedTracking.UpdateLastPosition(
 							IntVector2D(mouseX, mouseY)
@@ -835,7 +840,7 @@ LRESULT CALLBACK WndProcV2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 					break;
 				case WM_LBUTTONUP:
 					//koniec przesuwania bitmapy
-					OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");					
+					OutputDebugStringW(L"Puszczono lewy przycisk myszy\n");
 					windowData->isLMBPressed = false;
 					break;
 				case WM_SETCURSOR:
@@ -1889,16 +1894,16 @@ void IntVector2D::operator-=(const IntVector2D& rightHand)
 IntVector2D IntVector2D::operator/(const float& rightHand)
 {
 	return IntVector2D{
-		this->x / rightHand,
-		this->y / rightHand
+		static_cast<short>(this->x / rightHand),
+		static_cast<short>(this->y / rightHand)
 	};
 }
 
 IntVector2D IntVector2D::operator*(const float& rightHand)
 {
 	return IntVector2D{
-		this->x * rightHand,
-		this->y * rightHand
+		static_cast<short>(this->x * rightHand),
+		static_cast<short>(this->y * rightHand)
 	};
 }
 
@@ -1908,7 +1913,7 @@ bool IntVector2D::operator==(const IntVector2D& rightHand)
 		this->x == rightHand.x
 		&&
 		this->y == rightHand.y
-	);
+		);
 }
 
 BitmapMovableInViewport::BitmapMovableInViewport(BitmapInViewport& bitmapInViewport, BitmapSizeProviderInterface& bitmapSizeProvider)
@@ -2080,7 +2085,7 @@ bool BitmapMovableInViewport::SetOffset(IntVector2D newOffset)
 		this->offset = offsetToApply;
 		this->bitmapInViewport.GetViewport().RefreshViewport();
 		return true;
-	}	
+	}
 }
 
 IntVector2D BitmapMovableInViewport::GetOffset(void)
@@ -2334,6 +2339,11 @@ Fractal AbstractFractalProcessing::GetFractalDefinition(void)
 	return this->fractalDefinition;
 }
 
+unsigned int AbstractFractalProcessing::GetMaxNumberOfPoints(void)
+{
+	return this->maxNumberOfPoints;
+}
+
 UShortSize2D AbstractFractalProcessing::GetBitmapSize(void)
 {
 	return this->bitmapSize;
@@ -2361,6 +2371,11 @@ void AbstractFractalProcessing::SetFractalDefinition(Fractal fractal)
 	this->ProcessFractalData();
 }
 
+void AbstractFractalProcessing::SetMaxNumberOfFractalPoints(unsigned int maxNumberOfPoints)
+{
+	this->maxNumberOfPoints = maxNumberOfPoints;
+}
+
 void AbstractFractalProcessing::SetNumberOfPointsToRender(unsigned int numberOfPointsToDraw)
 {
 	this->numberOfPointsToDraw = numberOfPointsToDraw;
@@ -2372,19 +2387,27 @@ void AbstractFractalProcessing::InitializeBitmap(UShortSize2D bitmapSize)
 	this->InitializeBitmapWithCurrentSize();
 }
 
+MonochromaticFractalBitmap::MonochromaticFractalBitmap()
+	:AbstractFractalBitmap((Bitmap**)&this->monoBitmap)
+{
+	this->monoBitmap = NULL;
+}
+
 void MonochromaticFractalBitmap::Init(UShortSize2D bitmapSize)
 {
 	if (
-		(this->monoBitmap.GetWidth() == bitmapSize.width)
+		this->monoBitmap != NULL
 		&&
-		(this->monoBitmap.GetHeight() == bitmapSize.height)
-	)
+		(this->monoBitmap->GetWidth() == bitmapSize.width)
+		&&
+		(this->monoBitmap->GetHeight() == bitmapSize.height)
+		)
 	{
-		this->monoBitmap.Clear();
+		this->monoBitmap->Clear();
 	}
 	else
 	{
-		this->monoBitmap = MonochromaticBitmap(
+		this->monoBitmap = new MonochromaticBitmap(
 			bitmapSize.width,
 			bitmapSize.height
 		);
@@ -2393,13 +2416,108 @@ void MonochromaticFractalBitmap::Init(UShortSize2D bitmapSize)
 
 void MonochromaticFractalBitmap::DrawPixel(BitmapPixel pixel, std::vector<unsigned int> pointsAtPixel)
 {
-	MonochromaticPixelData pixelData = this->monoBitmap.GetPixelData(pixel);
-	if (pointsAtPixel.size() > 0)
+	if (this->monoBitmap != NULL)
 	{
-		this->monoBitmap.MarkPixelAsText(pixelData);
+		MonochromaticPixelData pixelData = this->monoBitmap->GetPixelData(pixel);
+		if (pointsAtPixel.size() > 0)
+		{
+			this->monoBitmap->MarkPixelAsText(pixelData);
+		}
+		else
+		{
+			this->monoBitmap->MarkPixelAsBackground(pixelData);
+		}
+	}
+}
+
+AbstractFractalBitmap::AbstractFractalBitmap(Bitmap** bitmap)
+{
+	this->fractalBitmap = bitmap;
+}
+
+bool AbstractFractalBitmap::GetFractalBitmapHandle(HBITMAP& output)
+{
+	if (this->fractalBitmap != NULL)
+	{
+		output = (*this->fractalBitmap)->CreateBitmapHandle();
+		return true;
 	}
 	else
 	{
-		this->monoBitmap.MarkPixelAsBackground(pixelData);
+		return false;
+	}
+}
+
+AbstractFratalProcessingWithBitmapInterface::AbstractFratalProcessingWithBitmapInterface(FractalBitmapInterface& fractalDrawing)
+	:fractalDrawing(fractalDrawing)
+{
+}
+
+bool AbstractFratalProcessingWithBitmapInterface::GetBitmapHandle(HBITMAP& output)
+{
+	return this->fractalDrawing.GetFractalBitmapHandle(output);
+}
+
+void AbstractFratalProcessingWithBitmapInterface::InitializeBitmapWithCurrentSize(void)
+{
+	this->fractalDrawing.Init(this->GetBitmapSize());
+}
+
+void SimpleFractalProcessing::InitializeFractalPointsCalculator(void)
+{
+	if (this->fractalPointsCalculator == NULL)
+	{
+		delete this->fractalPointsCalculator;
+	}
+	this->fractalPointsCalculator = new SynchronousFractalPointsCalculator(
+		this->GetFractalDefinition()
+	);
+}
+
+void SimpleFractalProcessing::InitializeFractalPixelCalculator(void)
+{
+	if (this->fractalPixelCalculator == NULL)
+	{
+		delete this->fractalPixelCalculator;
+	}
+	this->fractalPixelCalculator = new FractalPixelCalculatorGDI(
+		this->GetFractalDefinition().getClipping(),
+		BitmapDimensions(this->GetBitmapSize())
+	);
+}
+
+SimpleFractalProcessing::SimpleFractalProcessing(FractalBitmapInterface& fractalDrawing)
+	:AbstractFratalProcessingWithBitmapInterface(fractalDrawing)
+{
+	this->fractalPointsCalculator = NULL;
+	this->fractalPixelCalculator = NULL;
+	this->pixelPoints = NULL;
+}
+
+void SimpleFractalProcessing::InitializeBitmapWithCurrentSize(void)
+{	
+	AbstractFratalProcessingWithBitmapInterface::InitializeBitmapWithCurrentSize();
+}
+
+void SimpleFractalProcessing::ProcessFractalData(void)
+{
+	this->InitializeFractalPointsCalculator();	
+	this->fractalPoints = this->fractalPointsCalculator->CalculateFractalPoints(
+		Point(),
+		this->numberOfPointsToCalculate
+	);
+	BitmapDimensions bitmapDimensions(this->GetBitmapSize());
+	unsigned int numberOfPixels = bitmapDimensions.GetNumberOfPixels();
+	this->pixelPoints = new std::vector<unsigned int> * [numberOfPixels] {};
+	//memset(this->pixelPoints, NULL, sizeof(std::vector<unsigned int>*) * numberOfPixels);
+	this->InitializeFractalPixelCalculator();
+	for (unsigned int i = 0; i < this->numberOfPointsToCalculate; i++)
+	{
+		BitmapPixel pointPixel = this->fractalPixelCalculator->CalculatePixel(this->fractalPoints[i]);
+		unsigned int pixelIndex = bitmapDimensions.GetPixelIndex(pointPixel);
+		if (this->pixelPoints[pixelIndex] == NULL) {
+			this->pixelPoints[pixelIndex] = new std::vector<unsigned int>;
+		}
+		this->pixelPoints[pixelIndex]->push_back(i);
 	}
 }

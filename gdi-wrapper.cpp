@@ -433,6 +433,11 @@ void Bitmap::bitmapUpdated(void)
 	this->updateHandle = true;
 }
 
+HBITMAP Bitmap::CreateBitmapHandle(void)
+{
+	return CreateBitmapIndirect(&this->bitmapData);
+}
+
 bool Bitmap::IsPixelValid(BitmapPixel pixel)
 {
 	return (pixel.x < this->bitmapData.bmWidth&& pixel.y < this->bitmapData.bmHeight);
@@ -485,7 +490,7 @@ bool Bitmap::copyIntoBuffer(HDC bitmapBuffer, bool& handleWasUpdated)
 	if (this->updateHandle)
 	{
 		DeleteObject(this->bitmapHandle);
-		this->bitmapHandle = CreateBitmapIndirect(&this->bitmapData);
+		this->bitmapHandle = this->CreateBitmapHandle();
 		this->updateHandle = false;
 		handleWasUpdated = true;
 	}

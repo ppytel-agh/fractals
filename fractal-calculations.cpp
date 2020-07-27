@@ -331,3 +331,32 @@ unsigned int FractalPixelsV2::GetNumberOfContinuousProcessedPoints(void)
 {
 	return this->numberOfContinuousProcessedPoints;
 }
+
+Point AbstractFractalPoints::CalculateNextPoint(Point currentPoint)
+{
+	return this->fractal.getAffineTransformation(rand()).calculatePrim(currentPoint);
+}
+
+AbstractFractalPoints::AbstractFractalPoints(Fractal fractal)
+	:fractal(fractal)
+{
+}
+
+SynchronousFractalPointsCalculator::SynchronousFractalPointsCalculator(Fractal fractal)
+	:AbstractFractalPoints(fractal)
+{
+}
+
+std::vector<Point> SynchronousFractalPointsCalculator::CalculateFractalPoints(Point startingPoint, unsigned int numberOfPointsToCalculate)
+{
+	std::vector<Point> result;
+	result.push_back(startingPoint);
+	Point currentPoint = startingPoint;
+	for (unsigned int i = 0; i < numberOfPointsToCalculate; i++)
+	{
+		Point nextPoint = this->CalculateNextPoint(currentPoint);
+		result.push_back(nextPoint);
+		currentPoint = nextPoint;
+	}
+	return result;
+}

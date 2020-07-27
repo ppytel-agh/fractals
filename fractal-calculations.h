@@ -6,6 +6,19 @@
 #include <ppl.h>
 #include "gdi-wrapper.h"
 #include "fractal-gdi-calculations.h"
+#include <vector>
+
+class AbstractFractalPoints
+{
+private:
+	Fractal fractal;
+protected:
+	Point CalculateNextPoint(Point currentPoint);
+public:
+	AbstractFractalPoints(
+		Fractal fractal
+	);
+};
 
 class FractalPoints
 {
@@ -26,6 +39,13 @@ public:
 	bool getPoint(unsigned int index, Point& output);
 	bool pointsAreCalculated(void);
 
+};
+
+class SynchronousFractalPointsCalculator: public AbstractFractalPoints
+{
+public:
+	SynchronousFractalPointsCalculator(Fractal fractal);
+	std::vector<Point> CalculateFractalPoints(Point startingPoint, unsigned int numberOfPointsToCalculate);
 };
 
 class BitmapPixelsCalculator
